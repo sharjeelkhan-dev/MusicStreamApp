@@ -14,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -32,18 +31,15 @@ import java.util.Locale
 
 @Composable
 fun TakeAttendanceScreen(
+    modifier: Modifier = Modifier,
     viewModel: AttendanceViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Scaffold(
-        containerColor = Color.White
-    ) { paddingValues ->
-        AttendanceContent(
-            state = state,
-            onEvent = viewModel::onEvent,
-            modifier = Modifier.padding(paddingValues)
-        )
-    }
+    AttendanceContent(
+        state = state,
+        onEvent = viewModel::onEvent,
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -61,81 +57,81 @@ private fun AttendanceContent(
         }
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize().background(Color.White),
-        contentPadding = PaddingValues(bottom = 16.dp)
-    ) {
-        // Header
-        item {
-            AttendanceHeader(
-                className = state.selectedClass?.name ?: "No Class",
-                presentCount = state.presentCount,
-                absentCount = state.absentCount,
-                isSaving = state.isSaving,
-                isSaved = state.isSaved,
-                onSave = { onEvent(AttendanceEvent.SaveAttendance) }
-            )
-        }
+    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // Fixed Header
+        AttendanceHeader(
+            className = state.selectedClass?.name ?: "No Class",
+            presentCount = state.presentCount,
+            absentCount = state.absentCount,
+            isSaving = state.isSaving,
+            isSaved = state.isSaved,
+            onSave = { onEvent(AttendanceEvent.SaveAttendance) }
+        )
 
-        // Search bar
-        item {
-            OutlinedTextField(
-                value = state.searchQuery,
-                onValueChange = { onEvent(AttendanceEvent.SearchQueryChanged(it)) },
-                placeholder = { Text("Search student...", color = TextSecondaryLight) },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondaryLight)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = DividerColor,
-                    focusedBorderColor = PrimaryGreen
-                ),
-                singleLine = true
-            )
-        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            // Search bar
+            item {
+                OutlinedTextField(
+                    value = state.searchQuery,
+                    onValueChange = { onEvent(AttendanceEvent.SearchQueryChanged(it)) },
+                    placeholder = { Text("Search student...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedBorderColor = PrimaryGreen
+                    ),
+                    singleLine = true
+                )
+            }
 
-        // All Present / All Absent buttons
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { onEvent(AttendanceEvent.MarkAllPresent) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(24.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, PresentGreen),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PresentGreen)
+            // All Present / All Absent buttons
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("All Present", fontWeight = FontWeight.SemiBold)
-                }
-                OutlinedButton(
-                    onClick = { onEvent(AttendanceEvent.MarkAllAbsent) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(24.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, AbsentRed),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AbsentRed)
-                ) {
-                    Text("All Absent", fontWeight = FontWeight.SemiBold)
+                    OutlinedButton(
+                        onClick = { onEvent(AttendanceEvent.MarkAllPresent) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(24.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, PresentGreen),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PresentGreen)
+                    ) {
+                        Text("All Present", fontWeight = FontWeight.SemiBold)
+                    }
+                    OutlinedButton(
+                        onClick = { onEvent(AttendanceEvent.MarkAllAbsent) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(24.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, AbsentRed),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AbsentRed)
+                    ) {
+                        Text("All Absent", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
-        }
 
-        // Student list
-        items(filteredStudents, key = { it.student.id }) { studentState ->
-            AttendanceStudentRow(
-                studentState = studentState,
-                avatarColor = AvatarColors[(studentState.student.id % AvatarColors.size).toInt()],
-                onToggle = { status ->
-                    onEvent(AttendanceEvent.ToggleStatus(studentState.student.id, status))
-                }
-            )
+            // Student list
+            items(filteredStudents, key = { it.student.id }) { studentState ->
+                AttendanceStudentRow(
+                    studentState = studentState,
+                    avatarColor = getAvatarColor(studentState.student.fullName),
+                    onToggle = { status ->
+                        onEvent(AttendanceEvent.ToggleStatus(studentState.student.id, status))
+                    }
+                )
+            }
         }
     }
 }
@@ -154,67 +150,67 @@ private fun AttendanceHeader(
         DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.ENGLISH)
     )
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
+            .statusBarsPadding()
             .background(PrimaryGreenDark)
-            .padding(top = 16.dp, bottom = 24.dp)
+            .padding(top = 16.dp, bottom = 20.dp)
             .padding(horizontal = 20.dp)
     ) {
-        Column {
-            Text(
-                text = "$dateFormatted \u2014 $className",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.8f)
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Text(
+            text = dateFormatted,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.85f),
+            fontSize = 13.sp
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Take Attendance",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "$className · $presentCount Present · $absentCount Absent",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 15.sp
+                )
+            }
+
+            Button(
+                onClick = onSave,
+                enabled = !isSaving,
+                shape = RoundedCornerShape(20.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                modifier = Modifier.height(36.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = PrimaryGreen
+                )
             ) {
-                Column {
-                    Text(
-                        text = "Take Attendance",
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontSize = 26.sp,
-                            lineHeight = 32.sp
-                        ),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
+                Text(
+                    text = if (isSaved) "Saved" else "Save",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+                if (isSaved) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "$presentCount Present \u00b7 $absentCount Absent",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                Button(
-                    onClick = onSave,
-                    enabled = !isSaving,
-                    shape = RoundedCornerShape(20.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                    modifier = Modifier.height(36.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = PrimaryGreen
-                    )
-                ) {
-                    Text(
-                        text = if (isSaved) "Saved" else "Save",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    if (isSaved) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
                 }
             }
         }
@@ -232,7 +228,7 @@ private fun AttendanceStudentRow(
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 4.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -265,12 +261,12 @@ private fun AttendanceStudentRow(
                     text = studentState.student.fullName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimaryLight
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = studentState.student.rollNumber,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondaryLight
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
 
@@ -282,7 +278,7 @@ private fun AttendanceStudentRow(
                 shape = RoundedCornerShape(10.dp),
                 contentPadding = PaddingValues(0.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isPresentSelected) PresentGreen else PresentGreenBg,
+                    containerColor = if (isPresentSelected) PresentGreen else PresentGreen.copy(alpha = 0.1f),
                     contentColor = if (isPresentSelected) Color.White else PresentGreen
                 )
             ) {
@@ -299,7 +295,7 @@ private fun AttendanceStudentRow(
                 shape = RoundedCornerShape(10.dp),
                 contentPadding = PaddingValues(0.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isAbsentSelected) AbsentRed else AbsentRedBg,
+                    containerColor = if (isAbsentSelected) AbsentRed else AbsentRed.copy(alpha = 0.1f),
                     contentColor = if (isAbsentSelected) Color.White else AbsentRed
                 )
             ) {
@@ -311,18 +307,18 @@ private fun AttendanceStudentRow(
 
 @Preview(showBackground = true)
 @Composable
-fun AttendancePreview() {
+fun TakeAttendancePreview() {
     AttendanceTheme {
         AttendanceContent(
             state = AttendanceState(
-                selectedClass = ClassModel(name = "Operating Systems", section = "Section A"),
+                selectedClass = ClassModel(id = 1, name = "Computer Science", section = "A"),
                 students = listOf(
                     StudentAttendanceState(
-                        student = Student(id = 1, fullName = "John Doe", rollNumber = "CS101", classId = 1),
+                        student = Student(id = 1, fullName = "John Doe", rollNumber = "CS001", classId = 1),
                         status = AttendanceStatus.PRESENT
                     ),
                     StudentAttendanceState(
-                        student = Student(id = 2, fullName = "Jane Smith", rollNumber = "CS102", classId = 1),
+                        student = Student(id = 2, fullName = "Jane Smith", rollNumber = "CS002", classId = 1),
                         status = AttendanceStatus.ABSENT
                     )
                 ),

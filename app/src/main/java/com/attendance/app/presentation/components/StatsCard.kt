@@ -21,12 +21,14 @@ fun StatsCard(
     value: String,
     label: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = TextPrimaryLight
+    valueColor: Color = Color.Unspecified
 ) {
+    val displayValueColor = if (valueColor == Color.Unspecified) MaterialTheme.colorScheme.onSurfaceVariant else valueColor
+
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -39,13 +41,13 @@ fun StatsCard(
                 text = value,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = valueColor
+                color = displayValueColor
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondaryLight,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.7f),
                 fontWeight = FontWeight.Medium
             )
         }

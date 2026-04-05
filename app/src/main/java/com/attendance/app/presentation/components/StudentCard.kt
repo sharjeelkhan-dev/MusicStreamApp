@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.attendance.app.presentation.theme.*
@@ -28,7 +29,7 @@ fun StudentCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -61,12 +62,12 @@ fun StudentCard(
                     text = name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimaryLight
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = rollNumber,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondaryLight
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.7f)
                 )
             }
 
@@ -140,7 +141,7 @@ fun StudentAttendanceItem(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
-            color = TextPrimaryLight
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.width(8.dp))
@@ -175,6 +176,30 @@ fun StudentAttendanceItem(
             .height(4.dp)
             .clip(RoundedCornerShape(2.dp)),
         color = progressColor,
-        trackColor = Color(0xFFEEEEEE),
+        trackColor = MaterialTheme.colorScheme.surface,
     )
+}
+
+@Preview
+@Composable
+fun StudentCardPreview() {
+    AttendanceTheme {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            StudentCard(
+                initials = "JD",
+                name = "John Doe",
+                rollNumber = "CS-001",
+                attendancePercentage = 85.0,
+                avatarColor = Color(0xFF42A5F5)
+            )
+            
+            StudentAttendanceItem(
+                initials = "JS",
+                name = "Jane Smith",
+                rollNumber = "CS-002",
+                attendancePercentage = 45.0,
+                avatarColor = Color(0xFFEF5350)
+            )
+        }
+    }
 }

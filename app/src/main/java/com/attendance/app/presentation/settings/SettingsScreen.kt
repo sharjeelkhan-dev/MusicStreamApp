@@ -10,20 +10,22 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.attendance.app.R
 import com.attendance.app.presentation.theme.*
 
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -37,73 +39,74 @@ fun SettingsScreen(
         }
     }
 
-    SettingsContent(
-        state = state,
-        snackbarHostState = snackbarHostState,
-        onBack = onBack,
-        onToggleDarkMode = viewModel::toggleDarkMode,
-        onToggleNotifications = viewModel::toggleNotifications,
-        onToggleBiometric = viewModel::toggleBiometric,
-        onCreateBackup = viewModel::createBackup,
-        onRestoreBackup = viewModel::restoreBackup
-    )
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        modifier = modifier
+    ) { paddingValues ->
+        SettingsContent(
+            state = state,
+            onBack = onBack,
+            onToggleDarkMode = viewModel::toggleDarkMode,
+            onToggleNotifications = viewModel::toggleNotifications,
+            onToggleBiometric = viewModel::toggleBiometric,
+            onCreateBackup = viewModel::createBackup,
+            onRestoreBackup = viewModel::restoreBackup,
+            modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding())
+        )
+    }
 }
 
 @Composable
 private fun SettingsContent(
     state: SettingsState,
-    snackbarHostState: SnackbarHostState,
     onBack: () -> Unit,
     onToggleDarkMode: (Boolean) -> Unit,
     onToggleNotifications: (Boolean) -> Unit,
     onToggleBiometric: (Boolean) -> Unit,
     onCreateBackup: () -> Unit,
-    onRestoreBackup: () -> Unit
+    onRestoreBackup: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
-        LazyColumn(
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Fixed Header
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .background(PrimaryGreenDark)
+                .padding(top = 16.dp, bottom = 20.dp)
+                .padding(horizontal = 4.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Settings",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp
+                )
+            }
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            // Header
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(PrimaryGreenDark, PrimaryGreen)
-                            )
-                        )
-                        .padding(top = 48.dp, bottom = 20.dp)
-                        .padding(horizontal = 20.dp)
-                ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = onBack) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Settings",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-
             // Appearance
             item {
                 SettingsSectionHeader("APPEARANCE")
                 SettingsToggleItem(
-                    icon = Icons.Default.DarkMode,
+                    iconPainter = painterResource(id = R.drawable.setting_icon), // Using custom setting icon
                     title = "Dark Mode",
                     subtitle = "Switch to dark theme",
                     isChecked = state.isDarkMode,
@@ -151,32 +154,6 @@ private fun SettingsContent(
                     onClick = onRestoreBackup
                 )
             }
-
-            // About
-            item {
-                SettingsSectionHeader("ABOUT")
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Student Attendance App",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "Version 1.0.0",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondaryLight
-                        )
-                    }
-                }
-            }
         }
     }
 }
@@ -186,16 +163,17 @@ private fun SettingsSectionHeader(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.labelMedium,
-        color = TextSecondaryLight,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontWeight = FontWeight.Bold,
         letterSpacing = 1.sp,
-        modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 8.dp)
+        modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 8.dp)
     )
 }
 
 @Composable
 private fun SettingsToggleItem(
-    icon: ImageVector,
+    icon: ImageVector? = null,
+    iconPainter: androidx.compose.ui.graphics.painter.Painter? = null,
     title: String,
     subtitle: String,
     isChecked: Boolean,
@@ -206,7 +184,7 @@ private fun SettingsToggleItem(
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 4.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -215,16 +193,25 @@ private fun SettingsToggleItem(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = PrimaryGreen,
-                modifier = Modifier.size(24.dp)
-            )
+            if (iconPainter != null) {
+                Icon(
+                    painter = iconPainter,
+                    contentDescription = null,
+                    tint = PrimaryGreen,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = PrimaryGreen,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.7f))
             }
             Switch(
                 checked = isChecked,
@@ -250,7 +237,7 @@ private fun SettingsActionItem(
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 4.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         onClick = onClick
     ) {
@@ -268,8 +255,8 @@ private fun SettingsActionItem(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextSecondaryLight)
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.7f))
             }
             Icon(
                 Icons.Default.ChevronRight,
@@ -290,7 +277,6 @@ fun SettingsPreview() {
                 isNotificationsEnabled = true,
                 isBiometricEnabled = false
             ),
-            snackbarHostState = remember { SnackbarHostState() },
             onBack = {},
             onToggleDarkMode = {},
             onToggleNotifications = {},

@@ -49,6 +49,12 @@ val AvatarColors = listOf(
     Color(0xFFFF9800), // Orange
 )
 
+fun getAvatarColor(name: String): Color {
+    if (name.isEmpty()) return AvatarColors[0]
+    val index = Math.abs(name.hashCode()) % AvatarColors.size
+    return AvatarColors[index]
+}
+
 // Bottom Nav
 val BottomNavSelected = PrimaryGreen
 val BottomNavUnselected = Color(0xFF9E9E9E)

@@ -8,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -45,7 +46,7 @@ fun SessionCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -60,12 +61,12 @@ fun SessionCard(
                     text = displayDate,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimaryLight
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "$presentCount / $totalCount present",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondaryLight
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.7f)
                 )
             }
 
@@ -73,7 +74,8 @@ fun SessionCard(
             Text(
                 text = "$percentage%",
                 color = percentageColor,
-                fontSize = 18.sp,
+                modifier = Modifier.offset(x = 72.dp, y = (-13).dp),
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )
 
@@ -87,7 +89,8 @@ fun SessionCard(
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp)),
                 color = percentageColor,
-                trackColor = Color(0xFFEEEEEE),
+                trackColor = MaterialTheme.colorScheme.surface,
+                strokeCap = StrokeCap.Round
             )
         }
     }

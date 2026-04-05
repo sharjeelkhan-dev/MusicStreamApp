@@ -1,27 +1,25 @@
 package com.attendance.app.presentation.home
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.attendance.app.R
 import com.attendance.app.presentation.components.SessionCard
 import com.attendance.app.presentation.components.StatsCard
 import com.attendance.app.presentation.theme.*
@@ -29,6 +27,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.material.icons.filled.EditNote
 
 @Composable
 fun HomeScreen(
@@ -37,21 +36,18 @@ fun HomeScreen(
     onNavigateToStudents: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToClasses: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Scaffold(
-        containerColor = Color.White
-    ) { paddingValues ->
-        HomeContent(
-            state = state,
-            onNavigateToAttendance = onNavigateToAttendance,
-            onNavigateToReports = onNavigateToReports,
-            onNavigateToStudents = onNavigateToStudents,
-            onNavigateToSettings = onNavigateToSettings,
-            modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding())
-        )
-    }
+    HomeContent(
+        state = state,
+        onNavigateToAttendance = onNavigateToAttendance,
+        onNavigateToReports = onNavigateToReports,
+        onNavigateToStudents = onNavigateToStudents,
+        onNavigateToSettings = onNavigateToSettings,
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -63,75 +59,78 @@ private fun HomeContent(
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize().background(Color.White),
-        contentPadding = PaddingValues(bottom = 16.dp)
-    ) {
-        // Green Header
-        item {
-            HomeHeader(
-                className = state.selectedClass?.name ?: "No Class",
-                section = state.selectedClass?.section ?: "",
-                onSettingsClick = onNavigateToSettings
-            )
-        }
+    Column(modifier = modifier.fillMaxSize().
+    background(MaterialTheme.colorScheme.
+    background)) {
 
-        // Stats Row
-        item {
-            StatsRow(
-                total = state.totalStudents,
-                present = state.presentToday,
-                absent = state.absentToday
-            )
-        }
+        // Fixed Header
+        HomeHeader(
+            className = state.selectedClass?.name ?: "No Class",
+            section = state.selectedClass?.section ?: "",
+            onSettingsClick = onNavigateToSettings
+        )
 
-        // Quick Actions
-        item {
-            QuickActionsSection(
-                onAttendanceClick = onNavigateToAttendance,
-                onReportsClick = onNavigateToReports,
-                onStudentsClick = onNavigateToStudents
-            )
-        }
-
-        // Recent Sessions Header
-        item {
-            Text(
-                text = "RECENT SESSIONS",
-                style = MaterialTheme.typography.labelMedium,
-                color = TextSecondaryLight,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)
-            )
-        }
-
-        // Recent Sessions List
-        if (state.recentSessions.isEmpty() && !state.isLoading) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            // Stats Row
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No attendance sessions yet.\nTake your first attendance!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondaryLight,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                StatsRow(
+                    total = state.totalStudents,
+                    present = state.presentToday,
+                    absent = state.absentToday
+                )
+            }
+
+            // Quick Actions
+            item {
+                QuickActionsSection(
+                    onAttendanceClick = onNavigateToAttendance,
+                    onReportsClick = onNavigateToReports,
+                    onStudentsClick = onNavigateToStudents
+                )
+            }
+
+            // Recent Sessions Header
+            item {
+                Text(
+                    text = "RECENT SESSIONS",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)
+                )
+            }
+
+            // Recent Sessions List
+            if (state.recentSessions.isEmpty() && !state.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No attendance sessions yet.\nTake your first attendance!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                items(state.recentSessions) { session ->
+                    SessionCard(
+                        date = session.date,
+                        presentCount = session.presentCount,
+                        totalCount = session.totalStudents,
+                        percentage = session.percentage,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                     )
                 }
-            }
-        } else {
-            items(state.recentSessions) { session ->
-                SessionCard(
-                    date = session.date,
-                    presentCount = session.presentCount,
-                    totalCount = session.totalStudents,
-                    percentage = session.percentage,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-                )
             }
         }
     }
@@ -153,55 +152,53 @@ private fun HomeHeader(
         else -> "Good Evening"
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(PrimaryGreenDark)
             .statusBarsPadding()
-            .padding(top = 16.dp, bottom = 24.dp)
+            .background(PrimaryGreenDark)
+            .padding(top = 16.dp, bottom = 20.dp)
             .padding(horizontal = 20.dp)
     ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = dateFormatted,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 13.sp
+            )
+            IconButton(
+                onClick = onSettingsClick,
+                modifier = Modifier.size(24.dp)
             ) {
-                Text(
-                    text = dateFormatted,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.8f)
+                Icon(
+                    painter = painterResource(id = R.drawable.setting_icon),
+                    contentDescription = "Settings",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
                 )
-                IconButton(
-                    onClick = onSettingsClick,
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
             }
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "$greeting 👋",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = 26.sp,
-                    lineHeight = 32.sp
-                ),
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = if (section.isNotEmpty()) "$className \u2014 $section" else className,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.9f),
-                fontWeight = FontWeight.Medium
-            )
         }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "$greeting 👋",
+            style = MaterialTheme.typography.headlineLarge,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 28.sp
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = if (section.isNotEmpty()) "$className — $section" else className,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = 0.9f),
+            fontWeight = FontWeight.Medium,
+            fontSize = 15.sp
+        )
     }
 }
 
@@ -214,7 +211,7 @@ private fun StatsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         StatsCard(
@@ -248,7 +245,7 @@ private fun QuickActionsSection(
         Text(
             text = "QUICK ACTIONS",
             style = MaterialTheme.typography.labelMedium,
-            color = TextSecondaryLight,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.sp,
             modifier = Modifier.padding(vertical = 14.dp)
@@ -266,13 +263,13 @@ private fun QuickActionsSection(
                 onClick = onAttendanceClick
             )
             QuickActionButton(
-                icon = Icons.Default.BarChart,
+                icon = R.drawable.reports_icon,
                 label = "Reports",
                 modifier = Modifier.weight(1f),
                 onClick = onReportsClick
             )
             QuickActionButton(
-                icon = Icons.Default.People,
+                icon = R.drawable.graduation_cap_icon,
                 label = "Students",
                 modifier = Modifier.weight(1f),
                 onClick = onStudentsClick
@@ -283,20 +280,31 @@ private fun QuickActionsSection(
 
 @Composable
 private fun QuickActionButton(
-    icon: ImageVector,
+    icon: Any, // ImageVector or Int resource
     label: String,
     modifier: Modifier = Modifier,
     isHighlighted: Boolean = false,
     onClick: () -> Unit
 ) {
-    val bgColor = if (isHighlighted) PrimaryGreen else Color.White
-    val contentColor = if (isHighlighted) Color.White else TextPrimaryLight
+    val bgColor = if (isHighlighted)
+        PrimaryGreen else MaterialTheme.
+    colorScheme.surfaceVariant
+    val contentColor = if (isHighlighted)
+        Color.White else MaterialTheme.
+    colorScheme.onSurfaceVariant
+
+    val iconPainter = when (icon) {
+        is ImageVector -> rememberVectorPainter(icon)
+        is Int -> painterResource(id = icon)
+        else -> throw IllegalArgumentException("Unsupported icon type")
+    }
 
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = bgColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isHighlighted) 4.dp else 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if
+                (isHighlighted) 4.dp else 2.dp),
         onClick = onClick
     ) {
         Column(
@@ -306,7 +314,7 @@ private fun QuickActionButton(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                imageVector = icon,
+                painter = iconPainter,
                 contentDescription = label,
                 tint = contentColor,
                 modifier = Modifier.size(28.dp)
@@ -328,9 +336,16 @@ fun HomePreview() {
     AttendanceTheme {
         HomeContent(
             state = HomeState(
+                selectedClass = com.attendance.app.domain
+                    .model.ClassModel(1, "Software Engineering", "6C1"),
                 totalStudents = 45,
                 presentToday = 38,
                 absentToday = 7,
+                recentSessions = listOf(
+                    com.attendance.app.domain.model.SessionSummary("2024-05-15", 45, 40, 5),
+                    com.attendance.app.domain.model.SessionSummary("2024-05-14", 45, 38, 7),
+                    com.attendance.app.domain.model.SessionSummary("2024-05-12", 45, 42, 3)
+                ),
                 isLoading = false
             ),
             onNavigateToAttendance = {},
@@ -338,5 +353,43 @@ fun HomePreview() {
             onNavigateToStudents = {},
             onNavigateToSettings = {}
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RecentSessionsPreview() {
+    val dummySessions = listOf(
+        com.attendance.app.domain.model.SessionSummary("2024-05-15", 45, 40, 5),
+        com.attendance.app.domain.model.SessionSummary("2024-05-14", 45, 38, 7),
+        com.attendance.app.domain.model.SessionSummary("2024-05-12", 45, 42, 3)
+    )
+
+    AttendanceTheme {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "RECENT SESSIONS",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(bottom = 14.dp, start = 4.dp)
+            )
+
+            dummySessions.forEach { session ->
+                SessionCard(
+                    date = session.date,
+                    presentCount = session.presentCount,
+                    totalCount = session.totalStudents,
+                    percentage = session.percentage,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+        }
     }
 }

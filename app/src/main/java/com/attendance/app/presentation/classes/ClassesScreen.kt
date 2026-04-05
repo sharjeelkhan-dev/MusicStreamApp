@@ -7,23 +7,17 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -32,204 +26,195 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.painterResource
+import com.attendance.app.R
 import com.attendance.app.domain.model.ClassModel
 import com.attendance.app.presentation.theme.*
 
 @Composable
 fun ClassesScreen(
-    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: ClassesViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Scaffold(
-        containerColor = Color.White
-    ) { paddingValues ->
-        ClassesContent(
-            state = state,
-            onBack = onBack,
-            onEvent = viewModel::onEvent,
-            modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding())
-        )
-    }
+    ClassesContent(
+        state = state,
+        onEvent = viewModel::onEvent,
+        modifier = modifier
+    )
 }
 
 @Composable
 private fun ClassesContent(
     state: ClassesState,
-    onBack: () -> Unit,
     onEvent: (ClassesEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize().background(Color.White),
-        contentPadding = PaddingValues(bottom = 16.dp)
-    ) {
-        // Header
-        item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(PrimaryGreenDark)
-                    .statusBarsPadding()
-                    .padding(top = 16.dp, bottom = 24.dp)
-                    .padding(horizontal = 4.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Manage Classes",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = Color.White,
-                        modifier= Modifier.offset(x = 55.dp),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 25.sp
-                    )
-                }
-            }
+    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // Fixed Header
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .background(PrimaryGreenDark)
+                .padding(top = 20.dp, bottom = 20.dp)
+                .padding(horizontal = 90.dp)
+        ) {
+            Text(
+                text = "Manage Classes",
+                style = MaterialTheme.typography.headlineLarge,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 28.sp
+            )
         }
 
-        // Add form
-        item {
-            AnimatedVisibility(
-                visible = state.isAddFormVisible,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = if (state.editingClass != null) "Edit Class" else "Add New Class",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimaryLight
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        OutlinedTextField(
-                            value = state.newClassName,
-                            onValueChange = { onEvent(ClassesEvent.UpdateClassName(it)) },
-                            placeholder = { Text("Class Name (e.g. Data Structures)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = DividerColor,
-                                focusedBorderColor = PrimaryGreen
-                            ),
-                            singleLine = true
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedTextField(
-                            value = state.newClassSection,
-                            onValueChange = { onEvent(ClassesEvent.UpdateClassSection(it)) },
-                            placeholder = { Text("Section (e.g. Section A)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = DividerColor,
-                                focusedBorderColor = PrimaryGreen
-                            ),
-                            singleLine = true
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(
-                                onClick = {
-                                    if (state.editingClass != null) onEvent(ClassesEvent.SaveEdit)
-                                    else onEvent(ClassesEvent.AddClass)
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = PrimaryGreen,
-                                    contentColor = Color.White
-                                )
-                            ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            // Add form
+            item {
+                Column {
+                    AnimatedVisibility(
+                        visible = state.isAddFormVisible,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(20.dp)) {
                                 Text(
-                                    if (state.editingClass != null) "Save" else "Add Class",
-                                    fontWeight = FontWeight.SemiBold
+                                    text = if (state.editingClass != null) "Edit Class" else "Add New Class",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                OutlinedTextField(
+                                    value = state.newClassName,
+                                    onValueChange = { onEvent(ClassesEvent.UpdateClassName(it)) },
+                                    placeholder = { Text("Class Name (e.g. Data Structures)") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                        focusedBorderColor = PrimaryGreen
+                                    ),
+                                    singleLine = true
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                OutlinedTextField(
+                                    value = state.newClassSection,
+                                    onValueChange = { onEvent(ClassesEvent.UpdateClassSection(it)) },
+                                    placeholder = { Text("Section (e.g. Section A)") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                        focusedBorderColor = PrimaryGreen
+                                    ),
+                                    singleLine = true
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Button(
+                                        onClick = {
+                                            if (state.editingClass != null) onEvent(ClassesEvent.SaveEdit)
+                                            else onEvent(ClassesEvent.AddClass)
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = PrimaryGreen,
+                                            contentColor = Color.White
+                                        )
+                                    ) {
+                                        Text(
+                                            if (state.editingClass != null) "Save" else "Add Class",
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    TextButton(onClick = {
+                                        if (state.editingClass != null) onEvent(ClassesEvent.CancelEdit)
+                                        else onEvent(ClassesEvent.ToggleAddForm)
+                                    }) {
+                                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.7f))
+                                    }
+                                }
                             }
-                            TextButton(onClick = {
-                                if (state.editingClass != null) onEvent(ClassesEvent.CancelEdit)
-                                else onEvent(ClassesEvent.ToggleAddForm)
-                            }) {
-                                Text("Cancel", color = TextSecondaryLight)
-                            }
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = !state.isAddFormVisible,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        OutlinedButton(
+                            onClick = { onEvent(ClassesEvent.ToggleAddForm) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, PrimaryGreenDark),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGreenDark)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null,
+                                modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Add New Class",
+                                modifier = Modifier.offset(x = (-5).dp),
+                                fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
             }
 
-            AnimatedVisibility(
-                visible = !state.isAddFormVisible,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                OutlinedButton(
-                    onClick = { onEvent(ClassesEvent.ToggleAddForm) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, PrimaryGreenDark),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGreenDark)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null,
-                        modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Add New Class",
-                        modifier = Modifier.offset(x = (-5).dp),
-                        fontWeight = FontWeight.SemiBold)
-                }
-            }
-        }
-
-        // Classes Header
-        item {
-            Text(
-                text = "YOUR CLASSES",
-                style = MaterialTheme.typography.labelMedium,
-                color = TextSecondaryLight,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
-        }
-
-        if (state.classes.isEmpty() && !state.isLoading) {
+            // Classes Header
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No classes yet.\nCreate your first class to get started!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondaryLight,
-                        textAlign = TextAlign.Center
+                Text(
+                    text = "YOUR CLASSES",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha=0.6f),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                )
+            }
+
+            if (state.classes.isEmpty() && !state.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No classes yet.\nCreate your first class to get started!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha=0.6f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                items(state.classes, key = { it.id }) { classModel ->
+                    val isSelected = classModel.id == state.selectedClassId
+                    ClassRow(
+                        classModel = classModel,
+                        isSelected = isSelected,
+                        onSelect = { onEvent(ClassesEvent.SelectClass(classModel)) },
+                        onEdit = { onEvent(ClassesEvent.StartEdit(classModel)) },
+                        onDelete = { onEvent(ClassesEvent.DeleteClass(classModel)) }
                     )
                 }
-            }
-        } else {
-            items(state.classes, key = { it.id }) { classModel ->
-                val isSelected = classModel.id == state.selectedClassId
-                ClassRow(
-                    classModel = classModel,
-                    isSelected = isSelected,
-                    onSelect = { onEvent(ClassesEvent.SelectClass(classModel)) },
-                    onEdit = { onEvent(ClassesEvent.StartEdit(classModel)) },
-                    onDelete = { onEvent(ClassesEvent.DeleteClass(classModel)) }
-                )
             }
         }
     }
@@ -253,7 +238,7 @@ private fun ClassRow(
             ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) PrimaryGreenSurface else Color.White
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         onClick = onSelect
@@ -279,22 +264,32 @@ private fun ClassRow(
                     text = classModel.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimaryLight
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (classModel.section.isNotBlank()) {
                     Text(
                         text = classModel.section,
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondaryLight
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.7f)
                     )
                 }
             }
 
             IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = TextSecondaryLight, modifier = Modifier.size(18.dp))
+                Icon(
+                    painter = painterResource(id = R.drawable.pencil_circle),
+                    contentDescription = "Edit",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.6f),
+                    modifier = Modifier.size(24.dp)
+                )
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = AbsentRed.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+                Icon(
+                    painter = painterResource(id = R.drawable.recycle_bin_icon),
+                    contentDescription = "Delete",
+                    tint = AbsentRed.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -313,7 +308,6 @@ fun ClassesPreview() {
                 selectedClassId = 1,
                 isLoading = false
             ),
-            onBack = {},
             onEvent = {}
         )
     }
@@ -331,7 +325,6 @@ fun AddClassPreview() {
                 newClassSection = "6th Semester",
                 isLoading = false
             ),
-            onBack = {},
             onEvent = {}
         )
     }
@@ -346,7 +339,6 @@ fun EmptyClassesPreview() {
                 classes = emptyList(),
                 isLoading = false
             ),
-            onBack = {},
             onEvent = {}
         )
     }

@@ -1,9 +1,15 @@
 package com.attendance.app.presentation.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -33,6 +39,8 @@ fun AppNavigation() {
     )
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showBottomBar) {
                 BottomNavBar(
@@ -53,7 +61,11 @@ fun AppNavigation() {
         NavHost(
             navController = navController,
             startDestination = Screen.Splash.route,
-            modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding())
+            modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding()),
+            enterTransition = { fadeIn(animationSpec = tween(400)) },
+            exitTransition = { fadeOut(animationSpec = tween(400)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(400)) },
+            popExitTransition = { fadeOut(animationSpec = tween(400)) }
         ) {
             composable(Screen.Splash.route) {
                 SplashScreen(
@@ -97,33 +109,34 @@ fun AppNavigation() {
                             launchSingleTop = true
                             restoreState = true
                         }
-                    }
+                    },
+                    modifier = Modifier
                 )
             }
 
             composable(Screen.TakeAttendance.route) {
-                TakeAttendanceScreen()
+                TakeAttendanceScreen(modifier = Modifier)
             }
 
             composable(Screen.Reports.route) {
-                ReportsScreen()
+                ReportsScreen(modifier = Modifier)
             }
 
             composable(Screen.Students.route) {
                 StudentsScreen(
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    modifier = Modifier
                 )
             }
 
             composable(Screen.Classes.route) {
-                ClassesScreen(
-                    onBack = { navController.popBackStack() }
-                )
+                ClassesScreen(modifier = Modifier)
             }
 
             composable(Screen.Settings.route) {
                 SettingsScreen(
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    modifier = Modifier
                 )
             }
         }

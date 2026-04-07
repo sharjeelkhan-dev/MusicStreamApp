@@ -1,6 +1,7 @@
 package com.attendance.app.presentation.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.attendance.app.R
 import com.attendance.app.presentation.components.SessionCard
 import com.attendance.app.presentation.components.SessionsSummaryCard
+import com.attendance.app.presentation.components.StandardHeader
 import com.attendance.app.presentation.components.StatsCard
 import com.attendance.app.presentation.theme.*
 import java.time.LocalDate
@@ -44,8 +46,15 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val greeting = when (LocalTime.now().hour) {
+        in 0..11 -> "Good Morning"
+        in 12..16 -> "Good Afternoon"
+        else -> "Good Evening"
+    }
+
     HomeContent(
         state = state,
+        greeting = greeting,
         onNavigateToAttendance = onNavigateToAttendance,
         onNavigateToReports = onNavigateToReports,
         onNavigateToStudents = onNavigateToStudents,
@@ -58,6 +67,7 @@ fun HomeScreen(
 @Composable
 private fun HomeContent(
     state: HomeState,
+    greeting: String,
     onNavigateToAttendance: () -> Unit,
     onNavigateToReports: () -> Unit,
     onNavigateToStudents: () -> Unit,
@@ -68,13 +78,17 @@ private fun HomeContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FE))
+            .background(MaterialTheme.colorScheme.background)
     ) {
 
         // Fixed Header
-        HomeHeader(
-            className = state.selectedClass?.name ?: "No Class",
-            section = state.selectedClass?.section ?: "",
+        StandardHeader(
+            title = "$greeting 👋",
+            subtitle = if (state.selectedClass?.section?.isNotEmpty() == true) 
+                "${state.selectedClass.name} — ${state.selectedClass.section}" 
+                else state.selectedClass?.name ?: "No Class",
+            showDate = true,
+            showSettings = true,
             onSettingsClick = onNavigateToSettings
         )
 
@@ -129,28 +143,20 @@ private fun HomeContent(
                         )
                     }
 
-                    Surface(
-                        // 1. Image ki tarah soft white background
-                        color = Color.White,
-                        // 2. Corner radius ko image se match karne
-                        // ke liye thoda badha diya h
-                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = RoundedCornerShape(12.dp),
-                                ambientColor = Color.Black.copy(alpha = 0.1f),
-                                spotColor = Color.Black.copy(alpha = 0.2f)
-                            )
-                            .clickable { onNavigateToReports() }
+                    Card(
+                        onClick = onNavigateToReports,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else Color.White
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Text(
                             text = "See all",
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            // 3. Font style aur color jo aapne pehle use kiya tha
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF5C59E8)
+                            color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
                         )
                     }
                 }
@@ -188,81 +194,14 @@ private fun HomeContent(
                         presentCount = session.summary.presentCount,
                         absentCount = session.summary.absentCount,
                         percentage = session.summary.percentage,
-                        studentNames = session.studentNames,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        studentNames = session.students,
+                        modifier = Modifier.padding(horizontal = 20.dp,
+                            vertical = 8.dp),
                         onClick = { onNavigateToReports() }
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun HomeHeader(
-    className: String,
-    section: String,
-    onSettingsClick: () -> Unit
-) {
-    val today = LocalDate.now()
-    val dateFormatted = today.format(
-        DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.ENGLISH)
-    )
-    val greeting = when (LocalTime.now().hour) {
-        in 0..11 -> "Good Morning"
-        in 12..16 -> "Good Afternoon"
-        else -> "Good Evening"
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(PrimaryGreenDark)
-            .statusBarsPadding()
-            .height(115.dp)
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 12.dp),
-        verticalArrangement = Arrangement.Center
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = dateFormatted,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.85f),
-                fontSize = 13.sp
-            )
-            IconButton(
-                onClick = onSettingsClick,
-                modifier = Modifier.size(24.dp)
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.setting_icon),
-                    contentDescription = "Settings",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "$greeting 👋",
-            style = MaterialTheme.typography.headlineLarge,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 28.sp
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = if (section.isNotEmpty()) "$className — $section" else className,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.White.copy(alpha = 0.9f),
-            fontWeight = FontWeight.Medium,
-            fontSize = 15.sp
-        )
     }
 }
 
@@ -282,7 +221,7 @@ private fun StatsRow(
             value = total.toString(),
             label = "Total",
             modifier = Modifier.weight(1f),
-            valueColor = PrimaryGreen
+            valueColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
         )
         StatsCard(
             value = if (present > 0) present.toString() else "—",
@@ -321,7 +260,7 @@ private fun QuickActionsSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             QuickActionButton(
-                icon = Icons.Default.EditNote,
+                icon = R.drawable.hand_line_icon,
                 label = "Attendance",
                 isHighlighted = true,
                 modifier = Modifier.weight(1f),
@@ -351,8 +290,12 @@ private fun QuickActionButton(
     isHighlighted: Boolean = false,
     onClick: () -> Unit
 ) {
-    val bgColor = if (isHighlighted) PrimaryGreen else MaterialTheme.colorScheme.surfaceVariant
-    val contentColor = if (isHighlighted) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+    val bgColor = if (isHighlighted) {
+        if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
+    } else MaterialTheme.colorScheme.surfaceVariant
+    val contentColor = if (isHighlighted) {
+        if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onPrimary else Color.White
+    } else MaterialTheme.colorScheme.onSurfaceVariant
 
     val iconPainter = when (icon) {
         is ImageVector -> rememberVectorPainter(icon)
@@ -404,15 +347,15 @@ fun HomePreview() {
                 recentSessions = listOf(
                     SessionWithStudents(
                         com.attendance.app.domain.model.SessionSummary("2024-05-15", 45, 40, 5),
-                        listOf("Aisha Khan", "Bilal Ahmed", "Fatima Malik")
+                        listOf("Aisha Khan" to true, "Bilal Ahmed" to true, "Fatima Malik" to false)
                     ),
                     SessionWithStudents(
                         com.attendance.app.domain.model.SessionSummary("2024-05-14", 45, 38, 7),
-                        listOf("Hamza Ali", "Ira Naeem", "Junaid Rashid")
+                        listOf("Hamza Ali" to true, "Ira Naeem" to false, "Junaid Rashid" to true)
                     ),
                     SessionWithStudents(
                         com.attendance.app.domain.model.SessionSummary("2024-05-12", 45, 42, 3),
-                        listOf("Aisha Khan", "Junaid Rashid")
+                        listOf("Aisha Khan" to true, "Junaid Rashid" to true)
                     )
                 ),
                 isLoading = false
@@ -420,7 +363,8 @@ fun HomePreview() {
             onNavigateToAttendance = {},
             onNavigateToReports = {},
             onNavigateToStudents = {},
-            onNavigateToSettings = {}
+            onNavigateToSettings = {},
+            greeting = "Good Morning"
         )
     }
 }
@@ -438,7 +382,7 @@ fun RecentSessionsPreview() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFF8F9FE))
+                .background(MaterialTheme.colorScheme.background)
                 .padding(bottom = 20.dp)
         ) {
             // Recent Sessions Header
@@ -460,12 +404,12 @@ fun RecentSessionsPreview() {
                     Text(
                         text = "Software Engineering — 6C1",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
                 }
 
                 Surface(
-                    color = Color(0xFFF3F3FF),
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
@@ -473,7 +417,7 @@ fun RecentSessionsPreview() {
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF5C59E8)
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }
@@ -491,7 +435,7 @@ fun RecentSessionsPreview() {
                     presentCount = session.presentCount,
                     absentCount = session.absentCount,
                     percentage = session.percentage,
-                    studentNames = listOf("Aisha Khan", "Bilal Ahmed", "Fatima Malik"),
+                    studentNames = listOf("Aisha Khan" to true, "Bilal Ahmed" to true, "Fatima Malik" to false),
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                 )
             }

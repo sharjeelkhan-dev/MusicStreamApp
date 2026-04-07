@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -41,7 +42,7 @@ data class HomeState(
 
 data class SessionWithStudents(
     val summary: SessionSummary,
-    val studentNames: List<String>
+    val students: List<Pair<String, Boolean>> // fullName to isPresent
 )
 
 @HiltViewModel
@@ -61,73 +62,73 @@ class HomeViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeHomeData() {
-        // 1. Combine all classes and selected ID
         val classInfoFlow = combine(
             classRepository.getAllClasses(),
             preferencesManager.selectedClassIdFlow
         ) { classes, selectedId ->
             val selected = classes.find { it.id == selectedId } ?: classes.firstOrNull()
-            
-            // Auto-select first class if none is selected
             if (selected != null && selectedId == -1L) {
                 preferencesManager.setSelectedClassId(selected.id)
             }
-            
             Pair(classes, selected)
         }
 
-        // 2. Use flatMapLatest to switch flows whenever the selected class changes
         classInfoFlow.flatMapLatest { (classes, selectedClass) ->
             if (selectedClass != null) {
-                // Combine student updates and attendance updates
+                val today = LocalDate.now().toString()
+                
+                // Combine everything reactively
                 combine(
                     studentRepository.getStudentsByClass(selectedClass.id),
-                    attendanceRepository.getRecentSessions(selectedClass.id, 10),
-                    // We also need to trigger refresh when attendance is saved for today
-                    attendanceRepository.getAttendanceByClassAndDate(selectedClass.id, LocalDate.now().toString())
-                ) { students, recentDates, _ ->
-                    Triple(students, recentDates, selectedClass)
-                }.mapLatest { (students, recentDates, selectedClass) ->
-                    val today = LocalDate.now().toString()
-                    val todaySummary = attendanceRepository.getSessionSummary(selectedClass.id, today)
+                    attendanceRepository.getSessionDates(selectedClass.id)
+                ) { students, sessionDates ->
                     
-                    val sessions = coroutineScope {
-                        recentDates.map { date ->
-                            async {
-                                val summary = attendanceRepository.getSessionSummary(selectedClass.id, date)
-                                // Fetch records to find present students for avatars
-                                val recordsFlow = attendanceRepository.getAttendanceByClassAndDate(selectedClass.id, date)
-                                val records = recordsFlow.firstOrNull() ?: emptyList()
-                                val presentStudentIds = records
-                                    .filter { it.status.name == "PRESENT" }
-                                    .map { it.studentId }
-                                
-                                val presentNames = students
-                                    .filter { it.id in presentStudentIds }
-                                    .map { it.fullName }
-                                
-                                SessionWithStudents(summary, presentNames)
+                    val sessionFlows = sessionDates.map { date ->
+                        attendanceRepository.getSessionSummary(selectedClass.id, date).map { summary ->
+                            if (summary.totalStudents == 0) return@map null
+                            
+                            val records = attendanceRepository.getAttendanceByClassAndDate(selectedClass.id, date).firstOrNull() ?: emptyList()
+                            val studentStatuses = students.map { student ->
+                                val record = records.find { it.studentId == student.id }
+                                student.fullName to (record?.status == com.attendance.app.domain.model.AttendanceStatus.PRESENT)
                             }
-                        }.awaitAll()
+                            SessionWithStudents(summary, studentStatuses)
+                        }
                     }
-                    
-                    HomeState(
-                        classes = classes,
-                        selectedClass = selectedClass,
-                        totalStudents = students.size,
-                        presentToday = todaySummary.presentCount,
-                        absentToday = todaySummary.absentCount,
-                        recentSessions = sessions,
-                        isLoading = false
-                    )
-                }
+
+                    if (sessionFlows.isEmpty()) {
+                        flowOf(HomeState(
+                            classes = classes,
+                            selectedClass = selectedClass,
+                            totalStudents = students.size,
+                            presentToday = 0,
+                            absentToday = 0,
+                            recentSessions = emptyList(),
+                            isLoading = false
+                        ))
+                    } else {
+                        combine(sessionFlows) { it.toList().filterNotNull().sortedByDescending { s -> s.summary.date } }
+                            .map { sessions ->
+                                val today = LocalDate.now().toString()
+                                val todaySession = sessions.find { it.summary.date == today }
+                                
+                                HomeState(
+                                    classes = classes,
+                                    selectedClass = selectedClass,
+                                    totalStudents = students.size,
+                                    presentToday = todaySession?.summary?.presentCount ?: 0,
+                                    absentToday = todaySession?.summary?.absentCount ?: 0,
+                                    recentSessions = sessions,
+                                    isLoading = false
+                                )
+                            }
+                    }
+                }.flatMapLatest { it }
             } else {
                 flowOf(HomeState(classes = classes, isLoading = false))
             }
         }
-        .onEach { newState ->
-            _state.value = newState
-        }
+        .onEach { newState -> _state.value = newState }
         .catch { e ->
             _state.update { it.copy(isLoading = false) }
             e.printStackTrace()

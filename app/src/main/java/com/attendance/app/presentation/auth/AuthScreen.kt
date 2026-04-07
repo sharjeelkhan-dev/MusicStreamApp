@@ -1,6 +1,7 @@
 package com.attendance.app.presentation.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
@@ -10,15 +11,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.attendance.app.R
 import com.attendance.app.presentation.theme.PrimaryGreen
 import com.attendance.app.presentation.theme.PrimaryGreenDark
 
 @Composable
 fun AuthScreen(onUnlockClick: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val primaryColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -34,7 +40,7 @@ fun AuthScreen(onUnlockClick: () -> Unit) {
                 imageVector = Icons.Default.Lock,
                 contentDescription = "App Locked",
                 modifier = Modifier.size(80.dp),
-                tint = PrimaryGreen
+                tint = primaryColor
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
@@ -56,7 +62,10 @@ fun AuthScreen(onUnlockClick: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primaryColor,
+                    contentColor = if (isDark) MaterialTheme.colorScheme.onPrimary else Color.White
+                )
             ) {
                 Icon(
                     imageVector = Icons.Default.Fingerprint,

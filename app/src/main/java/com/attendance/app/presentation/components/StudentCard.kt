@@ -48,7 +48,7 @@ fun StudentCard(
             ) {
                 Text(
                     text = initials,
-                    color = Color.White,
+                    color = AvatarTextColor,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -79,11 +79,7 @@ fun StudentCard(
                 attendancePercentage >= 50 -> LateOrange
                 else -> AbsentRed
             }
-            val percentageBgColor = when {
-                attendancePercentage >= 80 -> PresentGreenBg
-                attendancePercentage >= 50 -> LateOrangeBg
-                else -> AbsentRedBg
-            }
+            val percentageBgColor = percentageColor.copy(alpha = 0.12f)
 
             Box(
                 modifier = Modifier
@@ -127,7 +123,7 @@ fun StudentAttendanceItem(
         ) {
             Text(
                 text = initials,
-                color = Color.White,
+                color = AvatarTextColor,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )

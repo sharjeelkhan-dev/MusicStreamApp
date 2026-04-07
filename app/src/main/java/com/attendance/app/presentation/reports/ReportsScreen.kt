@@ -2,6 +2,7 @@ package com.attendance.app.presentation.reports
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,7 @@ import com.attendance.app.domain.model.SessionSummary
 import com.attendance.app.domain.model.Student
 import com.attendance.app.presentation.components.SessionCard
 import com.attendance.app.presentation.components.SessionsSummaryCard
+import com.attendance.app.presentation.components.StandardHeader
 import com.attendance.app.presentation.components.StatsCard
 import com.attendance.app.presentation.theme.*
 import java.time.LocalDate
@@ -71,36 +73,12 @@ private fun ReportsContent(
 ) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Fixed Header
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(PrimaryGreenDark)
-                .statusBarsPadding()
-                .height(115.dp)
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 12.dp),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Attendance Report",
-                style = MaterialTheme.typography.headlineLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 28.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = buildString {
-                    state.selectedClass?.let {
-                        append("${it.name} \u2014 ${it.section}")
-                    } ?: append("No Class Selected")
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.9f),
-                fontWeight = FontWeight.Medium,
-                fontSize = 15.sp
-            )
-        }
+        StandardHeader(
+            title = "Attendance Report",
+            subtitle = state.selectedClass?.let {
+                "${it.name} \u2014 ${it.section}"
+            } ?: "No Class Selected"
+        )
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -120,7 +98,13 @@ private fun ReportsContent(
                 )
             }
 
-            if (state.studentReports.isNotEmpty()) {
+            if (state.isLoading) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen)
+                    }
+                }
+            } else if (state.studentReports.isNotEmpty()) {
                 item {
                     Card(
                         modifier = Modifier
@@ -139,7 +123,12 @@ private fun ReportsContent(
                                     .joinToString("")
                                 
                                 val percentage = report.attendancePercentage
-                                val percentageColor = if (percentage >= 75) PrimaryGreen else AbsentRed
+                                val isDark = isSystemInDarkTheme()
+                                val percentageColor = when {
+                                    percentage >= 80 -> PresentGreen
+                                    percentage >= 50 -> LateOrange
+                                    else -> AbsentRed
+                                }
 
                                 Row(
                                     modifier = Modifier
@@ -179,26 +168,26 @@ private fun ReportsContent(
                                                 color = MaterialTheme.colorScheme.onSurface,
                                                 fontSize = 16.sp
                                             )
-                                            Text(
-                                                text = "${percentage.toInt()}%",
-                                                color = percentageColor,
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
+                Text(
+                    text = "${percentage.toInt()}%",
+                    color = percentageColor,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-                                        Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-                                        LinearProgressIndicator(
-                                            progress = { (percentage / 100f).toFloat() },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(6.dp)
-                                                .clip(RoundedCornerShape(10.dp)),
-                                            color = percentageColor,
-                                            trackColor = MaterialTheme.colorScheme.surface,
-                                            strokeCap = StrokeCap.Round
-                                        )
+            LinearProgressIndicator(
+                progress = { (percentage / 100f).toFloat() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(10.dp)),
+                color = percentageColor,
+                trackColor = MaterialTheme.colorScheme.surface,
+                strokeCap = StrokeCap.Round
+            )
                                     }
                                 }
                             }
@@ -253,9 +242,9 @@ private fun ReportsContent(
                 }
             } else {
                 items(state.sessionDetails) { session ->
-                    val studentStatusList = session.records.map { record ->
-                        val studentName = session.students.find { it.id == record.studentId }?.fullName ?: "Unknown"
-                        studentName to record.status
+                    val studentStatusList = session.students.map { student ->
+                        val record = session.records.find { it.studentId == student.id }
+                        student.fullName to (record?.status ?: AttendanceStatus.ABSENT)
                     }
                     
                     SessionDetailCard(
@@ -290,7 +279,7 @@ private fun SessionDetailCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -307,12 +296,12 @@ private fun SessionDetailCard(
                     text = displayDate,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1A1A)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "$presentCount/$totalCount present",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -339,13 +328,13 @@ private fun SessionDetailCard(
                             .clip(CircleShape)
                             .background(
                                 if (isPresent) getAvatarColor(name)
-                                else Color(0xFFE0E0E0) // Light Grey for absent
+                                else if (isSystemInDarkTheme()) Color(0xFF2C2C2C) else Color(0xFFF5F5F5)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = initials,
-                            color = if (isPresent) AvatarTextColor else Color.Gray,
+                            color = if (isPresent) AvatarTextColor else getAvatarColor(name),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )

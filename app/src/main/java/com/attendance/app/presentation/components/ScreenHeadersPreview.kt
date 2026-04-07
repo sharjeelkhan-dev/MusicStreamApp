@@ -1,7 +1,12 @@
 package com.attendance.app.presentation.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,19 +30,28 @@ fun StandardHeader(
     subtitle: String,
     showSettings: Boolean = false,
     showDate: Boolean = false,
-    onSettingsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
+    showSave: Boolean = false,
+    onSaveClick: () -> Unit = {},
+    isSaving: Boolean = false,
+    isSaved: Boolean = false
 ) {
+    val isDark = isSystemInDarkTheme()
+    val backgroundColor = if (isDark) MaterialTheme.colorScheme.surface else PrimaryGreenDark
+    val contentColor = if (isDark) MaterialTheme.colorScheme.onSurface else Color.White
+    val secondaryContentColor = contentColor.copy(alpha = if (isDark) 0.7f else 0.85f)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(PrimaryGreenDark)
+            .background(backgroundColor)
             .statusBarsPadding()
             .height(115.dp)
             .padding(horizontal = 20.dp)
             .padding(bottom = 12.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        if (showDate || showSettings) {
+        if (showDate || showSettings || showSave) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -50,34 +64,83 @@ fun StandardHeader(
                     Text(
                         text = dateFormatted,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.85f),
+                        color = secondaryContentColor,
                         fontSize = 13.sp
                     )
                 } else {
                     Spacer(modifier = Modifier.weight(1f))
                 }
                 
-                if (showSettings) {
-                    IconButton(
-                        onClick = onSettingsClick,
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.setting_icon),
-                            contentDescription = "Settings",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (showSave) {
+                        Card(
+                            onClick = onSaveClick,
+                            enabled = !isSaving,
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isDark) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f) 
+                                                else Color.White.copy(alpha = 0.2f),
+                                contentColor = contentColor
+                            ),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSaving) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = contentColor,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = if (isSaved) "Saved" else "Save",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = contentColor
+                                        )
+                                        if (isSaved) {
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp),
+                                                tint = contentColor
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (showSettings) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = onSettingsClick,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.setting_icon),
+                                contentDescription = "Settings",
+                                tint = contentColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
         }
 
         Text(
             text = title,
             style = MaterialTheme.typography.headlineLarge,
-            color = Color.White,
+            color = contentColor,
             fontWeight = FontWeight.Bold,
             fontSize = 28.sp
         )
@@ -85,7 +148,7 @@ fun StandardHeader(
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.White.copy(alpha = 0.9f),
+            color = secondaryContentColor,
             fontWeight = FontWeight.Medium,
             fontSize = 15.sp
         )

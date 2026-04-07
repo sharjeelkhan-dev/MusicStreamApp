@@ -1,10 +1,9 @@
 package com.attendance.app.presentation.components
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Class
 import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.outlined.Class
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -19,9 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.attendance.app.R
 import com.attendance.app.presentation.navigation.Screen
-import com.attendance.app.presentation.theme.AttendanceTheme
-import com.attendance.app.presentation.theme.BottomNavSelected
-import com.attendance.app.presentation.theme.BottomNavUnselected
+import com.attendance.app.presentation.theme.*
 
 data class BottomNavItem(
     val screen: Screen,
@@ -32,8 +29,8 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Home, "Home", R.drawable.house_icon, R.drawable.house_icon),
-    BottomNavItem(Screen.Classes, "Classes", Icons.Filled.Class, Icons.Outlined.Class),
-    BottomNavItem(Screen.TakeAttendance, "Attend", Icons.Filled.EditNote, Icons.Outlined.EditNote),
+    BottomNavItem(Screen.Classes, "Classes", R.drawable.classes, R.drawable.classes),
+    BottomNavItem(Screen.TakeAttendance, "Attend", R.drawable.hand_line_icon, R.drawable.hand_line_icon),
     BottomNavItem(Screen.Reports, "Reports", R.drawable.reports_icon, R.drawable.reports_icon),
     BottomNavItem(Screen.Students, "Students", R.drawable.graduation_cap_icon, R.drawable.graduation_cap_icon),
 )
@@ -47,7 +44,7 @@ fun BottomNavBar(
     NavigationBar(
         modifier = modifier,
         containerColor = Color.White,
-        contentColor = BottomNavSelected,
+        contentColor = MaterialTheme.colorScheme.primary,
         tonalElevation = 0.dp
     ) {
         bottomNavItems.forEach { item ->
@@ -77,10 +74,10 @@ fun BottomNavBar(
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = BottomNavSelected,
-                    selectedTextColor = BottomNavSelected,
-                    unselectedIconColor = BottomNavUnselected,
-                    unselectedTextColor = BottomNavUnselected,
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     indicatorColor = Color.Transparent
                 )
             )

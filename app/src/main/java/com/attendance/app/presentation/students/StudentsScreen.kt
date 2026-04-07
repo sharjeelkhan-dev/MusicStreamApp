@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.attendance.app.R
 import com.attendance.app.domain.model.ClassModel
 import com.attendance.app.domain.model.Student
+import com.attendance.app.presentation.components.StandardHeader
 import com.attendance.app.presentation.theme.*
 
 @Composable
@@ -85,36 +87,12 @@ private fun StudentsContent(
     colorScheme.background)) {
 
         // Fixed Header
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(PrimaryGreenDark)
-                .statusBarsPadding()
-                .height(115.dp)
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 12.dp),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Students",
-                style = MaterialTheme.typography.headlineLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 28.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = buildString {
-                    state.selectedClass?.let {
-                        append("${it.name} \u2014 ${it.section}")
-                    } ?: append("No Class Selected")
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.9f),
-                fontWeight = FontWeight.Medium,
-                fontSize = 15.sp
-            )
-        }
+        StandardHeader(
+            title = "Students",
+            subtitle = state.selectedClass?.let {
+                "${it.name} \u2014 ${it.section}"
+            } ?: "No Class Selected"
+        )
 
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
@@ -165,8 +143,8 @@ private fun StudentsContent(
                                         .fillMaxWidth()
                                         .padding(horizontal = 20.dp, vertical = 16.dp),
                                     shape = RoundedCornerShape(24.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.5.dp, PrimaryGreenDark),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGreenDark)
+                                    border = androidx.compose.foundation.BorderStroke(1.5.dp, if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreenDark),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreenDark)
                                 ) {
                                     Icon(Icons.Default.Add,
                                         contentDescription = null,
@@ -233,7 +211,7 @@ private fun StudentsContent(
             if (state.isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
-                    color = PrimaryGreen
+                    color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
                 )
             }
         }
@@ -257,7 +235,7 @@ private fun AddStudentForm(
             .padding(horizontal = 20.dp, vertical = 12.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
@@ -276,7 +254,7 @@ private fun AddStudentForm(
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedBorderColor = PrimaryGreen
+                    focusedBorderColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
                 ),
                 singleLine = true,
                 enabled = !isSaving
@@ -292,7 +270,7 @@ private fun AddStudentForm(
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedBorderColor = PrimaryGreen
+                    focusedBorderColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
                 ),
                 singleLine = true,
                 enabled = !isSaving
@@ -305,13 +283,17 @@ private fun AddStudentForm(
                     onClick = onSubmit,
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryGreen,
-                        contentColor = Color.White
+                        containerColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen,
+                        contentColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onPrimary else Color.White
                     ),
                     enabled = !isSaving
                 ) {
                     if (isSaving) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp), 
+                            color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onPrimary else Color.White, 
+                            strokeWidth = 2.dp
+                        )
                     } else {
                         Text(
                             if (isEditing) "Save Changes" else "Add Student",

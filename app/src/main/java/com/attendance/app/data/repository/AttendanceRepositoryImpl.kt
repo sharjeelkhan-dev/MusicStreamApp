@@ -8,6 +8,8 @@ import com.attendance.app.domain.model.SessionSummary
 import com.attendance.app.domain.repository.AttendanceRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 
 class AttendanceRepositoryImpl @Inject constructor(
@@ -31,16 +33,18 @@ class AttendanceRepositoryImpl @Inject constructor(
         attendanceDao.insertAllAttendance(entities)
     }
 
-    override suspend fun getSessionSummary(classId: Long, date: String): SessionSummary {
-        val totalCount = attendanceDao.getTotalCount(classId, date)
-        val presentCount = attendanceDao.getPresentCount(classId, date)
-        val absentCount = attendanceDao.getAbsentCount(classId, date)
-        return SessionSummary(
-            date = date,
-            totalStudents = totalCount,
-            presentCount = presentCount,
-            absentCount = absentCount
-        )
+    override fun getSessionSummary(classId: Long, date: String): Flow<SessionSummary> {
+        return combine(
+            attendanceDao.getStudentCountByClass(classId),
+            attendanceDao.getPresentCountFlow(classId, date)
+        ) { totalInClass, present ->
+            SessionSummary(
+                date = date,
+                totalStudents = totalInClass,
+                presentCount = present,
+                absentCount = (totalInClass - present).coerceAtLeast(0)
+            )
+        }
     }
 
     override fun getRecentSessions(classId: Long, limit: Int): Flow<List<String>> {

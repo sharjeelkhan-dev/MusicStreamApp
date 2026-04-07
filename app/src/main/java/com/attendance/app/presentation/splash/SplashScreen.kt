@@ -15,10 +15,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.attendance.app.R
 import com.attendance.app.presentation.theme.AttendanceTheme
 import com.attendance.app.presentation.theme.PrimaryGreen
 import com.attendance.app.presentation.theme.PrimaryGreenDark
@@ -71,7 +73,7 @@ private fun SplashContent(
                 .alpha(alpha)
         ) {
             Icon(
-                imageVector = Icons.Default.School,
+                painter = painterResource(id = R.drawable.graduation_cap_icon),
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(80.dp)

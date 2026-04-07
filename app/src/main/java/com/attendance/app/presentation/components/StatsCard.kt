@@ -13,8 +13,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.attendance.app.presentation.theme.AttendanceTheme
 import com.attendance.app.presentation.theme.PrimaryGreen
-import com.attendance.app.presentation.theme.TextPrimaryLight
-import com.attendance.app.presentation.theme.TextSecondaryLight
 
 @Composable
 fun StatsCard(

@@ -37,15 +37,36 @@ interface AttendanceDao {
 
     @Query("""
         SELECT COUNT(*) FROM attendance 
+        WHERE classId = :classId AND date = :date AND status = 'PRESENT'
+    """)
+    fun getPresentCountFlow(classId: Long, date: String): Flow<Int>
+
+    @Query("""
+        SELECT COUNT(*) FROM attendance 
         WHERE classId = :classId AND date = :date
     """)
     suspend fun getTotalCount(classId: Long, date: String): Int
 
     @Query("""
         SELECT COUNT(*) FROM attendance 
+        WHERE classId = :classId AND date = :date
+    """)
+    fun getTotalCountFlow(classId: Long, date: String): Flow<Int>
+
+    @Query("""
+        SELECT COUNT(*) FROM attendance 
         WHERE classId = :classId AND date = :date AND status = 'ABSENT'
     """)
     suspend fun getAbsentCount(classId: Long, date: String): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM attendance 
+        WHERE classId = :classId AND date = :date AND status = 'ABSENT'
+    """)
+    fun getAbsentCountFlow(classId: Long, date: String): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM students WHERE classId = :classId")
+    fun getStudentCountByClass(classId: Long): Flow<Int>
 
     @Query("DELETE FROM attendance WHERE classId = :classId AND date = :date")
     suspend fun deleteAttendanceByClassAndDate(classId: Long, date: String)

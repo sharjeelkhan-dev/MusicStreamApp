@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.painterResource
 import com.attendance.app.R
 import com.attendance.app.domain.model.ClassModel
+import com.attendance.app.presentation.components.StandardHeader
 import com.attendance.app.presentation.theme.*
 
 @Composable
@@ -53,34 +55,15 @@ private fun ClassesContent(
     modifier: Modifier = Modifier,
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
-    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = modifier.fillMaxSize()
+        .background(MaterialTheme.
+        colorScheme.background)) {
+
         // Fixed Header
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(PrimaryGreenDark)
-                .statusBarsPadding()
-                .height(115.dp)
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 12.dp),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Your Classes",
-                style = MaterialTheme.typography.headlineLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 28.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "${state.classes.size} classes total",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.9f),
-                fontWeight = FontWeight.Medium,
-                fontSize = 15.sp
-            )
-        }
+        StandardHeader(
+            title = "Your Classes",
+            subtitle = "${state.classes.size} classes total"
+        )
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -102,7 +85,7 @@ private fun ClassesContent(
                                 .padding(horizontal = 20.dp, vertical = 12.dp),
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Column(modifier = Modifier.padding(20.dp)) {
                                 Text(
@@ -120,7 +103,7 @@ private fun ClassesContent(
                                     shape = RoundedCornerShape(12.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                        focusedBorderColor = PrimaryGreen
+                                        focusedBorderColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
                                     ),
                                     singleLine = true
                                 )
@@ -133,7 +116,7 @@ private fun ClassesContent(
                                     shape = RoundedCornerShape(12.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                        focusedBorderColor = PrimaryGreen
+                                        focusedBorderColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
                                     ),
                                     singleLine = true
                                 )
@@ -146,8 +129,8 @@ private fun ClassesContent(
                                         },
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = PrimaryGreen,
-                                            contentColor = Color.White
+                                            containerColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen,
+                                            contentColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onPrimary else Color.White
                                         )
                                     ) {
                                         Text(
@@ -177,8 +160,8 @@ private fun ClassesContent(
                                 .fillMaxWidth()
                                 .padding(horizontal = 20.dp, vertical = 12.dp),
                             shape = RoundedCornerShape(24.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, PrimaryGreenDark),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGreenDark)
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreenDark),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreenDark)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null,
                                 modifier = Modifier.size(20.dp))
@@ -243,19 +226,16 @@ private fun ClassRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val primaryColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 4.dp)
-            .then(
-                if (isSelected) Modifier.border(2.dp, PrimaryGreen, RoundedCornerShape(16.dp))
-                else Modifier
-            ),
+            .padding(horizontal = 20.dp, vertical = 4.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         onClick = onSelect
     ) {
         Row(
@@ -268,7 +248,7 @@ private fun ClassRow(
                 Icon(
                     Icons.Default.CheckCircle,
                     contentDescription = "Selected",
-                    tint = PrimaryGreen,
+                    tint = primaryColor,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))

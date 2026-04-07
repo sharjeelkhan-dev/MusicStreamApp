@@ -50,33 +50,48 @@ class ReportsViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            preferencesManager.selectedClassIdFlow.collect { classId ->
+            preferencesManager.selectedClassIdFlow.collectLatest { classId ->
                 if (classId != -1L) {
                     val classModel = classRepository.getClassById(classId)
                     _state.update { it.copy(selectedClass = classModel, isLoading = true) }
 
-                    // Use combine to react to both students and session dates
                     combine(
                         studentRepository.getStudentsByClass(classId),
                         attendanceRepository.getSessionDates(classId)
                     ) { students, dates ->
-                        val reports = students.map { student ->
-                            val pct = studentRepository.getAttendancePercentage(student.id, classId)
-                            StudentReport(student = student, attendancePercentage = pct)
+                        if (dates.isEmpty()) {
+                            val reports = students.map { student ->
+                                StudentReport(student = student, attendancePercentage = 0.0)
+                            }
+                            flowOf(reports to emptyList<SessionWithRecords>())
+                        } else {
+                            val sessionFlows = dates.map { date ->
+                                combine(
+                                    attendanceRepository.getSessionSummary(classId, date),
+                                    attendanceRepository.getAttendanceByClassAndDate(classId, date)
+                                ) { summary, records ->
+                                    SessionWithRecords(summary, records, students)
+                                }
+                            }
+                            
+                            combine(sessionFlows) { it.toList() }.map { sessions ->
+                                val reports = students.map { student ->
+                                    val totalSessions = sessions.size
+                                    val presentCount = sessions.count { session ->
+                                        session.records.any { it.studentId == student.id && it.status == com.attendance.app.domain.model.AttendanceStatus.PRESENT }
+                                    }
+                                    val pct = if (totalSessions > 0) (presentCount.toDouble() / totalSessions * 100.0) else 0.0
+                                    StudentReport(student = student, attendancePercentage = pct)
+                                }
+                                reports to sessions
+                            }
                         }
-
-                        val sessions = dates.map { date ->
-                            val summary = attendanceRepository.getSessionSummary(classId, date)
-                            val records = attendanceRepository.getAttendanceByClassAndDate(classId, date).first()
-                            SessionWithRecords(summary, records, students)
-                        }
-
-                        reports to sessions
-                    }.collect { (reports, sessions) ->
+                    }.flatMapLatest { it }
+                    .collect { (reports, sessions) ->
                         _state.update {
                             it.copy(
                                 studentReports = reports,
-                                sessionDetails = sessions,
+                                sessionDetails = sessions.sortedByDescending { s -> s.summary.date },
                                 isLoading = false
                             )
                         }

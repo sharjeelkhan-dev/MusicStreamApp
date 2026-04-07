@@ -2,11 +2,16 @@ package com.attendance.app.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.*
 import com.attendance.app.data.preferences.PreferencesManager
+import com.attendance.app.data.worker.AttendanceReminderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 data class SettingsState(
     val isDarkMode: Boolean = false,
@@ -17,7 +22,8 @@ data class SettingsState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsState())
@@ -46,7 +52,33 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun toggleNotifications(enabled: Boolean) {
-        viewModelScope.launch { preferencesManager.setNotificationsEnabled(enabled) }
+        viewModelScope.launch {
+            preferencesManager.setNotificationsEnabled(enabled)
+            if (enabled) {
+                scheduleReminder()
+            } else {
+                cancelReminder()
+            }
+        }
+    }
+
+    private fun scheduleReminder() {
+        val workRequest = PeriodicWorkRequestBuilder<AttendanceReminderWorker>(
+            24, TimeUnit.HOURS
+        )
+            .setConstraints(Constraints.Builder().build())
+            .addTag("attendance_reminder")
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "attendance_reminder_work",
+            ExistingPeriodicWorkPolicy.UPDATE,
+            workRequest
+        )
+    }
+
+    private fun cancelReminder() {
+        WorkManager.getInstance(context).cancelUniqueWork("attendance_reminder_work")
     }
 
     fun toggleBiometric(enabled: Boolean) {

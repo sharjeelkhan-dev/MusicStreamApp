@@ -60,6 +60,8 @@ fun getAvatarColor(name: String): Color {
 // Bottom Nav
 val BottomNavSelected = PrimaryGreen
 val BottomNavUnselected = Color(0xFF9E9E9E)
+val BottomNavSelectedDark = PrimaryGreenLight
+val BottomNavUnselectedDark = Color(0xFF757575)
 
 // Divider
 val DividerColor = Color(0xFFE0E0E0)

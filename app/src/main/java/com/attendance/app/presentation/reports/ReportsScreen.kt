@@ -2,7 +2,22 @@ package com.attendance.app.presentation.reports
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -61,8 +76,9 @@ private fun ReportsContent(
                 .fillMaxWidth()
                 .background(PrimaryGreenDark)
                 .statusBarsPadding()
-                .height(130.dp)
-                .padding(horizontal = 20.dp),
+                .height(115.dp)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 12.dp),
             verticalArrangement = Arrangement.Center
         ) {
             Text(
@@ -255,6 +271,7 @@ private fun ReportsContent(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SessionDetailCard(
     date: String,
@@ -302,8 +319,9 @@ private fun SessionDetailCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
+            FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 students.forEach { (name, status) ->
@@ -314,18 +332,20 @@ private fun SessionDetailCard(
                         .joinToString("")
 
                     val isPresent = status == AttendanceStatus.PRESENT
-                    val statusColor = if (isPresent) PresentGreen else AbsentRed
 
                     Box(
                         modifier = Modifier
                             .size(36.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(getAvatarColor(name))
-                            ,contentAlignment = Alignment.Center
+                            .clip(CircleShape)
+                            .background(
+                                if (isPresent) getAvatarColor(name)
+                                else Color(0xFFE0E0E0) // Light Grey for absent
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = initials,
-                            color = AvatarTextColor,
+                            color = if (isPresent) AvatarTextColor else Color.Gray,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )

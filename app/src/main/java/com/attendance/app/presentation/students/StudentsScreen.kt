@@ -80,15 +80,19 @@ private fun StudentsContent(
     modifier: Modifier = Modifier,
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
-    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = modifier.fillMaxSize().
+    background(MaterialTheme.
+    colorScheme.background)) {
+
         // Fixed Header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(PrimaryGreenDark)
                 .statusBarsPadding()
-                .height(130.dp)
-                .padding(horizontal = 20.dp),
+                .height(115.dp)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 12.dp),
             verticalArrangement = Arrangement.Center
         ) {
             Text(

@@ -55,26 +55,30 @@ class ReportsViewModel @Inject constructor(
                     val classModel = classRepository.getClassById(classId)
                     _state.update { it.copy(selectedClass = classModel, isLoading = true) }
 
-                    studentRepository.getStudentsByClass(classId).collect { students ->
+                    // Use combine to react to both students and session dates
+                    combine(
+                        studentRepository.getStudentsByClass(classId),
+                        attendanceRepository.getSessionDates(classId)
+                    ) { students, dates ->
                         val reports = students.map { student ->
                             val pct = studentRepository.getAttendancePercentage(student.id, classId)
                             StudentReport(student = student, attendancePercentage = pct)
                         }
 
-                        // Get session dates
-                        attendanceRepository.getSessionDates(classId).collect { dates ->
-                            val sessions = dates.map { date ->
-                                val summary = attendanceRepository.getSessionSummary(classId, date)
-                                val records = attendanceRepository.getAttendanceByClassAndDate(classId, date).first()
-                                SessionWithRecords(summary, records, students)
-                            }
-                            _state.update {
-                                it.copy(
-                                    studentReports = reports,
-                                    sessionDetails = sessions,
-                                    isLoading = false
-                                )
-                            }
+                        val sessions = dates.map { date ->
+                            val summary = attendanceRepository.getSessionSummary(classId, date)
+                            val records = attendanceRepository.getAttendanceByClassAndDate(classId, date).first()
+                            SessionWithRecords(summary, records, students)
+                        }
+
+                        reports to sessions
+                    }.collect { (reports, sessions) ->
+                        _state.update {
+                            it.copy(
+                                studentReports = reports,
+                                sessionDetails = sessions,
+                                isLoading = false
+                            )
                         }
                     }
                 } else {

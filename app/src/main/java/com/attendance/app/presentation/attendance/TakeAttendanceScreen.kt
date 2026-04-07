@@ -160,8 +160,9 @@ private fun AttendanceHeader(
             .fillMaxWidth()
             .background(PrimaryGreenDark)
             .statusBarsPadding()
-            .height(130.dp)
-            .padding(horizontal = 20.dp),
+            .height(115.dp)
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 12.dp),
         verticalArrangement = Arrangement.Center
     ) {
         Text(

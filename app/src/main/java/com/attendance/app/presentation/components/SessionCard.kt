@@ -216,36 +216,39 @@ fun SessionsSummaryCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)) {
+        border = BorderStroke(1.dp, Color(0xFFF0F0F0)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
+                .padding(20.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
                 Text(
                     text = "This Week",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Gray
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    fontSize = 13.sp
                 )
-                Spacer(modifier = Modifier.height(20.dp))
-                Row(verticalAlignment = Alignment.Bottom) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = sessionCount.toString(),
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A1A1A)
+                        color = Color(0xFF1A1A1A),
+                        fontSize = 22.sp
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "sessions",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 1.dp)
+                        fontSize = 12.sp
                     )
                 }
             }
@@ -253,28 +256,29 @@ fun SessionsSummaryCard(
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "Daily attendance",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Gray
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    fontSize = 13.sp
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                // Simple bar chart representation
+                Spacer(modifier = Modifier.height(14.dp))
+                // Simple bar chart representation matching the image
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.Bottom
                 ) {
                     val bars = listOf(
-                        14.dp to Color(0xFFFFA726), // Orange
-                        24.dp to Color(0xFF00BFA5), // Teal
-                        18.dp to Color(0xFF00BFA5),
-                        28.dp to Color(0xFF00BFA5),
-                        24.dp to Color(0xFF00BFA5)
+                        10.dp to Color(0xFFFFA726), // Orange
+                        18.dp to Color(0xFF00BFA5), // Teal
+                        14.dp to Color(0xFF00BFA5),
+                        22.dp to Color(0xFF00BFA5),
+                        18.dp to Color(0xFF00BFA5)
                     )
                     bars.forEach { (height, color) ->
                         Box(
                             modifier = Modifier
-                                .width(14.dp)
+                                .width(12.dp)
                                 .height(height)
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(3.dp))
                                 .background(color)
                         )
                     }

@@ -13,7 +13,18 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -84,7 +95,18 @@ class HomeViewModel @Inject constructor(
                         recentDates.map { date ->
                             async {
                                 val summary = attendanceRepository.getSessionSummary(selectedClass.id, date)
-                                SessionWithStudents(summary, students.map { it.fullName })
+                                // Fetch records to find present students for avatars
+                                val recordsFlow = attendanceRepository.getAttendanceByClassAndDate(selectedClass.id, date)
+                                val records = recordsFlow.firstOrNull() ?: emptyList()
+                                val presentStudentIds = records
+                                    .filter { it.status.name == "PRESENT" }
+                                    .map { it.studentId }
+                                
+                                val presentNames = students
+                                    .filter { it.id in presentStudentIds }
+                                    .map { it.fullName }
+                                
+                                SessionWithStudents(summary, presentNames)
                             }
                         }.awaitAll()
                     }

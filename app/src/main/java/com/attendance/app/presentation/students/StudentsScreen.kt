@@ -66,7 +66,7 @@ fun StudentsScreen(
             state = state,
             onBack = onBack,
             onEvent = viewModel::onEvent,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
             paddingValues = paddingValues
         )
     }
@@ -82,35 +82,34 @@ private fun StudentsContent(
 ) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Fixed Header
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(PrimaryGreenDark)
                 .statusBarsPadding()
                 .height(130.dp)
                 .padding(horizontal = 20.dp),
-            contentAlignment = Alignment.CenterStart
+            verticalArrangement = Arrangement.Center
         ) {
-            Column {
-                Text(
-                    text = "Students",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = buildString {
-                        state.selectedClass?.let {
-                            append("${it.name} \u2014 ${it.section}")
-                        } ?: append("No Class Selected")
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 15.sp
-                )
-            }
+            Text(
+                text = "Students",
+                style = MaterialTheme.typography.headlineLarge,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 28.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = buildString {
+                    state.selectedClass?.let {
+                        append("${it.name} \u2014 ${it.section}")
+                    } ?: append("No Class Selected")
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.9f),
+                fontWeight = FontWeight.Medium,
+                fontSize = 15.sp
+            )
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
@@ -218,6 +217,7 @@ private fun StudentsContent(
                             name = studentWithPct.student.fullName,
                             rollNumber = studentWithPct.student.rollNumber,
                             attendancePercentage = studentWithPct.attendancePercentage,
+                            createdAt = studentWithPct.student.createdAt,
                             avatarColor = getAvatarColor(studentWithPct.student.fullName),
                             onEdit = { onEvent(StudentsEvent.StartEditStudent(studentWithPct.student)) },
                             onDelete = { onEvent(StudentsEvent.DeleteStudent(studentWithPct.student)) }
@@ -329,6 +329,7 @@ private fun StudentRow(
     name: String,
     rollNumber: String,
     attendancePercentage: Double,
+    createdAt: Long,
     avatarColor: Color,
     onEdit: () -> Unit,
     onDelete: () -> Unit
@@ -373,13 +374,33 @@ private fun StudentRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Text(
-                    text = rollNumber,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = rollNumber,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                    
+                    Text(
+                        text = " • ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    )
 
+                    val enrolledDate = remember(createdAt) {
+                        java.time.Instant.ofEpochMilli(createdAt)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
+                    }
+
+                    Text(
+                        text = "Enrolled $enrolledDate",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        fontSize = 11.sp
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.width(8.dp))
 

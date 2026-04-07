@@ -65,7 +65,7 @@ private fun ClassesContent(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Manage Classes",
+                text = "Your Classes",
                 style = MaterialTheme.typography.headlineLarge,
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
@@ -277,14 +277,35 @@ private fun ClassRow(
                 Text(
                     text = classModel.name,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (classModel.section.isNotBlank()) {
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (classModel.section.isNotBlank()) {
+                        Text(
+                            text = classModel.section,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = " • ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                    }
+                    
+                    val dateFormatted = remember(classModel.createdAt) {
+                        java.time.Instant.ofEpochMilli(classModel.createdAt)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
+                    }
+                    
                     Text(
-                        text = classModel.section,
+                        text = "Created $dateFormatted",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.7f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        fontSize = 11.sp
                     )
                 }
             }

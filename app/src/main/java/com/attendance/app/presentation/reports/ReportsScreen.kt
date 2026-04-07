@@ -182,7 +182,7 @@ private fun ReportsContent(
                 progress = { (percentage / 100f).toFloat() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
+                    .height(4.dp)
                     .clip(RoundedCornerShape(10.dp)),
                 color = percentageColor,
                 trackColor = MaterialTheme.colorScheme.surface,

@@ -83,7 +83,7 @@ private fun ClassesContent(
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha=0.6f),
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
                     )
                 }
 

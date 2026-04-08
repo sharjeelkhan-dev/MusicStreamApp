@@ -70,14 +70,31 @@ private fun ReportsContent(
         ) {
             // Student Overview section
             item {
-                Text(
-                    text = "STUDENT OVERVIEW",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 12.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "STUDENT OVERVIEW",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    
+                    if (state.studentReports.isNotEmpty()) {
+                        Text(
+                            text = "${state.studentReports.size} STUDENTS",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
             }
 
             if (state.isLoading) {
@@ -142,7 +159,8 @@ private fun ReportsContent(
                         )
                     }
                 }
-            } else {
+            }
+            else {
                 items(state.sessionDetails) { session ->
                     val studentStatusList = session.students.map { student ->
                         val record = session.records.find { it.studentId == student.id }
@@ -282,7 +300,7 @@ private fun StudentReportCard(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = statusColor,
-                        modifier = Modifier.offset(x = (-8).dp),
+                        modifier = Modifier.offset(x = (-8).dp, y = 5.dp),
                         fontSize = 15.sp
                     )
                 }
@@ -305,11 +323,12 @@ private fun StudentReportCard(
                     
                     Row(
                         verticalAlignment = Alignment.Bottom,
-                        modifier = Modifier.width(28.dp).offset(x = (-12).dp,),
+                        modifier = Modifier.width(28.dp).offset(x = (-12).dp),
                         horizontalArrangement = Arrangement.End
                     ) {
                         Text(
                             text = "$rank",
+                            modifier = Modifier.offset(y = (-2).dp,),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -321,7 +340,7 @@ private fun StudentReportCard(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 9.sp,
-                            modifier = Modifier.offset(y = (-1.5).dp)
+                            modifier = Modifier.offset(y = (-6.5).dp)
                         )
                     }
                 }

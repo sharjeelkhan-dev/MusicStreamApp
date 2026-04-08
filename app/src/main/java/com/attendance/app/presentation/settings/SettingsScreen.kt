@@ -248,6 +248,7 @@ private fun SettingsSectionHeader(title: String) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsToggleItem(
     icon: ImageVector? = null,
@@ -259,65 +260,73 @@ private fun SettingsToggleItem(
 ) {
     val isDark = LocalIsDarkMode.current
     val primaryColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        onClick = { onToggle(!isChecked) }
+    
+    CompositionLocalProvider(
+        LocalRippleConfiguration provides RippleConfiguration(color = Color.Gray.copy(alpha = 0.2f))
     ) {
-        Row(
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White,
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            onClick = { onToggle(!isChecked) }
         ) {
-            if (iconPainter != null) {
-                Icon(
-                    painter = iconPainter,
-                    contentDescription = null,
-                    tint = primaryColor,
-                    modifier = Modifier.size(28.dp)
-                )
-            } else if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = primaryColor,
-                    modifier = Modifier.size(28.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (iconPainter != null) {
+                    Icon(
+                        painter = iconPainter,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(28.dp)
+                    )
+                } else if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(20.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title, 
+                        style = MaterialTheme.typography.titleMedium, 
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = subtitle, 
+                        style = MaterialTheme.typography.bodySmall, 
+                        color = Color.Gray
+                    )
+                }
+                Switch(
+                    checked = isChecked,
+                    onCheckedChange = onToggle,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = primaryColor,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = if (isDark) Color(0xFF424242) else Color(0xFFEEEEEE),
+                        uncheckedBorderColor = Color.Transparent
+                    )
                 )
             }
-            Spacer(modifier = Modifier.width(20.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title, 
-                    style = MaterialTheme.typography.titleMedium, 
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = subtitle, 
-                    style = MaterialTheme.typography.bodySmall, 
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
-            Switch(
-                checked = isChecked,
-                onCheckedChange = onToggle,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = primaryColor,
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = if (isDark) Color(0xFF424242) else Color(0xFFEEEEEE),
-                    uncheckedBorderColor = Color.Transparent
-                )
-            )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsActionItem(
     icon: ImageVector? = null,
@@ -327,55 +336,62 @@ private fun SettingsActionItem(
     onClick: () -> Unit
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        onClick = onClick
+    
+    CompositionLocalProvider(
+        LocalRippleConfiguration provides RippleConfiguration(color = Color.Gray.copy(alpha = 0.2f))
     ) {
-        Row(
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White,
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            onClick = onClick
         ) {
-            if (iconPainter != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (iconPainter != null) {
+                    Icon(
+                        painter = iconPainter,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title, 
+                        style = MaterialTheme.typography.titleMedium, 
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = subtitle, 
+                        style = MaterialTheme.typography.bodySmall, 
+                        color = Color.Gray
+                    )
+                }
                 Icon(
-                    painter = iconPainter,
+                    imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = primaryColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            } else if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = primaryColor,
-                    modifier = Modifier.size(24.dp)
+                    tint = Color.Gray.copy(alpha = 0.4f)
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title, 
-                    style = MaterialTheme.typography.titleMedium, 
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = subtitle, 
-                    style = MaterialTheme.typography.bodySmall, 
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            )
         }
     }
 }

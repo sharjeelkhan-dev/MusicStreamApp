@@ -111,7 +111,7 @@ private fun StudentsContent(
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp,
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
                         )
                     }
                 }
@@ -136,7 +136,10 @@ private fun StudentsContent(
                         }
                     }
                 } else {
-                    items(state.students, key = { it.student.id }) { studentWithPct ->
+                    items(
+                        state.students.sortedByDescending { it.student.createdAt }, 
+                        key = { it.student.id }
+                    ) { studentWithPct ->
                         StudentRow(
                             initials = studentWithPct.student.initials,
                             name = studentWithPct.student.fullName,

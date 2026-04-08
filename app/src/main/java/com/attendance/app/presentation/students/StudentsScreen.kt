@@ -246,8 +246,10 @@ private fun AddStudentForm(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                focusedBorderColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                focusedBorderColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                focusedLabelColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
             ),
             singleLine = true,
             enabled = !isSaving
@@ -263,8 +265,10 @@ private fun AddStudentForm(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                focusedBorderColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                focusedBorderColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                focusedLabelColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
             ),
             singleLine = true,
             enabled = !isSaving
@@ -330,7 +334,7 @@ private fun StudentRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {

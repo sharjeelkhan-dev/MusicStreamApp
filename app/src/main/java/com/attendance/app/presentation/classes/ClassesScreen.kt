@@ -168,8 +168,10 @@ private fun ClassesContent(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(28.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                focusedBorderColor = primaryColor
+                                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                focusedBorderColor = primaryColor,
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                focusedLabelColor = primaryColor
                             ),
                             singleLine = true
                         )
@@ -182,8 +184,10 @@ private fun ClassesContent(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(28.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                focusedBorderColor = primaryColor
+                                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                focusedBorderColor = primaryColor,
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                focusedLabelColor = primaryColor
                             ),
                             singleLine = true
                         )
@@ -320,7 +324,8 @@ private fun ClassRow(
                 Icon(
                     painter = painterResource(id = R.drawable.recycle_bin_icon),
                     contentDescription = "Delete",
-                    tint = if (isSelected) Color.White.copy(alpha = 0.9f) else AbsentRed.copy(alpha = 0.7f),
+                    tint = if (isSelected) Color.White.copy(alpha = 0.9f)
+                    else AbsentRed.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )
             }

@@ -93,10 +93,11 @@ private fun AttendanceContent(
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                     shape = RoundedCornerShape(28.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         focusedBorderColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen,
                         unfocusedContainerColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White,
-                        focusedContainerColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White
+                        focusedContainerColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White,
+                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     ),
                     singleLine = true
                 )
@@ -112,7 +113,7 @@ private fun AttendanceContent(
                 ) {
                     OutlinedButton(
                         onClick = { onEvent(AttendanceEvent.MarkAllPresent) },
-                        modifier = Modifier.weight(1f).height(48.dp),
+                        modifier = Modifier.weight(0.5f).height(48.dp),
                         shape = RoundedCornerShape(28.dp),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, PresentGreen.copy(alpha = 0.7f)),
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -124,7 +125,7 @@ private fun AttendanceContent(
                     }
                     OutlinedButton(
                         onClick = { onEvent(AttendanceEvent.MarkAllAbsent) },
-                        modifier = Modifier.weight(1f).height(48.dp),
+                        modifier = Modifier.weight(0.5f).height(48.dp),
                         shape = RoundedCornerShape(28.dp),
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, AbsentRed.copy(alpha = 0.7f)),
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -184,7 +185,7 @@ private fun AttendanceStudentRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
@@ -232,7 +233,7 @@ private fun AttendanceStudentRow(
             Button(
                 onClick = { onToggle(AttendanceStatus.PRESENT) },
                 modifier = Modifier.size(40.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(28.dp),
                 contentPadding = PaddingValues(0.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isPresentSelected) PresentGreen else if (isDark) DividerColorDark else PresentGreen.copy(alpha = 0.1f),
@@ -250,7 +251,7 @@ private fun AttendanceStudentRow(
             Button(
                 onClick = { onToggle(AttendanceStatus.ABSENT) },
                 modifier = Modifier.size(40.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(28.dp),
                 contentPadding = PaddingValues(0.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isAbsentSelected) AbsentRed else if (isDark) DividerColorDark else AbsentRed.copy(alpha = 0.1f),

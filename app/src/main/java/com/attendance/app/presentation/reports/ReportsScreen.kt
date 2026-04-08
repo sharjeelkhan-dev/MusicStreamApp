@@ -1,23 +1,10 @@
 package com.attendance.app.presentation.reports
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -100,96 +87,14 @@ private fun ReportsContent(
                     }
                 }
             } else if (state.studentReports.isNotEmpty()) {
-                item {
-                    val sortedReports = remember(state.studentReports) {
-                        state.studentReports.sortedByDescending { it.attendancePercentage }
-                    }
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(vertical = 12.dp)) {
-                            sortedReports.forEach { report ->
-                                val initials = report.student.fullName.split(" ")
-                                    .filter { it.isNotBlank() }
-                                    .take(2)
-                                    .mapNotNull { it.firstOrNull()?.uppercaseChar() }
-                                    .joinToString("")
-                                
-                                val percentage = report.attendancePercentage
-                                val percentageColor = when {
-                                    percentage >= 80 -> PresentGreen
-                                    percentage >= 50 -> LateOrange
-                                    else -> AbsentRed
-                                }
-
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.Top
-                                ) {
-                                    // Avatar
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .offset(y = 5.dp)
-                                            .clip(CircleShape)
-                                            .background(getAvatarColor(report.student.fullName)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = initials,
-                                            color = AvatarTextColor,
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(16.dp))
-
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = report.student.fullName,
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                fontSize = 16.sp
-                                            )
-                                            Text(
-                                                text = "${percentage.toInt()}%",
-                                                color = percentageColor,
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-
-                                        Spacer(modifier = Modifier.height(10.dp))
-
-                                        LinearProgressIndicator(
-                                            progress = { (percentage / 100f).toFloat() },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(4.dp)
-                                                .clip(CircleShape),
-                                            color = percentageColor,
-                                            trackColor = percentageColor.copy(alpha = 0.1f),
-                                            strokeCap = StrokeCap.Round
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                val sortedReports = state.studentReports.sortedByDescending { it.attendancePercentage }
+                
+                itemsIndexed(sortedReports) { index, report ->
+                    StudentReportCard(
+                        report = report,
+                        rank = index + 1,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+                    )
                 }
             } else {
                 item {
@@ -257,6 +162,174 @@ private fun ReportsContent(
     }
 }
 
+@Composable
+private fun StudentReportCard(
+    report: StudentReport,
+    rank: Int,
+    modifier: Modifier = Modifier
+) {
+    val percentage = report.attendancePercentage
+    
+    val statusColor = when {
+        percentage >= 80 -> PresentGreen
+        percentage >= 60 -> LateOrange
+        else -> AbsentRed
+    }
+    
+    val statusBg = when {
+        percentage >= 80 -> PresentGreenBg
+        percentage >= 60 -> LateOrangeBg
+        else -> AbsentRedBg
+    }
+    
+    val statusText = when {
+        percentage >= 80 -> "Excellent"
+        percentage >= 60 -> "Average"
+        else -> "At Risk"
+    }
+
+    val rankSuffix = when (rank) {
+        1 -> "st"
+        2 -> "nd"
+        3 -> "rd"
+        else -> "th"
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Student Avatar
+            val initials = report.student.fullName.split(" ")
+                .filter { it.isNotBlank() }
+                .take(2)
+                .mapNotNull { it.firstOrNull()?.uppercaseChar() }
+                .joinToString("")
+
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(getAvatarColor(report.student.fullName)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = initials,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = report.student.fullName,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                modifier = Modifier.offset(y = 5.dp),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Surface(
+                                color = statusBg,
+                                modifier = Modifier.offset(y = 5.dp),
+                                shape = RoundedCornerShape(5.dp)
+                            ) {
+                                Text(
+                                    text = statusText,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = statusColor,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 8.sp
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = "${report.student.rollNumber}  •  ${report.presentCount}/${report.totalSessions} classes",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.offset(y = 5.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 10.sp
+                        )
+                    }
+
+                    Text(
+                        text = "${percentage.toInt()}%",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = statusColor,
+                        modifier = Modifier.offset(x = (-8).dp),
+                        fontSize = 15.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LinearProgressIndicator(
+                        progress = { (percentage / 100f).toFloat() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(4.dp)
+                            .clip(CircleShape),
+                        color = statusColor,
+                        trackColor = statusColor.copy(alpha = 0.08f),
+                        strokeCap = StrokeCap.Round
+                    )
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+                    
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        modifier = Modifier.width(28.dp).offset(x = (-12).dp,),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Text(
+                            text = "$rank",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 13.sp
+                        )
+                        Text(
+                            text = rankSuffix,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 9.sp,
+                            modifier = Modifier.offset(y = (-1.5).dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SessionDetailCard(
@@ -276,13 +349,13 @@ private fun SessionDetailCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
             modifier = Modifier
-                .padding(20.dp)
+                .padding(14.dp)
                 .fillMaxWidth()
         ) {
             Row(
@@ -292,24 +365,28 @@ private fun SessionDetailCard(
             ) {
                 Text(
                     text = displayDate,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    modifier = Modifier.offset(x = (10).dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp
                 )
                 Text(
                     text = "$presentCount/$totalCount present",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    fontWeight = FontWeight.Medium
+                    modifier = Modifier.offset(x = (-10).dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().offset(x = 10.dp)
             ) {
                 students.forEach { (name, status) ->
                     val initials = name.split(" ")
@@ -322,20 +399,32 @@ private fun SessionDetailCard(
 
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(32.dp)
                             .clip(CircleShape)
                             .background(
                                 if (isPresent) getAvatarColor(name)
-                                else if (isDarkGlobal) Color(0xFF2C2C2C) else Color(0xFFF5F5F5)
+                                else if (isDarkGlobal) Color(0xFF2C2C2C) else Color(0xFFF2F4F7)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = initials,
-                            color = if (isPresent) AvatarTextColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
+                            color = if (isPresent) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold
                         )
+                        
+                        if (!isPresent) {
+                            androidx.compose.foundation.Canvas(modifier = Modifier.matchParentSize()) {
+                                drawLine(
+                                    color = Color.Red.copy(alpha = 0.5f),
+                                    start = androidx.compose.ui.geometry.Offset(size.width * 0.2f, size.height * 0.5f),
+                                    end = androidx.compose.ui.geometry.Offset(size.width * 0.8f, size.height * 0.5f),
+                                    strokeWidth = 1.5.dp.toPx(),
+                                    cap = StrokeCap.Round
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -347,15 +436,15 @@ private fun SessionDetailCard(
 @Composable
 private fun ReportsScreenPreview() {
     val sampleStudents = listOf(
-        Student(id = 1, fullName = "Ahmad Khan", rollNumber = "001", classId = 1),
-        Student(id = 2, fullName = "Sara Ahmed", rollNumber = "002", classId = 1),
-        Student(id = 3, fullName = "Zainab Bibi", rollNumber = "003", classId = 1)
+        Student(id = 1, fullName = "Ahmad Khan", rollNumber = "001", classId = 1, createdAt = System.currentTimeMillis()),
+        Student(id = 2, fullName = "Sara Ahmed", rollNumber = "002", classId = 1, createdAt = System.currentTimeMillis()),
+        Student(id = 3, fullName = "Zainab Bibi", rollNumber = "003", classId = 1, createdAt = System.currentTimeMillis())
     )
 
     val sampleReports = listOf(
-        StudentReport(sampleStudents[0], 85.0),
-        StudentReport(sampleStudents[1], 45.0),
-        StudentReport(sampleStudents[2], 92.0)
+        StudentReport(sampleStudents[0], 85.0, 17, 20),
+        StudentReport(sampleStudents[1], 45.0, 9, 20),
+        StudentReport(sampleStudents[2], 92.0, 18, 20)
     )
 
     val sampleSessionDetails = listOf(

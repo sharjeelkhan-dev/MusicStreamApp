@@ -159,6 +159,7 @@ private fun HomeContent(
             item {
                 SessionsSummaryCard(
                     sessionCount = state.recentSessions.size,
+                    recentPercentages = state.recentSessions.map { it.summary.percentage },
                     modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp) // Removed top padding
                 )
             }
@@ -304,7 +305,7 @@ private fun QuickActionButton(
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = bgColor),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isHighlighted) 12.dp else 8.dp),
         onClick = onClick

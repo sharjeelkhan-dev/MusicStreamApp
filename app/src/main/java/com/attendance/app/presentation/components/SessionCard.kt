@@ -212,11 +212,12 @@ fun SessionCard(
 @Composable
 fun SessionsSummaryCard(
     sessionCount: Int,
+    recentPercentages: List<Int> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -235,6 +236,7 @@ fun SessionsSummaryCard(
                     text = "This Week",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.offset(x = (10).dp),
                     fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -243,12 +245,14 @@ fun SessionsSummaryCard(
                         text = sessionCount.toString(),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
+                        modifier = Modifier.offset(x = (10).dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 22.sp
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "sessions",
+                        modifier = Modifier.offset(x = (10).dp, y = 3.2.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         fontSize = 12.sp
@@ -259,30 +263,42 @@ fun SessionsSummaryCard(
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "Daily attendance",
+                    modifier = Modifier.offset(x = (-10).dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(14.dp))
-                // Simple bar chart representation matching the image
+                
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.offset(x = (-10).dp),
                     verticalAlignment = Alignment.Bottom
                 ) {
-                    val bars = listOf(
-                        10.dp to LateOrange,
-                        18.dp to Color(0xFF00BFA5),
-                        14.dp to Color(0xFF00BFA5),
-                        22.dp to Color(0xFF00BFA5),
-                        18.dp to Color(0xFF00BFA5)
-                    )
-                    bars.forEach { (height, color) ->
+                    // Show last 5 percentages as bars
+                    val displayPercentages = if (recentPercentages.isEmpty()) {
+                        listOf(45, 80, 65, 90, 85) // Placeholder if no data
+                    } else {
+                        recentPercentages.takeLast(5).let { list ->
+                            if (list.size < 5) {
+                                List(5 - list.size) { 0 } + list
+                            } else list
+                        }
+                    }
+
+                    displayPercentages.forEach { pct ->
+                        val barHeight = (8 + (pct * 0.18)).dp // Scale height based on percentage
+                        val color = when {
+                            pct >= 80 -> Color(0xFF00BFA5) // PresentGreen/Teal
+                            pct >= 50 -> LateOrange
+                            else -> AbsentRed
+                        }
                         Box(
                             modifier = Modifier
                                 .width(12.dp)
-                                .height(height)
+                                .height(barHeight)
                                 .clip(RoundedCornerShape(3.dp))
-                                .background(color)
+                                .background(if (pct > 0) color else color.copy(alpha = 0.1f))
                         )
                     }
                 }

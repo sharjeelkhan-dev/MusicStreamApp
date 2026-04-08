@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,6 +34,7 @@ import com.attendance.app.presentation.theme.AttendanceTheme
 import com.attendance.app.presentation.theme.LocalIsDarkMode
 import com.attendance.app.R
 import com.attendance.app.presentation.components.StandardHeader
+import com.attendance.app.presentation.components.VerticalScrollbar
 
 @Composable
 fun SettingsScreen(
@@ -107,75 +109,86 @@ private fun SettingsContent(
     modifier: Modifier = Modifier
 ) {
     val isDark = LocalIsDarkMode.current
+    val listState = rememberLazyListState()
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Custom Settings Header
-        SettingsHeader(
-            title = "Settings",
-            subtitle = "Manage Your Preferences",
-            onBack = onBack
-        )
-
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .navigationBarsPadding(),
-            contentPadding = PaddingValues(bottom = 16.dp)
+    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Appearance
-            item {
-                SettingsSectionHeader("APPEARANCE")
-                SettingsToggleItem(
-                    iconPainter = painterResource(id = R.drawable.night_icon),
-                    title = "Dark Mode",
-                    subtitle = "Switch to dark theme",
-                    isChecked = state.isDarkMode,
-                    onToggle = onToggleDarkMode
-                )
-            }
+            // Custom Settings Header
+            SettingsHeader(
+                title = "Settings",
+                subtitle = "Manage Your Preferences",
+                onBack = onBack
+            )
 
-            // Notifications
-            item {
-                SettingsSectionHeader("NOTIFICATIONS")
-                SettingsToggleItem(
-                    iconPainter = painterResource(id = R.drawable.alarm_icon),
-                    title = "Attendance Reminders",
-                    subtitle = "Get daily reminders to take attendance",
-                    isChecked = state.isNotificationsEnabled,
-                    onToggle = onToggleNotifications
-                )
-            }
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .navigationBarsPadding(),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    // Appearance
+                    item {
+                        SettingsSectionHeader("APPEARANCE")
+                        SettingsToggleItem(
+                            iconPainter = painterResource(id = R.drawable.night_icon),
+                            title = "Dark Mode",
+                            subtitle = "Switch to dark theme",
+                            isChecked = state.isDarkMode,
+                            onToggle = onToggleDarkMode
+                        )
+                    }
 
-            // Security
-            item {
-                SettingsSectionHeader("SECURITY")
-                SettingsToggleItem(
-                    icon = Icons.Default.Fingerprint,
-                    title = "Biometric Authentication",
-                    subtitle = "Require fingerprint to open app",
-                    isChecked = state.isBiometricEnabled,
-                    onToggle = onToggleBiometric
-                )
-            }
+                    // Notifications
+                    item {
+                        SettingsSectionHeader("NOTIFICATIONS")
+                        SettingsToggleItem(
+                            iconPainter = painterResource(id = R.drawable.alarm_icon),
+                            title = "Attendance Reminders",
+                            subtitle = "Get daily reminders to take attendance",
+                            isChecked = state.isNotificationsEnabled,
+                            onToggle = onToggleNotifications
+                        )
+                    }
 
-            // Data
-            item {
-                SettingsSectionHeader("DATA")
-                SettingsActionItem(
-                    iconPainter = painterResource(id = R.drawable.cloud_backup_icon),
-                    title = "Create Backup",
-                    subtitle = "Export data as backup file",
-                    onClick = onCreateBackup
-                )
-                SettingsActionItem(
-                    iconPainter = painterResource(id = R.drawable.reload_sync_icon),
-                    title = "Restore Data",
-                    subtitle = "Import from backup file",
-                    onClick = onRestoreBackup
+                    // Security
+                    item {
+                        SettingsSectionHeader("SECURITY")
+                        SettingsToggleItem(
+                            icon = Icons.Default.Fingerprint,
+                            title = "Biometric Authentication",
+                            subtitle = "Require fingerprint to open app",
+                            isChecked = state.isBiometricEnabled,
+                            onToggle = onToggleBiometric
+                        )
+                    }
+
+                    // Data
+                    item {
+                        SettingsSectionHeader("DATA")
+                        SettingsActionItem(
+                            iconPainter = painterResource(id = R.drawable.cloud_backup_icon),
+                            title = "Create Backup",
+                            subtitle = "Export data as backup file",
+                            onClick = onCreateBackup
+                        )
+                        SettingsActionItem(
+                            iconPainter = painterResource(id = R.drawable.reload_sync_icon),
+                            title = "Restore Data",
+                            subtitle = "Import from backup file",
+                            onClick = onRestoreBackup
+                        )
+                    }
+                }
+
+                VerticalScrollbar(
+                    lazyListState = listState,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(top = 12.dp)
                 )
             }
         }

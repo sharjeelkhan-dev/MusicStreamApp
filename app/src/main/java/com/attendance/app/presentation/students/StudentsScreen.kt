@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,6 +33,7 @@ import com.attendance.app.R
 import com.attendance.app.domain.model.ClassModel
 import com.attendance.app.domain.model.Student
 import com.attendance.app.presentation.components.StandardHeader
+import com.attendance.app.presentation.components.VerticalScrollbar
 import com.attendance.app.presentation.theme.*
 
 @Composable
@@ -83,9 +85,9 @@ private fun StudentsContent(
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
     val isDark = LocalIsDarkMode.current
-    Column(modifier = modifier.fillMaxSize().
-    background(MaterialTheme.
-    colorScheme.background)) {
+    val listState = rememberLazyListState()
+
+    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
 
         // Fixed Header
         StandardHeader(
@@ -95,8 +97,9 @@ private fun StudentsContent(
             } ?: "No Class Selected"
         )
 
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     bottom = paddingValues.calculateBottomPadding() + 80.dp // Extra padding for FAB
@@ -153,6 +156,11 @@ private fun StudentsContent(
                     }
                 }
             }
+
+            VerticalScrollbar(
+                lazyListState = listState,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
 
             if (state.isLoading) {
                 CircularProgressIndicator(

@@ -3,6 +3,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,6 +27,7 @@ import com.attendance.app.domain.model.AttendanceStatus
 import com.attendance.app.domain.model.ClassModel
 import com.attendance.app.domain.model.Student
 import com.attendance.app.presentation.components.StandardHeader
+import com.attendance.app.presentation.components.VerticalScrollbar
 import com.attendance.app.presentation.theme.*
 
 @Composable
@@ -60,6 +62,8 @@ private fun AttendanceContent(
     }
 
     val isDark = LocalIsDarkMode.current
+    val listState = rememberLazyListState()
+    
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -77,136 +81,144 @@ private fun AttendanceContent(
             isSaved = state.isSaved
         )
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 16.dp)
-        ) {
-            // Search bar
-            item {
-                OutlinedTextField(
-                    value = state.searchQuery,
-                    onValueChange = { onEvent(AttendanceEvent.SearchQueryChanged(it)) },
-                    placeholder = { Text("Search student...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                        focusedBorderColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen,
-                        unfocusedContainerColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White,
-                        focusedContainerColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White,
-                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                    ),
-                    singleLine = true
-                )
-            }
+        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                // Search bar
+                item {
+                    OutlinedTextField(
+                        value = state.searchQuery,
+                        onValueChange = { onEvent(AttendanceEvent.SearchQueryChanged(it)) },
+                        placeholder = { Text("Search student...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            focusedBorderColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen,
+                            unfocusedContainerColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White,
+                            focusedContainerColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White,
+                            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        ),
+                        singleLine = true
+                    )
+                }
 
-            // All Present / All Absent buttons
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // All Present Button
-                    Surface(
-                        onClick = { onEvent(AttendanceEvent.MarkAllPresent) },
-                        modifier = Modifier.weight(1f).height(44.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        color = if (isDark) PresentGreen.copy(alpha = 0.12f) else PresentGreen.copy(alpha = 0.06f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PresentGreen.copy(alpha = 0.25f))
+                // All Present / All Absent buttons
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                        // All Present Button
+                        Surface(
+                            onClick = { onEvent(AttendanceEvent.MarkAllPresent) },
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            color = if (isDark) PresentGreen.copy(alpha = 0.12f) else PresentGreen.copy(alpha = 0.06f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PresentGreen.copy(alpha = 0.25f))
                         ) {
-                            Icon(
-                                Icons.Default.DoneAll, 
-                                contentDescription = null, 
-                                tint = PresentGreen,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                "All Present",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = PresentGreen,
-                                letterSpacing = 0.5.sp,
-                                fontSize = 11.sp
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.DoneAll, 
+                                    contentDescription = null, 
+                                    tint = PresentGreen,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    "All Present",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = PresentGreen,
+                                    letterSpacing = 0.5.sp,
+                                    fontSize = 11.sp
+                                )
+                            }
                         }
-                    }
-                    
-                    // All Absent Button
-                    Surface(
-                        onClick = { onEvent(AttendanceEvent.MarkAllAbsent) },
-                        modifier = Modifier.weight(1f).height(44.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        color = if (isDark) AbsentRed.copy(alpha = 0.12f) else AbsentRed.copy(alpha = 0.06f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, AbsentRed.copy(alpha = 0.25f))
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                        
+                        // All Absent Button
+                        Surface(
+                            onClick = { onEvent(AttendanceEvent.MarkAllAbsent) },
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            color = if (isDark) AbsentRed.copy(alpha = 0.12f) else AbsentRed.copy(alpha = 0.06f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AbsentRed.copy(alpha = 0.25f))
                         ) {
-                            Icon(
-                                Icons.Default.Close, 
-                                contentDescription = null, 
-                                tint = AbsentRed,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                "All Absent",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = AbsentRed,
-                                letterSpacing = 0.5.sp,
-                                fontSize = 11.sp
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Close, 
+                                    contentDescription = null, 
+                                    tint = AbsentRed,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    "All Absent",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = AbsentRed,
+                                    letterSpacing = 0.5.sp,
+                                    fontSize = 11.sp
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            // Student list - Simple Rows without Cards
-            if (filteredStudents.isEmpty() && !state.isLoading) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 48.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (state.searchQuery.isBlank()) 
-                                "No students found in this class.\nAdd students to start taking attendance!"
-                            else 
-                                "No students match your search.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 32.dp)
+                // Student list - Simple Rows without Cards
+                if (filteredStudents.isEmpty() && !state.isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (state.searchQuery.isBlank()) 
+                                    "No students found in this class.\nAdd students to start taking attendance!"
+                                else 
+                                    "No students match your search.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 32.dp)
+                            )
+                        }
+                    }
+                } else {
+                    items(filteredStudents, key = { it.student.id }) { studentState ->
+                        AttendanceStudentRow(
+                            studentState = studentState,
+                            avatarColor = getAvatarColor(studentState.student.fullName),
+                            onToggle = { status ->
+                                onEvent(AttendanceEvent.ToggleStatus(studentState.student.id, status))
+                            }
                         )
                     }
                 }
-            } else {
-                items(filteredStudents, key = { it.student.id }) { studentState ->
-                    AttendanceStudentRow(
-                        studentState = studentState,
-                        avatarColor = getAvatarColor(studentState.student.fullName),
-                        onToggle = { status ->
-                            onEvent(AttendanceEvent.ToggleStatus(studentState.student.id, status))
-                        }
-                    )
-                }
             }
+
+            VerticalScrollbar(
+                lazyListState = listState,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
         }
     }
 }

@@ -3,6 +3,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,10 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.attendance.app.R
-import com.attendance.app.presentation.components.SessionCard
-import com.attendance.app.presentation.components.SessionsSummaryCard
-import com.attendance.app.presentation.components.StandardHeader
-import com.attendance.app.presentation.components.StatsCard
+import com.attendance.app.presentation.components.*
 import com.attendance.app.presentation.theme.*
 import java.time.LocalTime
 
@@ -68,134 +66,146 @@ private fun HomeContent(
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
     val isDark = LocalIsDarkMode.current
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    val listState = rememberLazyListState()
 
-        // Fixed Header
-        StandardHeader(
-            title = "$greeting 👋",
-            subtitle = if (state.selectedClass?.section?.isNotEmpty() == true) 
-                "${state.selectedClass.name} — ${state.selectedClass.section}" 
-                else state.selectedClass?.name ?: "No Class",
-            showDate = true,
-            showSettings = true,
-            onSettingsClick = onNavigateToSettings
-        )
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                bottom = paddingValues.calculateBottomPadding() + 16.dp
-            )
+    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Stats Row
-            item {
-                StatsRow(
-                    total = state.totalStudents,
-                    present = state.presentToday,
-                    absent = state.absentToday
-                )
-            }
 
-            // Quick Actions
-            item {
-                QuickActionsSection(
-                    onAttendanceClick = onNavigateToAttendance,
-                    onReportsClick = onNavigateToReports,
-                    onStudentsClick = onNavigateToStudents
-                )
-            }
+            // Fixed Header
+            StandardHeader(
+                title = "$greeting 👋",
+                subtitle = if (state.selectedClass?.section?.isNotEmpty() == true) 
+                    "${state.selectedClass.name} — ${state.selectedClass.section}" 
+                    else state.selectedClass?.name ?: "No Class",
+                showDate = true,
+                showSettings = true,
+                onSettingsClick = onNavigateToSettings
+            )
 
-            // Recent Sessions Header
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 8.dp), // Reduced bottom padding
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        bottom = paddingValues.calculateBottomPadding() + 16.dp
+                    )
                 ) {
-                    Column {
-                        Text(
-                            text = "RECENT SESSIONS",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onBackground
-                                .copy(alpha = 0.6f),
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
+                    // Stats Row
+                    item {
+                        StatsRow(
+                            total = state.totalStudents,
+                            present = state.presentToday,
+                            absent = state.absentToday
                         )
-                        if (state.selectedClass != null) {
-                            Text(
-                                text = if (state.selectedClass.section.isNotEmpty()) 
-                                    "${state.selectedClass.name} — ${state.selectedClass.section}" 
-                                    else state.selectedClass.name,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
-                            )
+                    }
+
+                    // Quick Actions
+                    item {
+                        QuickActionsSection(
+                            onAttendanceClick = onNavigateToAttendance,
+                            onReportsClick = onNavigateToReports,
+                            onStudentsClick = onNavigateToStudents
+                        )
+                    }
+
+                    // Recent Sessions Header
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 8.dp), // Reduced bottom padding
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "RECENT SESSIONS",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                        .copy(alpha = 0.6f),
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp,
+                                )
+                                if (state.selectedClass != null) {
+                                    Text(
+                                        text = if (state.selectedClass.section.isNotEmpty()) 
+                                            "${state.selectedClass.name} — ${state.selectedClass.section}" 
+                                            else state.selectedClass.name,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                onClick = onNavigateToReports,
+                                shape = RoundedCornerShape(100), // Perfect Pill shape
+                                color = MaterialTheme.colorScheme.surface,
+                                shadowElevation = 8.dp
+                            ) {
+                                Text(
+                                    text = "See All",
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
+                                )
+                            }
                         }
                     }
 
-                    Surface(
-                        onClick = onNavigateToReports,
-                        shape = RoundedCornerShape(100), // Perfect Pill shape
-                        color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = 8.dp
-                    ) {
-                        Text(
-                            text = "See All",
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
+                    // Summary Card
+                    item {
+                        SessionsSummaryCard(
+                            sessionCount = state.recentSessions.size,
+                            recentPercentages = state.recentSessions.map { it.summary.percentage },
+                            modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp) // Removed top padding
                         )
                     }
-                }
-            }
 
-            // Summary Card
-            item {
-                SessionsSummaryCard(
-                    sessionCount = state.recentSessions.size,
-                    recentPercentages = state.recentSessions.map { it.summary.percentage },
-                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp) // Removed top padding
+                    // Recent Sessions List
+                    if (state.recentSessions.isEmpty() && !state.isLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No attendance sessions yet.\nTake your first attendance!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    } else {
+                        items(state.recentSessions) { session ->
+                            val sortedStudents = remember(session.students) {
+                                session.students.sortedBy { !it.second }
+                            }
+                            SessionCard(
+                                date = session.summary.date,
+                                presentCount = session.summary.presentCount,
+                                absentCount = session.summary.absentCount,
+                                percentage = session.summary.percentage,
+                                studentNames = sortedStudents,
+                                modifier = Modifier.padding(horizontal = 20.dp,
+                                    vertical = 8.dp)
+                            )
+                        }
+                    }
+                }
+
+                VerticalScrollbar(
+                    lazyListState = listState,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(top = 12.dp)
                 )
-            }
-
-            // Recent Sessions List
-            if (state.recentSessions.isEmpty() && !state.isLoading) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No attendance sessions yet.\nTake your first attendance!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                    }
-                }
-            } else {
-                items(state.recentSessions) { session ->
-                    val sortedStudents = remember(session.students) {
-                        session.students.sortedBy { !it.second }
-                    }
-                    SessionCard(
-                        date = session.summary.date,
-                        presentCount = session.summary.presentCount,
-                        absentCount = session.summary.absentCount,
-                        percentage = session.summary.percentage,
-                        studentNames = sortedStudents,
-                        modifier = Modifier.padding(horizontal = 20.dp,
-                            vertical = 8.dp)
-                    )
-                }
             }
         }
     }

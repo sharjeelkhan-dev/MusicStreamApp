@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,6 +34,7 @@ import androidx.compose.ui.res.painterResource
 import com.attendance.app.R
 import com.attendance.app.domain.model.ClassModel
 import com.attendance.app.presentation.components.StandardHeader
+import com.attendance.app.presentation.components.VerticalScrollbar
 import com.attendance.app.presentation.theme.*
 
 @Composable
@@ -60,6 +62,7 @@ private fun ClassesContent(
 ) {
     val isDark = LocalIsDarkMode.current
     val backgroundColor = if (isDark) MaterialTheme.colorScheme.background else Color(0xFFF5F7FA)
+    val listState = rememberLazyListState()
     
     Box(modifier = modifier.fillMaxSize().background(backgroundColor)) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -69,7 +72,9 @@ private fun ClassesContent(
                 subtitle = "${state.classes.size} classes total"
             )
 
+        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     bottom = paddingValues.calculateBottomPadding() + 80.dp // Extra padding for FAB
@@ -116,6 +121,12 @@ private fun ClassesContent(
                     }
                 }
             }
+
+            VerticalScrollbar(
+                lazyListState = listState,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
+        }
         }
 
         // Floating Action Button at Bottom Right

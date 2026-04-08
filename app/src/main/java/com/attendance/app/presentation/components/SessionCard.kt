@@ -1,17 +1,12 @@
 package com.attendance.app.presentation.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,8 +29,7 @@ fun SessionCard(
     percentage: Int,
     modifier: Modifier = Modifier,
     status: String? = null,
-    studentNames: List<Pair<String, Boolean>> = emptyList(),
-    onClick: (() -> Unit)? = null
+    studentNames: List<Pair<String, Boolean>> = emptyList()
 ) {
     val parsedDate = try {
         LocalDate.parse(date)
@@ -46,7 +40,6 @@ fun SessionCard(
     val displayMonthDay = parsedDate.format(DateTimeFormatter.ofPattern("MMM dd", Locale.ENGLISH))
     val displayDayOfWeek = parsedDate.format(DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH))
 
-    val isToday = parsedDate == LocalDate.now()
     val effectiveStatus = status ?: if (percentage >= 80) "Good" else "Fair"
     
     val accentColor = when {
@@ -56,12 +49,14 @@ fun SessionCard(
     }
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = onClick != null) { onClick?.invoke() },
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 8.dp
+        )
     ) {
         Column(
             modifier = Modifier
@@ -152,21 +147,23 @@ fun SessionCard(
                     .height(4.dp)
                     .clip(CircleShape),
                 color = accentColor,
-                trackColor = MaterialTheme.colorScheme.surface,
+                trackColor = accentColor.copy(alpha = 0.1f),
                 strokeCap = StrokeCap.Round
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Bottom row: Avatars and Arrow
+            // Bottom row: Avatars
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 22.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy((-10).dp)) {
-                    val namesToShow = if (studentNames.isNotEmpty()) {
-                        studentNames.take(6)
+                    val sortedNames = remember(studentNames) {
+                        studentNames.sortedBy { !it.second }
+                    }
+                    val namesToShow = if (sortedNames.isNotEmpty()) {
+                        sortedNames.take(6)
                     } else {
                         // Fallback dummy data
                         listOf(
@@ -176,10 +173,10 @@ fun SessionCard(
                             "Hamza Ali" to true, 
                             "Ira Naeem" to true, 
                             "Junaid Rashid" to false
-                        )
+                        ).sortedBy { !it.second }
                     }
                     
-                    namesToShow.forEachIndexed { index, (name, isPresent) ->
+                    namesToShow.forEach { (name, isPresent) ->
                         val initials = name.split(" ")
                             .filter { it.isNotBlank() }
                             .take(2)
@@ -193,7 +190,7 @@ fun SessionCard(
                                 .padding(2.dp)
                                 .background(
                                     if (isPresent) getAvatarColor(name)
-                                    else if (isSystemInDarkTheme()) Color(0xFF2C2C2C) else Color(0xFFF5F5F5), 
+                                    else if (LocalIsDarkMode.current) Color(0xFF2C2C2C) else Color(0xFFF5F5F5),
                                     CircleShape
                                 ),
                             contentAlignment = Alignment.Center
@@ -207,13 +204,6 @@ fun SessionCard(
                         }
                     }
                 }
-
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    modifier = Modifier.size(20.dp)
-                )
             }
         }
     }
@@ -227,8 +217,12 @@ fun SessionsSummaryCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 8.dp
+        )
     ) {
         Row(
             modifier = Modifier
@@ -276,8 +270,8 @@ fun SessionsSummaryCard(
                     verticalAlignment = Alignment.Bottom
                 ) {
                     val bars = listOf(
-                        10.dp to LateOrange, // Use theme colors instead of hardcoded hex
-                        18.dp to Color(0xFF00BFA5), // Teal is not in our theme colors yet, let's keep it or add it
+                        10.dp to LateOrange,
+                        18.dp to Color(0xFF00BFA5),
                         14.dp to Color(0xFF00BFA5),
                         22.dp to Color(0xFF00BFA5),
                         18.dp to Color(0xFF00BFA5)
@@ -300,7 +294,7 @@ fun SessionsSummaryCard(
 @Preview
 @Composable
 fun SessionCardPreview() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         Column(modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(16.dp).fillMaxSize()) {
             SessionsSummaryCard(sessionCount = 3)
             Spacer(modifier = Modifier.height(16.dp))

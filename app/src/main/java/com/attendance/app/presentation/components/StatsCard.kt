@@ -25,9 +25,11 @@ fun StatsCard(
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(
             modifier = Modifier
@@ -55,7 +57,7 @@ fun StatsCard(
 @Preview
 @Composable
 fun StatsCardPreview() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         Row(modifier = Modifier.padding(16.dp)) {
             StatsCard(
                 value = "45",

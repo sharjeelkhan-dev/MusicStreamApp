@@ -1,8 +1,6 @@
 package com.attendance.app.presentation.reports
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -42,10 +39,7 @@ import com.attendance.app.domain.model.AttendanceStatus
 import com.attendance.app.domain.model.ClassModel
 import com.attendance.app.domain.model.SessionSummary
 import com.attendance.app.domain.model.Student
-import com.attendance.app.presentation.components.SessionCard
-import com.attendance.app.presentation.components.SessionsSummaryCard
 import com.attendance.app.presentation.components.StandardHeader
-import com.attendance.app.presentation.components.StatsCard
 import com.attendance.app.presentation.theme.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -71,12 +65,13 @@ private fun ReportsContent(
     modifier: Modifier = Modifier,
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
+    val isDarkGlobal = LocalIsDarkMode.current
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Fixed Header
         StandardHeader(
             title = "Attendance Report",
             subtitle = state.selectedClass?.let {
-                "${it.name} \u2014 ${it.section}"
+                "${it.name} — ${it.section}"
             } ?: "No Class Selected"
         )
 
@@ -101,21 +96,24 @@ private fun ReportsContent(
             if (state.isLoading) {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen)
+                        CircularProgressIndicator(color = if (isDarkGlobal) MaterialTheme.colorScheme.primary else PrimaryGreen)
                     }
                 }
             } else if (state.studentReports.isNotEmpty()) {
                 item {
+                    val sortedReports = remember(state.studentReports) {
+                        state.studentReports.sortedByDescending { it.attendancePercentage }
+                    }
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
                         Column(modifier = Modifier.padding(vertical = 12.dp)) {
-                            state.studentReports.forEach { report ->
+                            sortedReports.forEach { report ->
                                 val initials = report.student.fullName.split(" ")
                                     .filter { it.isNotBlank() }
                                     .take(2)
@@ -123,7 +121,6 @@ private fun ReportsContent(
                                     .joinToString("")
                                 
                                 val percentage = report.attendancePercentage
-                                val isDark = isSystemInDarkTheme()
                                 val percentageColor = when {
                                     percentage >= 80 -> PresentGreen
                                     percentage >= 50 -> LateOrange
@@ -168,33 +165,33 @@ private fun ReportsContent(
                                                 color = MaterialTheme.colorScheme.onSurface,
                                                 fontSize = 16.sp
                                             )
-                Text(
-                    text = "${percentage.toInt()}%",
-                    color = percentageColor,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                                            Text(
+                                                text = "${percentage.toInt()}%",
+                                                color = percentageColor,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
 
-            Spacer(modifier = Modifier.height(10.dp))
+                                        Spacer(modifier = Modifier.height(10.dp))
 
-            LinearProgressIndicator(
-                progress = { (percentage / 100f).toFloat() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(10.dp)),
-                color = percentageColor,
-                trackColor = MaterialTheme.colorScheme.surface,
-                strokeCap = StrokeCap.Round
-            )
+                                        LinearProgressIndicator(
+                                            progress = { (percentage / 100f).toFloat() },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(4.dp)
+                                                .clip(CircleShape),
+                                            color = percentageColor,
+                                            trackColor = percentageColor.copy(alpha = 0.1f),
+                                            strokeCap = StrokeCap.Round
+                                        )
                                     }
                                 }
                             }
                         }
                     }
                 }
-            } else if (!state.isLoading) {
+            } else {
                 item {
                     Box(
                         modifier = Modifier
@@ -245,7 +242,7 @@ private fun ReportsContent(
                     val studentStatusList = session.students.map { student ->
                         val record = session.records.find { it.studentId == student.id }
                         student.fullName to (record?.status ?: AttendanceStatus.ABSENT)
-                    }
+                    }.sortedBy { it.second == AttendanceStatus.ABSENT }
                     
                     SessionDetailCard(
                         date = session.summary.date,
@@ -269,9 +266,10 @@ private fun SessionDetailCard(
     students: List<Pair<String, AttendanceStatus>>,
     modifier: Modifier = Modifier
 ) {
+    val isDarkGlobal = LocalIsDarkMode.current
     val parsedDate = try {
         LocalDate.parse(date)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         LocalDate.now()
     }
     val displayDate = parsedDate.format(DateTimeFormatter.ofPattern("MMMM d", Locale.ENGLISH))
@@ -279,8 +277,8 @@ private fun SessionDetailCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(
             modifier = Modifier
@@ -320,7 +318,7 @@ private fun SessionDetailCard(
                         .mapNotNull { it.firstOrNull()?.uppercaseChar() }
                         .joinToString("")
 
-                    val isPresent = status == AttendanceStatus.PRESENT
+                    val isPresent = status != AttendanceStatus.ABSENT
 
                     Box(
                         modifier = Modifier
@@ -328,13 +326,13 @@ private fun SessionDetailCard(
                             .clip(CircleShape)
                             .background(
                                 if (isPresent) getAvatarColor(name)
-                                else if (isSystemInDarkTheme()) Color(0xFF2C2C2C) else Color(0xFFF5F5F5)
+                                else if (isDarkGlobal) Color(0xFF2C2C2C) else Color(0xFFF5F5F5)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = initials,
-                            color = if (isPresent) AvatarTextColor else getAvatarColor(name),
+                            color = if (isPresent) AvatarTextColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -347,90 +345,44 @@ private fun SessionDetailCard(
 
 @Preview(showBackground = true)
 @Composable
-fun ReportsScreenPreview() {
-    val dummyStudents = listOf(
-        Student(id = 1, fullName = "Aisha Khan", rollNumber = "101", classId = 1),
-        Student(id = 2, fullName = "Bilal Ahmed", rollNumber = "102", classId = 1),
-        Student(id = 3, fullName = "Fatima Malik", rollNumber = "103", classId = 1)
+private fun ReportsScreenPreview() {
+    val sampleStudents = listOf(
+        Student(id = 1, fullName = "Ahmad Khan", rollNumber = "001", classId = 1),
+        Student(id = 2, fullName = "Sara Ahmed", rollNumber = "002", classId = 1),
+        Student(id = 3, fullName = "Zainab Bibi", rollNumber = "003", classId = 1)
     )
 
-    val dummyReports = listOf(
-        StudentReport(dummyStudents[0], 100.0),
-        StudentReport(dummyStudents[1], 50.0),
-        StudentReport(dummyStudents[2], 50.0)
+    val sampleReports = listOf(
+        StudentReport(sampleStudents[0], 85.0),
+        StudentReport(sampleStudents[1], 45.0),
+        StudentReport(sampleStudents[2], 92.0)
     )
 
-    val dummyRecords = listOf(
-        AttendanceRecord(studentId = 1, classId = 1, date = "2024-05-10", status = AttendanceStatus.PRESENT),
-        AttendanceRecord(studentId = 2, classId = 1, date = "2024-05-10", status = AttendanceStatus.ABSENT),
-        AttendanceRecord(studentId = 3, classId = 1, date = "2024-05-10", status = AttendanceStatus.PRESENT)
-    )
-
-    val dummySession = SessionWithRecords(
-        summary = SessionSummary("2024-05-10", 3, 2, 1),
-        records = dummyRecords,
-        students = dummyStudents
-    )
-
-    AttendanceTheme {
-        ReportsContent(
-            state = ReportsState(
-                selectedClass = ClassModel(1, "Computer Science", "Section A"),
-                studentReports = dummyReports,
-                sessionDetails = listOf(dummySession),
-                isLoading = false
+    val sampleSessionDetails = listOf(
+        SessionWithRecords(
+            summary = SessionSummary(
+                date = LocalDate.now().toString(),
+                totalStudents = 3,
+                presentCount = 2,
+                absentCount = 1
             ),
-            paddingValues = PaddingValues(0.dp)
+            records = listOf(
+                AttendanceRecord(studentId = 1, classId = 1, date = LocalDate.now().toString(), status = AttendanceStatus.PRESENT),
+                AttendanceRecord(studentId = 2, classId = 1, date = LocalDate.now().toString(), status = AttendanceStatus.ABSENT),
+                AttendanceRecord(studentId = 3, classId = 1, date = LocalDate.now().toString(), status = AttendanceStatus.PRESENT)
+            ),
+            students = sampleStudents
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ReportsScreenWithBottomBarPreview() {
-    val dummyStudents = listOf(
-        Student(id = 1, fullName = "Aisha Khan", rollNumber = "101", classId = 1),
-        Student(id = 2, fullName = "Bilal Ahmed", rollNumber = "102", classId = 1),
-        Student(id = 3, fullName = "Fatima Malik", rollNumber = "103", classId = 1)
     )
 
-    val dummyReports = listOf(
-        StudentReport(dummyStudents[0], 100.0),
-        StudentReport(dummyStudents[1], 50.0),
-        StudentReport(dummyStudents[2], 50.0)
-    )
-
-    val dummyRecords = listOf(
-        AttendanceRecord(studentId = 1, classId = 1, date = "2024-05-10", status = AttendanceStatus.PRESENT),
-        AttendanceRecord(studentId = 2, classId = 1, date = "2024-05-10", status = AttendanceStatus.ABSENT),
-        AttendanceRecord(studentId = 3, classId = 1, date = "2024-05-10", status = AttendanceStatus.PRESENT)
-    )
-
-    val dummySession = SessionWithRecords(
-        summary = SessionSummary("2024-05-10", 3, 2, 1),
-        records = dummyRecords,
-        students = dummyStudents
+    val sampleState = ReportsState(
+        selectedClass = ClassModel(name = "Mobile App Development", section = "BSCS-8A"),
+        studentReports = sampleReports,
+        sessionDetails = sampleSessionDetails,
+        isLoading = false
     )
 
     AttendanceTheme {
-        Scaffold(
-            bottomBar = {
-                com.attendance.app.presentation.components.BottomNavBar(
-                    currentRoute = com.attendance.app.presentation.navigation.Screen.Reports.route,
-                    onNavigate = {}
-                )
-            }
-        ) { innerPadding ->
-            ReportsContent(
-                state = ReportsState(
-                    selectedClass = ClassModel(1, "Computer Science", "Section A"),
-                    studentReports = dummyReports,
-                    sessionDetails = listOf(dummySession),
-                    isLoading = false
-                ),
-                modifier = Modifier.fillMaxSize(),
-                paddingValues = innerPadding
-            )
-        }
+        ReportsContent(state = sampleState)
     }
 }

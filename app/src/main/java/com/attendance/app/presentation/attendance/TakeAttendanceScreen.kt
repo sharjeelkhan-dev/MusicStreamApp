@@ -1,6 +1,5 @@
 package com.attendance.app.presentation.attendance
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -58,6 +57,7 @@ private fun AttendanceContent(
         }
     }
 
+    val isDark = LocalIsDarkMode.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -90,11 +90,13 @@ private fun AttendanceContent(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedBorderColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        focusedBorderColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen,
+                        unfocusedContainerColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White,
+                        focusedContainerColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White
                     ),
                     singleLine = true
                 )
@@ -110,21 +112,27 @@ private fun AttendanceContent(
                 ) {
                     OutlinedButton(
                         onClick = { onEvent(AttendanceEvent.MarkAllPresent) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(24.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, PresentGreen),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PresentGreen)
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, PresentGreen.copy(alpha = 0.7f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = PresentGreen,
+                            containerColor = if (isDark) PresentGreen.copy(alpha = 0.1f) else Color.White
+                        )
                     ) {
-                        Text("All Present", fontWeight = FontWeight.SemiBold)
+                        Text("All Present", fontWeight = FontWeight.Bold)
                     }
                     OutlinedButton(
                         onClick = { onEvent(AttendanceEvent.MarkAllAbsent) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(24.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, AbsentRed),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AbsentRed)
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, AbsentRed.copy(alpha = 0.7f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = AbsentRed,
+                            containerColor = if (isDark) AbsentRed.copy(alpha = 0.1f) else Color.White
+                        )
                     ) {
-                        Text("All Absent", fontWeight = FontWeight.SemiBold)
+                        Text("All Absent", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -159,11 +167,6 @@ private fun AttendanceContent(
                             onEvent(AttendanceEvent.ToggleStatus(studentState.student.id, status))
                         }
                     )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
                 }
             }
         }
@@ -176,75 +179,87 @@ private fun AttendanceStudentRow(
     avatarColor: Color,
     onToggle: (AttendanceStatus) -> Unit
 ) {
-    Row(
+    val isDark = LocalIsDarkMode.current
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 20.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
-        // Avatar
-        Box(
+        Row(
             modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(avatarColor),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = studentState.student.initials,
-                color = AvatarTextColor,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+            // Avatar
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(avatarColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = studentState.student.initials,
+                    color = AvatarTextColor,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-        Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-        // Name and roll
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = studentState.student.fullName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = studentState.student.rollNumber,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-            )
-        }
+            // Name and roll
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = studentState.student.fullName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = studentState.student.rollNumber,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
 
-        // Present button
-        val isPresentSelected = studentState.status == AttendanceStatus.PRESENT
-        Button(
-            onClick = { onToggle(AttendanceStatus.PRESENT) },
-            modifier = Modifier.size(40.dp),
-            shape = RoundedCornerShape(10.dp),
-            contentPadding = PaddingValues(0.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (isPresentSelected) PresentGreen else if (isSystemInDarkTheme()) DividerColorDark else PresentGreen.copy(alpha = 0.1f),
-                contentColor = if (isPresentSelected) Color.White else PresentGreen
-            )
-        ) {
-            Text("P", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        }
+            // Present button
+            val isPresentSelected = studentState.status == AttendanceStatus.PRESENT
+            Button(
+                onClick = { onToggle(AttendanceStatus.PRESENT) },
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(0.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isPresentSelected) PresentGreen else if (isDark) DividerColorDark else PresentGreen.copy(alpha = 0.1f),
+                    contentColor = if (isPresentSelected) Color.White else PresentGreen
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = if (isPresentSelected) 4.dp else 0.dp)
+            ) {
+                Text("P", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
 
-        Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-        // Absent button
-        val isAbsentSelected = studentState.status == AttendanceStatus.ABSENT
-        Button(
-            onClick = { onToggle(AttendanceStatus.ABSENT) },
-            modifier = Modifier.size(40.dp),
-            shape = RoundedCornerShape(10.dp),
-            contentPadding = PaddingValues(0.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (isAbsentSelected) AbsentRed else if (isSystemInDarkTheme()) DividerColorDark else AbsentRed.copy(alpha = 0.1f),
-                contentColor = if (isAbsentSelected) Color.White else AbsentRed
-            )
-        ) {
-            Text("A", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            // Absent button
+            val isAbsentSelected = studentState.status == AttendanceStatus.ABSENT
+            Button(
+                onClick = { onToggle(AttendanceStatus.ABSENT) },
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(0.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isAbsentSelected) AbsentRed else if (isDark) DividerColorDark else AbsentRed.copy(alpha = 0.1f),
+                    contentColor = if (isAbsentSelected) Color.White else AbsentRed
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = if (isAbsentSelected) 4.dp else 0.dp)
+            ) {
+                Text("A", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
         }
     }
 }
@@ -252,7 +267,7 @@ private fun AttendanceStudentRow(
 @Preview(showBackground = true, name = "Light Mode")
 @Composable
 fun TakeAttendancePreviewLight() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         AttendanceContent(
             state = AttendanceState(
                 selectedClass = ClassModel(id = 1, name = "Software Engineering", section = "6C1"),
@@ -286,7 +301,7 @@ fun TakeAttendancePreviewLight() {
 @Preview(showBackground = true, name = "Dark Mode", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun TakeAttendancePreviewDark() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = true) {
         AttendanceContent(
             state = AttendanceState(
                 selectedClass = ClassModel(id = 1, name = "Software Engineering", section = "6C1"),

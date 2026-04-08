@@ -1,12 +1,9 @@
 package com.attendance.app.presentation.home
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,12 +24,7 @@ import com.attendance.app.presentation.components.SessionsSummaryCard
 import com.attendance.app.presentation.components.StandardHeader
 import com.attendance.app.presentation.components.StatsCard
 import com.attendance.app.presentation.theme.*
-import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.ui.draw.shadow
 
 @Composable
 fun HomeScreen(
@@ -75,6 +67,7 @@ private fun HomeContent(
     modifier: Modifier = Modifier,
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
+    val isDark = LocalIsDarkMode.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -148,15 +141,15 @@ private fun HomeContent(
                     Surface(
                         onClick = onNavigateToReports,
                         shape = RoundedCornerShape(100), // Perfect Pill shape
-                        color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else Color.White,
-                        shadowElevation = 2.dp
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 8.dp
                     ) {
                         Text(
                             text = "See All",
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
+                            color = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
                         )
                     }
                 }
@@ -189,15 +182,17 @@ private fun HomeContent(
                 }
             } else {
                 items(state.recentSessions) { session ->
+                    val sortedStudents = remember(session.students) {
+                        session.students.sortedBy { !it.second }
+                    }
                     SessionCard(
                         date = session.summary.date,
                         presentCount = session.summary.presentCount,
                         absentCount = session.summary.absentCount,
                         percentage = session.summary.percentage,
-                        studentNames = session.students,
+                        studentNames = sortedStudents,
                         modifier = Modifier.padding(horizontal = 20.dp,
-                            vertical = 8.dp),
-                        onClick = { onNavigateToReports() }
+                            vertical = 8.dp)
                     )
                 }
             }
@@ -211,6 +206,7 @@ private fun StatsRow(
     present: Int,
     absent: Int
 ) {
+    val isDark = LocalIsDarkMode.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -221,7 +217,7 @@ private fun StatsRow(
             value = total.toString(),
             label = "Total",
             modifier = Modifier.weight(1f),
-            valueColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
+            valueColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
         )
         StatsCard(
             value = if (present > 0) present.toString() else "—",
@@ -290,11 +286,14 @@ private fun QuickActionButton(
     isHighlighted: Boolean = false,
     onClick: () -> Unit
 ) {
+    val isDark = LocalIsDarkMode.current
     val bgColor = if (isHighlighted) {
-        if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
-    } else MaterialTheme.colorScheme.surfaceVariant
+        if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
+    } else {
+        if (isDark) MaterialTheme.colorScheme.surfaceVariant else Color.White
+    }
     val contentColor = if (isHighlighted) {
-        if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onPrimary else Color.White
+        if (isDark) MaterialTheme.colorScheme.onPrimary else Color.White
     } else MaterialTheme.colorScheme.onSurfaceVariant
 
     val iconPainter = when (icon) {
@@ -305,9 +304,9 @@ private fun QuickActionButton(
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = bgColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isHighlighted) 4.dp else 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isHighlighted) 12.dp else 8.dp),
         onClick = onClick
     ) {
         Column(
@@ -336,7 +335,7 @@ private fun QuickActionButton(
 @Preview(showBackground = true)
 @Composable
 fun HomePreview() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         HomeContent(
             state = HomeState(
                 selectedClass = com.attendance.app.domain
@@ -378,7 +377,7 @@ fun RecentSessionsPreview() {
         com.attendance.app.domain.model.SessionSummary("2024-05-12", 45, 42, 3)
     )
 
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

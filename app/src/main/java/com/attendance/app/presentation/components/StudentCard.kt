@@ -28,9 +28,9 @@ fun StudentCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Row(
             modifier = Modifier
@@ -170,16 +170,16 @@ fun StudentAttendanceItem(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .height(4.dp)
-            .clip(RoundedCornerShape(2.dp)),
+            .clip(CircleShape),
         color = progressColor,
-        trackColor = MaterialTheme.colorScheme.surface,
+        trackColor = progressColor.copy(alpha = 0.1f),
     )
 }
 
 @Preview
 @Composable
 fun StudentCardPreview() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             StudentCard(
                 initials = "JD",

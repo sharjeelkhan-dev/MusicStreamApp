@@ -1,7 +1,6 @@
 package com.attendance.app.presentation.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
@@ -17,12 +16,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.attendance.app.R
+import com.attendance.app.presentation.theme.LocalIsDarkMode
 import com.attendance.app.presentation.theme.PrimaryGreen
 import com.attendance.app.presentation.theme.PrimaryGreenDark
 
 @Composable
 fun AuthScreen(onUnlockClick: () -> Unit) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = LocalIsDarkMode.current
     val primaryColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
 
     Box(

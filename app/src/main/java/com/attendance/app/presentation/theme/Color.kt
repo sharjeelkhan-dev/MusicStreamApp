@@ -10,16 +10,16 @@ val PrimaryGreenSurface = Color(0xFFE8F5E9)
 
 // Surface / Background
 val SurfaceLight = Color(0xFFF5F5F5)
-val SurfaceDark = Color(0xFF121212)
+val SurfaceDark = Color(0xFF1A1C1A)
 val CardLight = Color(0xFFFFFFFF)
-val CardDark = Color(0xFF1E1E1E)
+val CardDark = Color(0xFF222522)
 val BackgroundLight = Color(0xFFF8F9FA)
-val BackgroundDark = Color(0xFF0D0D0D)
+val BackgroundDark = Color(0xFF0F110F) // Deep green-tinted black
 
 // Text Colors
 val TextPrimaryLight = Color(0xFF1A1A1A)
 val TextSecondaryLight = Color(0xFF6B7280)
-val TextPrimaryDark = Color(0xFFE0E0E0)
+val TextPrimaryDark = Color(0xFFE1E3E1)
 val TextSecondaryDark = Color(0xFF9CA3AF)
 
 // Status Colors

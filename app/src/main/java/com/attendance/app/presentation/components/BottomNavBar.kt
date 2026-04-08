@@ -1,6 +1,5 @@
 package com.attendance.app.presentation.components
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EditNote
@@ -41,11 +40,12 @@ fun BottomNavBar(
     onNavigate: (Screen) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDark = LocalIsDarkMode.current
     NavigationBar(
         modifier = modifier,
-        containerColor = Color.White,
+        containerColor = if (isDark) Color.Black else Color.White,
         contentColor = MaterialTheme.colorScheme.primary,
-        tonalElevation = 0.dp
+        tonalElevation = 8.dp
     ) {
         bottomNavItems.forEach { item ->
             val isSelected = currentRoute == item.screen.route
@@ -88,7 +88,7 @@ fun BottomNavBar(
 @Preview(showBackground = true)
 @Composable
 fun BottomNavBarPreview() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         Surface {
             BottomNavBar(
                 currentRoute = Screen.Home.route,

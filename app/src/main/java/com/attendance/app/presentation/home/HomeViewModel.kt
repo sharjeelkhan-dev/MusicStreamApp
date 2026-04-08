@@ -82,7 +82,8 @@ class HomeViewModel @Inject constructor(
                             ) { summary, records ->
                                 val studentStatuses = students.map { student ->
                                     val record = records.find { it.studentId == student.id }
-                                    student.fullName to (record?.status == com.attendance.app.domain.model.AttendanceStatus.PRESENT)
+                                    val isPresent = record?.status != null && record.status != com.attendance.app.domain.model.AttendanceStatus.ABSENT
+                                    student.fullName to isPresent
                                 }
                                 SessionWithStudents(summary, studentStatuses)
                             }

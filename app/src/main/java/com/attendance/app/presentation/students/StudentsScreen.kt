@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.attendance.app.R
@@ -82,6 +82,7 @@ private fun StudentsContent(
     modifier: Modifier = Modifier,
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
+    val isDark = LocalIsDarkMode.current
     Column(modifier = modifier.fillMaxSize().
     background(MaterialTheme.
     colorScheme.background)) {
@@ -98,67 +99,9 @@ private fun StudentsContent(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    bottom = paddingValues.calculateBottomPadding() + 16.dp
+                    bottom = paddingValues.calculateBottomPadding() + 80.dp // Extra padding for FAB
                 )
             ) {
-                // Add Student button / form
-                if (state.selectedClass != null) {
-                    item {
-                        Column {
-                            AnimatedVisibility(
-                                visible = state.isAddFormVisible,
-                                enter = expandVertically() + fadeIn(),
-                                exit = shrinkVertically() + fadeOut()
-                            ) {
-                                AddStudentForm(
-                                    name = state.newStudentName,
-                                    rollNumber = state.newStudentRoll,
-                                    isEditing = state.editingStudent != null,
-                                    isSaving = state.isSaving,
-                                    onNameChange = { onEvent(StudentsEvent.UpdateNewName(it)) },
-                                    onRollChange = { onEvent(StudentsEvent.UpdateNewRoll(it)) },
-                                    onSubmit = {
-                                        if (state.editingStudent != null)
-                                            onEvent(StudentsEvent.SaveEdit)
-                                        else
-                                            onEvent(StudentsEvent.AddStudent)
-                                    },
-                                    onCancel = {
-                                        if (state.editingStudent != null)
-                                            onEvent(StudentsEvent.CancelEdit)
-                                        else
-                                            onEvent(StudentsEvent.ToggleAddForm)
-                                    }
-                                )
-                            }
-
-                            AnimatedVisibility(
-                                visible = !state.isAddFormVisible,
-                                enter = expandVertically() + fadeIn(),
-                                exit = shrinkVertically() + fadeOut()
-                            ) {
-                                OutlinedButton(
-                                    onClick = { onEvent(StudentsEvent.ToggleAddForm) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                                    shape = RoundedCornerShape(24.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.5.dp, if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreenDark),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreenDark)
-                                ) {
-                                    Icon(Icons.Default.Add,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Add New Student",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 15.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-
                 // Enrolled count
                 if (state.selectedClass != null) {
                     item {
@@ -211,8 +154,64 @@ private fun StudentsContent(
             if (state.isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
-                    color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
+                    color = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
                 )
+            }
+
+            // Floating Action Button at Bottom Right
+            if (state.selectedClass != null) {
+                val primaryColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
+                FloatingActionButton(
+                    onClick = { onEvent(StudentsEvent.ToggleAddForm) },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = paddingValues.calculateBottomPadding() + 24.dp, end = 24.dp),
+                    containerColor = primaryColor,
+                    contentColor = Color.White,
+                    shape = CircleShape,
+                    elevation = FloatingActionButtonDefaults.elevation(8.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Student", modifier = Modifier.size(28.dp))
+                }
+            }
+
+            // Pop-up Add Form
+            if (state.isAddFormVisible) {
+                Dialog(
+                    onDismissRequest = { 
+                        if (state.editingStudent != null) onEvent(StudentsEvent.CancelEdit)
+                        else onEvent(StudentsEvent.ToggleAddForm)
+                    }
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight(),
+                        shape = RoundedCornerShape(28.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        AddStudentForm(
+                            name = state.newStudentName,
+                            rollNumber = state.newStudentRoll,
+                            isEditing = state.editingStudent != null,
+                            isSaving = state.isSaving,
+                            onNameChange = { onEvent(StudentsEvent.UpdateNewName(it)) },
+                            onRollChange = { onEvent(StudentsEvent.UpdateNewRoll(it)) },
+                            onSubmit = {
+                                if (state.editingStudent != null)
+                                    onEvent(StudentsEvent.SaveEdit)
+                                else
+                                    onEvent(StudentsEvent.AddStudent)
+                            },
+                            onCancel = {
+                                if (state.editingStudent != null)
+                                    onEvent(StudentsEvent.CancelEdit)
+                                else
+                                    onEvent(StudentsEvent.ToggleAddForm)
+                            }
+                        )
+                    }
+                }
             }
         }
     }
@@ -229,80 +228,87 @@ private fun AddStudentForm(
     onSubmit: () -> Unit,
     onCancel: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = if (isEditing) "Edit Student" else "Add New Student",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+    val isDark = LocalIsDarkMode.current
+    Column(modifier = Modifier.padding(24.dp)) {
+        Text(
+            text = if (isEditing) "Edit Student" else "Add New Student",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(20.dp))
 
-            OutlinedTextField(
-                value = name,
-                onValueChange = onNameChange,
-                placeholder = { Text("Full Name") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedBorderColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
+        OutlinedTextField(
+            value = name,
+            onValueChange = onNameChange,
+            label = { Text("Full Name") },
+            placeholder = { Text("e.g. John Doe") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                focusedBorderColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
+            ),
+            singleLine = true,
+            enabled = !isSaving
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = rollNumber,
+            onValueChange = onRollChange,
+            label = { Text("Roll Number") },
+            placeholder = { Text("e.g. CS-09") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                focusedBorderColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
+            ),
+            singleLine = true,
+            enabled = !isSaving
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(
+                onClick = onCancel,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(28.dp),
+                enabled = !isSaving,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF37474F) else Color(0xFFE0E0E0),
+                    contentColor = if (isDark) Color.White else Color(0xFF424242)
+                )
+            ) {
+                Text("Cancel", fontWeight = FontWeight.Bold)
+            }
+            Button(
+                onClick = onSubmit,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
                 ),
-                singleLine = true,
                 enabled = !isSaving
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = rollNumber,
-                onValueChange = onRollChange,
-                placeholder = { Text("Roll Number (e.g. CS-09)") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedBorderColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
-                ),
-                singleLine = true,
-                enabled = !isSaving
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(
-                    onClick = onSubmit,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen,
-                        contentColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onPrimary else Color.White
-                    ),
-                    enabled = !isSaving
-                ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp), 
-                            color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onPrimary else Color.White, 
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(
-                            if (isEditing) "Save Changes" else "Add Student",
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-                TextButton(onClick = onCancel, enabled = !isSaving) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp), 
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        if (isEditing) "Save" else "Add Student",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -324,9 +330,9 @@ private fun StudentRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Row(
             modifier = Modifier

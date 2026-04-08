@@ -6,7 +6,6 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.attendance.app.presentation.theme.PrimaryGreen
 import com.attendance.app.presentation.theme.PrimaryGreenDark
 import com.attendance.app.presentation.theme.AttendanceTheme
+import com.attendance.app.presentation.theme.LocalIsDarkMode
 import com.attendance.app.R
 import com.attendance.app.presentation.components.StandardHeader
 
@@ -106,9 +106,7 @@ private fun SettingsContent(
     onRestoreBackup: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
-    val headerBg = if (isDark) MaterialTheme.colorScheme.surface else PrimaryGreenDark
-    val headerContent = if (isDark) MaterialTheme.colorScheme.onSurface else Color.White
+    val isDark = LocalIsDarkMode.current
 
     Column(
         modifier = modifier
@@ -190,10 +188,9 @@ private fun SettingsHeader(
     subtitle: String,
     onBack: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
-    val backgroundColor = if (isDark) MaterialTheme.colorScheme.surface else PrimaryGreenDark
-    val contentColor = if (isDark) MaterialTheme.colorScheme.onSurface else Color.White
-    val secondaryContentColor = contentColor.copy(alpha = if (isDark) 0.7f else 0.85f)
+    val backgroundColor = PrimaryGreenDark
+    val contentColor = Color.White
+    val secondaryContentColor = contentColor.copy(alpha = 0.85f)
 
     Column(
         modifier = Modifier
@@ -260,19 +257,21 @@ private fun SettingsToggleItem(
     isChecked: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
-    val primaryColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
+    val isDark = LocalIsDarkMode.current
+    val primaryColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        onClick = { onToggle(!isChecked) }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 24.dp, vertical = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (iconPainter != null) {
@@ -280,27 +279,39 @@ private fun SettingsToggleItem(
                     painter = iconPainter,
                     contentDescription = null,
                     tint = primaryColor,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             } else if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = primaryColor,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(20.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.7f))
+                Text(
+                    text = title, 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle, 
+                    style = MaterialTheme.typography.bodySmall, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
             }
             Switch(
                 checked = isChecked,
                 onCheckedChange = onToggle,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onPrimary else Color.White,
-                    checkedTrackColor = primaryColor
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = primaryColor,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = if (isDark) Color(0xFF424242) else Color(0xFFEEEEEE),
+                    uncheckedBorderColor = Color.Transparent
                 )
             )
         }
@@ -315,7 +326,7 @@ private fun SettingsActionItem(
     subtitle: String,
     onClick: () -> Unit
 ) {
-    val primaryColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else PrimaryGreen
+    val primaryColor = MaterialTheme.colorScheme.primary
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -348,11 +359,20 @@ private fun SettingsActionItem(
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.7f))
+                Text(
+                    text = title, 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle, 
+                    style = MaterialTheme.typography.bodySmall, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             Icon(
-                Icons.Default.ChevronRight,
+                imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
@@ -387,7 +407,7 @@ fun SettingsHeaderDarkPreview() {
 @Preview(showBackground = true)
 @Composable
 fun SettingsPreview() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         SettingsContent(
             state = SettingsState(
                 isDarkMode = true,

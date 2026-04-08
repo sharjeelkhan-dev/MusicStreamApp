@@ -1,6 +1,7 @@
 package com.attendance.app.presentation.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -38,13 +39,17 @@ fun AppNavigation() {
         Screen.TakeAttendance.route,
         Screen.Reports.route,
         Screen.Students.route
-    )
+    ) && currentRoute != Screen.Splash.route
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            if (showBottomBar) {
+            AnimatedVisibility(
+                visible = showBottomBar,
+                enter = fadeIn(animationSpec = tween(400)),
+                exit = fadeOut(animationSpec = tween(400))
+            ) {
                 BottomNavBar(
                     currentRoute = currentRoute,
                     onNavigate = { screen ->

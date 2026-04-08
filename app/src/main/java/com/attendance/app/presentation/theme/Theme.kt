@@ -1,32 +1,40 @@
 package com.attendance.app.presentation.theme
 
 import android.app.Activity
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+import androidx.compose.foundation.isSystemInDarkTheme
+
+val LocalIsDarkMode = staticCompositionLocalOf { false }
+
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryGreen,
     onPrimary = Color.White,
-    primaryContainer = PrimaryGreenSurface,
+    primaryContainer = Color.White,
     onPrimaryContainer = PrimaryGreenDark,
-    secondary = PrimaryGreenLight,
+    secondary = PrimaryGreen,
     onSecondary = Color.White,
-    secondaryContainer = PrimaryGreenSurface,
+    secondaryContainer = Color.White,
     onSecondaryContainer = PrimaryGreenDark,
     tertiary = LateOrange,
     onTertiary = Color.White,
     background = BackgroundLight,
     onBackground = TextPrimaryLight,
-    surface = SurfaceLight,
+    surface = Color.White,
     onSurface = TextPrimaryLight,
-    surfaceVariant = CardLight,
+    surfaceVariant = Color.White,
     onSurfaceVariant = TextSecondaryLight,
+    surfaceTint = Color.White,
     error = AbsentRed,
     onError = Color.White,
     outline = DividerColor,
@@ -34,22 +42,23 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryGreenLight,
-    onPrimary = PrimaryGreenDark,
+    primary = PrimaryGreen, // Original Primary Green
+    onPrimary = Color.White,
     primaryContainer = PrimaryGreenDark,
-    onPrimaryContainer = PrimaryGreenSurface,
-    secondary = PrimaryGreenLight,
-    onSecondary = PrimaryGreenDark,
-    secondaryContainer = PrimaryGreenDark,
-    onSecondaryContainer = PrimaryGreenSurface,
+    onPrimaryContainer = Color.White,
+    secondary = PrimaryGreen,
+    onSecondary = Color.White,
+    secondaryContainer = SurfaceDark,
+    onSecondaryContainer = PrimaryGreen,
     tertiary = LateOrange,
     onTertiary = Color.Black,
     background = BackgroundDark,
     onBackground = TextPrimaryDark,
-    surface = SurfaceDark,
+    surface = CardDark,
     onSurface = TextPrimaryDark,
-    surfaceVariant = CardDark,
+    surfaceVariant = SurfaceDark,
     onSurfaceVariant = TextSecondaryDark,
+    surfaceTint = Color.Transparent,
     error = AbsentRed,
     onError = Color.White,
     outline = DividerColorDark,
@@ -79,9 +88,17 @@ fun AttendanceTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalIsDarkMode provides darkTheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = colorScheme.background
+            ) {
+                content()
+            }
+        }
+    }
 }

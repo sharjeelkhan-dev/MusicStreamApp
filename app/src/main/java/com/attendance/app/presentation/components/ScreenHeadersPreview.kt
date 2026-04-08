@@ -1,7 +1,6 @@
 package com.attendance.app.presentation.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.attendance.app.R
 import com.attendance.app.presentation.theme.AttendanceTheme
+import com.attendance.app.presentation.theme.LocalIsDarkMode
 import com.attendance.app.presentation.theme.PrimaryGreen
 import com.attendance.app.presentation.theme.PrimaryGreenDark
 import java.time.LocalDate
@@ -39,10 +39,9 @@ fun StandardHeader(
     isSaving: Boolean = false,
     isSaved: Boolean = false
 ) {
-    val isDark = isSystemInDarkTheme()
-    val backgroundColor = if (isDark) MaterialTheme.colorScheme.surface else PrimaryGreenDark
-    val contentColor = if (isDark) MaterialTheme.colorScheme.onSurface else Color.White
-    val secondaryContentColor = contentColor.copy(alpha = if (isDark) 0.7f else 0.85f)
+    val backgroundColor = PrimaryGreenDark
+    val contentColor = Color.White
+    val secondaryContentColor = contentColor.copy(alpha = 0.85f)
 
     Column(
         modifier = Modifier
@@ -99,7 +98,7 @@ fun StandardHeader(
                             onClick = onSaveClick,
                             enabled = !isSaving,
                             shape = RoundedCornerShape(100),
-                            color = if (isDark) MaterialTheme.colorScheme.primaryContainer else Color.White,
+                            color = Color.White,
                             modifier = Modifier.height(28.dp)
                         ) {
                             Row(
@@ -110,7 +109,7 @@ fun StandardHeader(
                                 if (isSaving) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(12.dp),
-                                        color = if (isDark) MaterialTheme.colorScheme.onPrimaryContainer else PrimaryGreenDark,
+                                        color = PrimaryGreenDark,
                                         strokeWidth = 2.dp
                                     )
                                 } else {
@@ -119,7 +118,7 @@ fun StandardHeader(
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp,
-                                        color = if (isDark) MaterialTheme.colorScheme.onPrimaryContainer else PrimaryGreenDark
+                                        color = PrimaryGreenDark
                                     )
                                     if (isSaved) {
                                         Spacer(modifier = Modifier.width(4.dp))
@@ -127,7 +126,7 @@ fun StandardHeader(
                                             imageVector = Icons.Default.Check,
                                             contentDescription = null,
                                             modifier = Modifier.size(14.dp),
-                                            tint = if (isDark) MaterialTheme.colorScheme.onPrimaryContainer else PrimaryGreenDark
+                                            tint = PrimaryGreenDark
                                         )
                                     }
                                 }
@@ -175,7 +174,7 @@ fun StandardHeader(
 @Preview(name = "Take Attendance Header")
 @Composable
 fun PreviewTakeAttendanceHeader() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         StandardHeader(
             title = "Take Attendance",
             subtitle = "Computer Science · 1 Present · 1 Absent",
@@ -188,7 +187,7 @@ fun PreviewTakeAttendanceHeader() {
 @Preview(name = "Home Header")
 @Composable
 fun PreviewHomeHeader() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         StandardHeader(
             title = "Good Morning 👋",
             subtitle = "Software Engineering — 6C1",
@@ -201,7 +200,7 @@ fun PreviewHomeHeader() {
 @Preview(name = "Classes Header")
 @Composable
 fun PreviewClassesHeader() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         StandardHeader(
             title = "Your Classes",
             subtitle = "5 classes total"
@@ -212,7 +211,7 @@ fun PreviewClassesHeader() {
 @Preview(name = "Students Header")
 @Composable
 fun PreviewStudentsHeader() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         StandardHeader(
             title = "Students",
             subtitle = "Software Engineering — 6C1"
@@ -223,7 +222,7 @@ fun PreviewStudentsHeader() {
 @Preview(name = "Reports Header")
 @Composable
 fun PreviewReportsHeader() {
-    AttendanceTheme {
+    AttendanceTheme(darkTheme = false) {
         StandardHeader(
             title = "Attendance Report",
             subtitle = "Software Engineering — 6C1"

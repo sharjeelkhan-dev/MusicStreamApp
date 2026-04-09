@@ -1,12 +1,10 @@
 package com.attendance.app.presentation.components
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,30 +17,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.attendance.app.R
 import com.attendance.app.presentation.theme.AttendanceTheme
-import com.attendance.app.presentation.theme.LocalIsDarkMode
-import com.attendance.app.presentation.theme.PrimaryGreen
 import com.attendance.app.presentation.theme.PrimaryGreenDark
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-@Composable
-fun HeaderContainer(
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    val backgroundColor = PrimaryGreenDark
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(backgroundColor)
-            .statusBarsPadding()
-            .height(95.dp) // Optimized height for high-quality feel
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.Center,
-        content = content
-    )
-}
 
 @Composable
 fun StandardHeader(

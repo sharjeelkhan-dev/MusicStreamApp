@@ -85,7 +85,7 @@ private fun AttendanceContent(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp, top = 16.dp)
+                contentPadding = PaddingValues(bottom = 7.dp, top = 7.dp)
             ) {
                 // Search bar
                 item {

@@ -23,9 +23,9 @@ val TextPrimaryDark = Color(0xFFE1E3E1)
 val TextSecondaryDark = Color(0xFF9CA3AF)
 
 // Status Colors
-val PresentGreen = Color(0xFF4CAF50)
+val PresentGreen = Color(0xFF36B26E)
 val PresentGreenBg = Color(0xFFE8F5E9)
-val AbsentRed = Color(0xFFE53935)
+val AbsentRed = Color(0xFFE54440)
 val AbsentRedBg = Color(0xFFFFEBEE)
 val LateOrange = Color(0xFFFFA726)
 val LateOrangeBg = Color(0xFFFFF3E0)

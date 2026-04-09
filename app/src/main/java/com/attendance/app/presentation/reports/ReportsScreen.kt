@@ -274,7 +274,7 @@ private fun StudentReportCard(
                                 text = report.student.fullName,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.ExtraBold,
-                                modifier = Modifier.offset(y = 5.dp),
+                                modifier = Modifier.offset(y = 10.dp),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 fontSize = 14.sp
@@ -282,7 +282,7 @@ private fun StudentReportCard(
                             Spacer(modifier = Modifier.width(5.dp))
                             Surface(
                                 color = statusBg,
-                                modifier = Modifier.offset(y = 5.dp),
+                                modifier = Modifier.offset(y = 10.dp),
                                 shape = RoundedCornerShape(5.dp)
                             ) {
                                 Text(
@@ -313,7 +313,7 @@ private fun StudentReportCard(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = statusColor,
-                        modifier = Modifier.offset(x = (-8).dp, y = 5.dp),
+                        modifier = Modifier.offset(x = (-8).dp, y = 10.dp),
                         fontSize = 15.sp
                     )
                 }

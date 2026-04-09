@@ -1,4 +1,5 @@
 package com.attendance.app.presentation.students
+
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
@@ -62,12 +63,11 @@ fun SharedTransitionScope.StudentDetailScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().padding(end = 5.dp)
                 ) {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onBack, modifier = Modifier.offset(x = (-5).dp, y = 8.dp)) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = Color.White,
-                            modifier = Modifier.size(28.dp).offset(x = (-5).dp, y = 10.dp)
                         )
                     }
 
@@ -165,7 +165,7 @@ fun SharedTransitionScope.StudentDetailScreen(
             Surface(
                 color = (if (isDark) Color.Transparent else Color.Transparent),
                 shape = RoundedCornerShape(28.dp),
-                modifier = Modifier.offset(y = (-12).dp)
+                modifier = Modifier.offset(y = (-18).dp)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
@@ -176,7 +176,7 @@ fun SharedTransitionScope.StudentDetailScreen(
                     Text(
                         text = studentRoll,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = if (isDark) Color.White else Color(0xFF2E7D32),
+                        color = if (isDark) Color.White else Color(0xFF1A1A1A),
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -188,6 +188,7 @@ fun SharedTransitionScope.StudentDetailScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .offset(y = (-25).dp)
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -217,6 +218,7 @@ fun SharedTransitionScope.StudentDetailScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .offset(y = (-25).dp)
                     .padding(horizontal = 20.dp),
                 shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(
@@ -234,7 +236,7 @@ fun SharedTransitionScope.StudentDetailScreen(
                         Column {
                             Text(
                                 text = "Logs",
-                                modifier = Modifier.offset(x = 5.dp, y = 5.dp,),
+                                modifier = Modifier.offset(x = 5.dp, y = 5.dp),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -321,8 +323,7 @@ private fun AttendanceLogItem(
     lectureInfo: String,
     isPresent: Boolean
 ) {
-    val statusColor = if (isPresent) PresentGreen else AbsentRed
-    val bgColor = statusColor.copy(alpha = 0.1f)
+    val statusColor = if (isPresent) PrimaryGreen else AbsentRed
     
     Row(
         modifier = Modifier
@@ -333,28 +334,25 @@ private fun AttendanceLogItem(
         // Date Box
         Column(
             modifier = Modifier
-                .size(width = 54.dp, height = 50.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(bgColor)
-                .border(1.5.dp,
-                    statusColor.copy(alpha = 0.3f),
-                    RoundedCornerShape(12.dp)),
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(statusColor),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = day,
                 style = MaterialTheme.typography.labelSmall,
-                color = statusColor.copy(alpha = 0.7f),
+                color = Color.White.copy(alpha = 0.8f),
                 fontWeight = FontWeight.Bold,
-                fontSize = 11.sp
+                fontSize = 10.sp
             )
             Text(
                 text = date,
                 style = MaterialTheme.typography.titleLarge,
-                color = statusColor,
+                color = Color.White,
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 22.sp
+                fontSize = 20.sp
             )
         }
         
@@ -380,15 +378,17 @@ private fun AttendanceLogItem(
         
         // Status Pill
         Surface(
-            color = bgColor,
+            color = statusColor,
+            modifier = Modifier.offset(y = (-11).dp),
             shape = RoundedCornerShape(10.dp)
         ) {
             Text(
                 text = if (isPresent) "Present" else "Absent",
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                 style = MaterialTheme.typography.labelSmall,
-                color = statusColor,
-                fontWeight = FontWeight.Bold
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp
             )
         }
     }
@@ -396,18 +396,17 @@ private fun AttendanceLogItem(
 
 @Composable
 private fun DetailRow(icon: ImageVector, label: String, value: String) {
-    val isDark = LocalIsDarkMode.current
     Row(verticalAlignment = Alignment.CenterVertically) {
         Surface(
-            modifier = Modifier.size(46.dp),
-            shape = RoundedCornerShape(14.dp),
-            color = (if (isDark) Color(0xFF1B5E20) else Color(0xFFE8F5E9)).copy(alpha = 0.6f)
+            modifier = Modifier.size(44.dp),
+            shape = CircleShape,
+            color = PrimaryGreen
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (isDark) Color.White else Color(0xFF2E7D32),
+                    tint = Color.White,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -449,5 +448,31 @@ fun StudentDetailPreview() {
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AttendanceLogItemPreview() {
+    AttendanceTheme {
+        AttendanceLogItem(
+            day = "Thu",
+            date = "03",
+            monthDate = "Apr 03",
+            lectureInfo = "Lecture 20 . Data Structures",
+            isPresent = true
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DetailRowPreview() {
+    AttendanceTheme {
+        DetailRow(
+            icon = Icons.Rounded.CalendarMonth,
+            label = "Enrollment Date",
+            value = "January 15, 2024"
+        )
     }
 }

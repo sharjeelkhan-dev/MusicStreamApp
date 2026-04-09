@@ -33,7 +33,6 @@ import com.attendance.app.presentation.theme.PrimaryGreenDark
 import com.attendance.app.presentation.theme.AttendanceTheme
 import com.attendance.app.presentation.theme.LocalIsDarkMode
 import com.attendance.app.R
-import com.attendance.app.presentation.components.StandardHeader
 import com.attendance.app.presentation.components.VerticalScrollbar
 
 @Composable
@@ -108,7 +107,6 @@ private fun SettingsContent(
     onRestoreBackup: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = LocalIsDarkMode.current
     val listState = rememberLazyListState()
 
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {

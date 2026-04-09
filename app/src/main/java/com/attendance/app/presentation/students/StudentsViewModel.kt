@@ -1,5 +1,4 @@
 package com.attendance.app.presentation.students
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.attendance.app.data.preferences.PreferencesManager
@@ -12,7 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

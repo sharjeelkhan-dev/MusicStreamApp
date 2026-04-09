@@ -188,9 +188,6 @@ fun AppNavigation() {
                         (context as? ComponentActivity)?.reportFullyDrawn()
                     }
                     StudentsScreen(
-                        onBack = { 
-                            navController.popBackStack()
-                        },
                         onStudentClick = { student, color ->
                             navController.navigate(
                                 Screen.StudentDetail.createRoute(
@@ -201,8 +198,6 @@ fun AppNavigation() {
                                 )
                             )
                         },
-                        animatedVisibilityScope = this@composable,
-                        modifier = Modifier,
                         paddingValues = paddingValues
                     )
                 }

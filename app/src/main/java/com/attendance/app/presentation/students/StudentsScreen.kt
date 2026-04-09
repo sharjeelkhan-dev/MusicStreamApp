@@ -1,13 +1,8 @@
 package com.attendance.app.presentation.students
-
-import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,10 +35,8 @@ import com.attendance.app.presentation.theme.*
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun SharedTransitionScope.StudentsScreen(
-    onBack: () -> Unit,
+fun StudentsScreen(
     onStudentClick: (Student, Color) -> Unit,
-    animatedVisibilityScope: AnimatedContentScope,
     modifier: Modifier = Modifier,
     paddingValues: PaddingValues = PaddingValues(0.dp),
     viewModel: StudentsViewModel = hiltViewModel()
@@ -73,9 +66,7 @@ fun SharedTransitionScope.StudentsScreen(
     ) { innerPadding ->
         StudentsContent(
             state = state,
-            onBack = onBack,
             onStudentClick = onStudentClick,
-            animatedVisibilityScope = animatedVisibilityScope,
             onEvent = viewModel::onEvent,
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             paddingValues = paddingValues
@@ -85,11 +76,9 @@ fun SharedTransitionScope.StudentsScreen(
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-private fun SharedTransitionScope.StudentsContent(
+private fun StudentsContent(
     state: StudentsState,
-    onBack: () -> Unit,
     onStudentClick: (Student, Color) -> Unit,
-    animatedVisibilityScope: AnimatedContentScope,
     onEvent: (StudentsEvent) -> Unit,
     modifier: Modifier = Modifier,
     paddingValues: PaddingValues = PaddingValues(0.dp)
@@ -160,14 +149,11 @@ private fun SharedTransitionScope.StudentsContent(
                             initials = studentWithPct.student.initials,
                             name = studentWithPct.student.fullName,
                             rollNumber = studentWithPct.student.rollNumber,
-                            attendancePercentage = studentWithPct.attendancePercentage,
                             createdAt = studentWithPct.student.createdAt,
                             avatarColor = avatarColor,
-                            animatedVisibilityScope = animatedVisibilityScope,
                             onEdit = { onEvent(StudentsEvent.StartEditStudent(studentWithPct.student)) },
-                            onDelete = { onEvent(StudentsEvent.DeleteStudent(studentWithPct.student)) },
-                            onClick = { onStudentClick(studentWithPct.student, avatarColor) }
-                        )
+                            onDelete = { onEvent(StudentsEvent.DeleteStudent(studentWithPct.student)) }
+                        ) { onStudentClick(studentWithPct.student, avatarColor) }
                     }
                 }
             }
@@ -347,14 +333,12 @@ private fun AddStudentForm(
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
-private fun SharedTransitionScope.StudentRow(
+private fun StudentRow(
     initials: String,
     name: String,
     rollNumber: String,
-    attendancePercentage: Double,
     createdAt: Long,
     avatarColor: Color,
-    animatedVisibilityScope: AnimatedContentScope,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onClick: () -> Unit
@@ -465,36 +449,38 @@ private fun SharedTransitionScope.StudentRow(
 fun StudentsScreenPreview() {
     AttendanceTheme {
         SharedTransitionLayout {
-            AnimatedContent(targetState = true, label = "students_preview") { _ ->
-                StudentsContent(
-                    state = StudentsState(
-                        selectedClass = ClassModel(
-                            id = 1,
-                            name = "Software Engineering",
-                            section = "6C1",
-                            studentCount = 3
-                        ),
-                        students = listOf(
-                            StudentWithPercentage(
-                                student = Student(id = 1, fullName = "Ahmad Khan", rollNumber = "CS-01", classId = 1),
-                                attendancePercentage = 85.0
+            // Changed '_' to 'isVisible' to acknowledge the state
+            AnimatedContent(targetState = true, label = "students_preview") { isVisible ->
+                if (isVisible) {
+                    StudentsContent(
+                        state = StudentsState(
+                            selectedClass = ClassModel(
+                                id = 1,
+                                name = "Software Engineering",
+                                section = "6C1",
+                                studentCount = 3
                             ),
-                            StudentWithPercentage(
-                                student = Student(id = 2, fullName = "Sara Ahmed", rollNumber = "CS-02", classId = 1),
-                                attendancePercentage = 92.0
+                            students = listOf(
+                                StudentWithPercentage(
+                                    student = Student(id = 1, fullName = "Ahmad Khan", rollNumber = "CS-01", classId = 1),
+                                    attendancePercentage = 85.0
+                                ),
+                                StudentWithPercentage(
+                                    student = Student(id = 2, fullName = "Sara Ahmed", rollNumber = "CS-02", classId = 1),
+                                    attendancePercentage = 92.0
+                                ),
+                                StudentWithPercentage(
+                                    student = Student(id = 3, fullName = "Zainab Bibi", rollNumber = "CS-03", classId = 1),
+                                    attendancePercentage = 78.0
+                                )
                             ),
-                            StudentWithPercentage(
-                                student = Student(id = 3, fullName = "Zainab Bibi", rollNumber = "CS-03", classId = 1),
-                                attendancePercentage = 78.0
-                            )
+                            isLoading = false
                         ),
-                        isLoading = false
-                    ),
-                    onBack = {},
-                    onStudentClick = { _, _ -> },
-                    animatedVisibilityScope = this,
-                    onEvent = {}
-                )
+                        onStudentClick = { _, _ -> },
+                        // 'this' correctly provides the AnimatedVisibilityScope
+                        onEvent = {}
+                    )
+                }
             }
         }
     }
@@ -506,23 +492,25 @@ fun StudentsScreenPreview() {
 fun StudentsScreenEmptyPreview() {
     AttendanceTheme {
         SharedTransitionLayout {
-            AnimatedContent(targetState = true, label = "students_empty_preview") { _ ->
-                StudentsContent(
-                    state = StudentsState(
-                        selectedClass = ClassModel(
-                            id = 1,
-                            name = "Software Engineering",
-                            section = "6C1",
-                            studentCount = 0
+            // Changed '_' to 'isVisible' (or any name) to acknowledge the target state
+            AnimatedContent(targetState = true, label = "students_empty_preview") { isVisible ->
+                if (isVisible) {
+                    StudentsContent(
+                        state = StudentsState(
+                            selectedClass = ClassModel(
+                                id = 1,
+                                name = "Software Engineering",
+                                section = "6C1",
+                                studentCount = 0
+                            ),
+                            students = emptyList(),
+                            isLoading = false
                         ),
-                        students = emptyList(),
-                        isLoading = false
-                    ),
-                    onBack = {},
-                    onStudentClick = { _, _ -> },
-                    animatedVisibilityScope = this,
-                    onEvent = {}
-                )
+                        onStudentClick = { _, _ -> },
+                        // 'this' refers to the AnimatedVisibilityScope provided by AnimatedContent
+                        onEvent = {}
+                    )
+                }
             }
         }
     }
@@ -534,20 +522,22 @@ fun StudentsScreenEmptyPreview() {
 fun StudentsScreenAddFormPreview() {
     AttendanceTheme {
         SharedTransitionLayout {
-            AnimatedContent(targetState = true, label = "students_add_form_preview") { _ ->
-                StudentsContent(
-                    state = StudentsState(
-                        selectedClass = ClassModel(id = 1, name = "Software Engineering", section = "6C1"),
-                        isAddFormVisible = true,
-                        newStudentName = "Ahmad Khan",
-                        newStudentRoll = "CS-01",
-                        isLoading = false
-                    ),
-                    onBack = {},
-                    onStudentClick = { _, _ -> },
-                    animatedVisibilityScope = this,
-                    onEvent = {}
-                )
+            AnimatedContent(targetState = true, label = "students_add_form_preview") { targetState ->
+
+                if (targetState) {
+                    StudentsContent(
+                        state = StudentsState(
+                            selectedClass = ClassModel(id = 1, name = "Software Engineering", section = "6C1"),
+                            isAddFormVisible = true,
+                            newStudentName = "Ahmad Khan",
+                            newStudentRoll = "CS-01",
+                            isLoading = false
+                        ),
+                        onStudentClick = { _, _ -> },
+                        // 'this' refers to the AnimatedContentScope required for shared elements
+                        onEvent = {}
+                    )
+                }
             }
         }
     }

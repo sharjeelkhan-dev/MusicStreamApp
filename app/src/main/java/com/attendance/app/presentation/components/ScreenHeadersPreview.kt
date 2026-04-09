@@ -81,13 +81,14 @@ fun StandardHeader(
                         )
                         Text(
                             text = dateFormatted,
+                            modifier = Modifier.offset(y = 5.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color = secondaryContentColor,
                             fontSize = 12.sp
                         )
                     }
                 }
-                
+
                 // Right side: Save / Settings
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (showSave) {

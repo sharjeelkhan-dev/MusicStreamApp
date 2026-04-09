@@ -85,10 +85,6 @@ fun AttendanceTheme(
             
             // Allow content to be drawn under system bars
             WindowCompat.setDecorFitsSystemWindows(window, false)
-
-            // Ensure navigation bar stays hidden even after theme changes
-            insetsController.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
         }
     }
 

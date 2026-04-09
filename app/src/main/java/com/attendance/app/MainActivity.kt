@@ -32,13 +32,6 @@ class MainActivity : FragmentActivity() {
         
         // Enable edge-to-edge support
         enableEdgeToEdge()
-        
-        // Hide the navigation bar for a cleaner "Immersive" look
-        // The bar will reappear transiently when the user swipes from the bottom
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            hide(WindowInsetsCompat.Type.navigationBars())
-        }
 
         setContent {
             val isDarkMode by preferencesManager.darkModeFlow.collectAsStateWithLifecycle(initialValue = false)

@@ -76,8 +76,8 @@ private fun HomeContent(
             // Fixed Header
             StandardHeader(
                 title = "$greeting 👋",
-                subtitle = if (state.selectedClass?.section?.isNotEmpty() == true) 
-                    "${state.selectedClass.name} — ${state.selectedClass.section}" 
+                subtitle = if (state.selectedClass?.section?.isNotEmpty() == true)
+                    "${state.selectedClass.name} — ${state.selectedClass.section}"
                     else state.selectedClass?.name ?: "No Class",
                 showDate = true,
                 showSettings = true,

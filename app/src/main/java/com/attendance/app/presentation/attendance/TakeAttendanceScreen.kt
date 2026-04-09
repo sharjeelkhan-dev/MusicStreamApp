@@ -85,16 +85,22 @@ private fun AttendanceContent(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp)
+                contentPadding = PaddingValues(bottom = 16.dp, top = 16.dp)
             ) {
                 // Search bar
                 item {
                     OutlinedTextField(
                         value = state.searchQuery,
                         onValueChange = { onEvent(AttendanceEvent.SearchQueryChanged(it)) },
-                        placeholder = { Text("Search student...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                        placeholder = { Text("Search student...", color =
+                            MaterialTheme.colorScheme
+                                .onSurfaceVariant
+                                .copy(alpha = 0.6f)) },
                         leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                            Icon(Icons.Default.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme
+                                    .onSurfaceVariant.copy(alpha = 0.6f))
                         },
                         modifier = Modifier
                             .fillMaxWidth()

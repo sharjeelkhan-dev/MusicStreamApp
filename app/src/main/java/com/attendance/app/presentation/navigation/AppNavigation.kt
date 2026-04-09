@@ -50,7 +50,7 @@ fun AppNavigation() {
         }
     }
 
-    val transitionDuration = 0
+    val transitionDuration = 700
     val customEasing = EaseOutQuart 
 
     Scaffold(

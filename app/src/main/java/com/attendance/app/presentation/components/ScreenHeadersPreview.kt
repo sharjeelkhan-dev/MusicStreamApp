@@ -48,143 +48,143 @@ fun StandardHeader(
             .fillMaxWidth()
             .background(backgroundColor)
             .statusBarsPadding()
-            .height(75.dp) // Optimized height for high-quality feel
+            .height(75.dp) // Strictly maintained 75.dp height
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.Center
     ) {
         // Top section for Back / Date / Save / Settings
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(30.dp), // Fixed height to keep title alignment consistent
-            contentAlignment = Alignment.CenterStart
+                .height(26.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left side: Back button OR Date
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (onBackClick != null) {
-                        IconButton(
-                            onClick = onBackClick,
-                            modifier = Modifier.size(24.dp).offset(x = (-8).dp) // Slight offset for better alignment
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = contentColor,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    } else if (showDate) {
-                        val dateFormatted = LocalDate.now().format(
-                            DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.ENGLISH)
-                        )
-                        Text(
-                            text = dateFormatted,
-                            modifier = Modifier.offset(x = 2.dp, y = (-3).dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = secondaryContentColor,
-                            fontSize = 12.sp
+            // Left side: Back button OR Date
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onBackClick != null) {
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = Modifier.size(24.dp).offset(x = (-8).dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = contentColor,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
+                } else if (showDate) {
+                    val dateFormatted = LocalDate.now().format(
+                        DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.ENGLISH)
+                    )
+                    Text(
+                        text = dateFormatted,
+                        modifier = Modifier.offset(y = 1.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = secondaryContentColor,
+                        fontSize = 14.sp
+                    )
                 }
+            }
 
-                // Right side: Save / Settings
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (showSave) {
-                        Surface(
-                            onClick = onSaveClick,
-                            enabled = !isSaving,
-                            shape = RoundedCornerShape(100),
-                            color = Color.White,
-                            modifier = Modifier.height(28.dp).offset(y = 10.dp)
+            // Right side: Save / Search / Settings
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (showSave) {
+                    Surface(
+                        onClick = onSaveClick,
+                        enabled = !isSaving,
+                        shape = RoundedCornerShape(100),
+                        color = Color.White,
+                        modifier = Modifier.height(22.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                if (isSaving) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(12.dp),
-                                        color = PrimaryGreenDark,
-                                        strokeWidth = 2.dp
+                            if (isSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(10.dp),
+                                    color = PrimaryGreenDark,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = if (isSaved) "Saved" else "Save",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    color = PrimaryGreenDark
+                                )
+                                if (isSaved) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(10.dp),
+                                        tint = PrimaryGreenDark
                                     )
-                                } else {
-                                    Text(
-                                        text = if (isSaved) "Saved" else "Save",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = PrimaryGreenDark
-                                    )
-                                    if (isSaved) {
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(14.dp),
-                                            tint = PrimaryGreenDark
-                                        )
-                                    }
                                 }
                             }
                         }
                     }
+                }
 
-                    if (showSearch) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = onSearchClick,
-                            modifier = Modifier.size(24.dp).offset(y = 10.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = contentColor,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                if (showSearch) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = onSearchClick,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = contentColor,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
+                }
 
-                    if (showSettings) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = onSettingsClick,
-                            modifier = Modifier.size(24.dp).offset(y = 10.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.setting_icon),
-                                contentDescription = "Settings",
-                                tint = contentColor,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                if (showSettings) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = onSettingsClick,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.setting_icon),
+                            contentDescription = "Settings",
+                            tint = contentColor,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
         }
 
+        // Title and Subtitle with original sizes and NO offsets
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineLarge,
+            style = MaterialTheme.typography.titleLarge,
             color = contentColor,
-            modifier = Modifier.offset(y = (-8).dp),
+            modifier = Modifier.offset(y = (-3).dp),
             fontWeight = FontWeight.Bold,
             fontSize = 27.sp,
-            lineHeight = 32.sp
+            lineHeight = 30.sp,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
         Text(
             text = subtitle,
-            modifier = Modifier.offset(x = 2.dp, y = (-8).dp),
             style = MaterialTheme.typography.bodyMedium,
             color = secondaryContentColor,
             fontWeight = FontWeight.Medium,
+            modifier = Modifier.offset(y = (-3).dp),
             fontSize = 14.sp,
-            lineHeight = 18.sp
+            lineHeight = 16.sp,
+            maxLines = 1,
+            overflow = androidx.compose.ui.
+            text.style.TextOverflow.Ellipsis
         )
     }
 }

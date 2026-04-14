@@ -7,6 +7,7 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,8 +22,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -52,8 +58,6 @@ fun SharedTransitionScope.StudentDetailScreen(
     val currentStudentName = state.student?.fullName ?: studentName
     val currentStudentRoll = state.student?.rollNumber ?: studentRoll
     val currentInitials = state.student?.initials ?: initials
-    
-    var selectedFilter by remember { mutableStateOf("All") }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -115,41 +119,22 @@ fun SharedTransitionScope.StudentDetailScreen(
         ) {
             // Avatar Section
             Spacer(modifier = Modifier.height(40.dp))
-            Box(contentAlignment = Alignment.BottomEnd) {
-                Surface(
-                    shape = CircleShape,
-                    color = avatarColor,
-                    modifier = Modifier
-                        .size(170.dp)
-                        .shadow(20.dp, CircleShape, spotColor = avatarColor.copy(alpha = 0.5f))
-                        .sharedElement(
-                            rememberSharedContentState(key = "avatar_$studentRoll"),
-                            animatedVisibilityScope = animatedVisibilityScope
-                        ),
-                    border = BorderStroke(4.dp, MaterialTheme.colorScheme.surface)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = currentInitials,
-                            color = Color.White,
-                            fontSize = 68.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                // Verified Badge
-                Surface(
-                    modifier = Modifier.size(46.dp).offset(x = (-4).dp, y = (-4).dp),
-                    shape = CircleShape,
-                    color = PresentGreen,
-                    border = BorderStroke(4.dp, MaterialTheme.colorScheme.surface),
-                    shadowElevation = 8.dp
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Verified,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.padding(8.dp)
+            Surface(
+                shape = CircleShape,
+                color = avatarColor,
+                modifier = Modifier
+                    .size(140.dp)
+                    .sharedElement(
+                        rememberSharedContentState(key = "avatar_$studentRoll"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = currentInitials,
+                        color = Color.White,
+                        fontSize = 56.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -159,8 +144,8 @@ fun SharedTransitionScope.StudentDetailScreen(
             // Name
             Text(
                 text = currentStudentName,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.sharedElement(
@@ -169,28 +154,13 @@ fun SharedTransitionScope.StudentDetailScreen(
                 )
             )
             
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Roll Tag (Light Green Pill)
-            Surface(
-                color = (if (isDark) Color.Transparent else Color.Transparent),
-                shape = RoundedCornerShape(28.dp),
-                modifier = Modifier.offset(y = (-18).dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = currentStudentRoll,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (isDark) Color.White else Color(0xFF1A1A1A),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+            // Roll Number
+            Text(
+                text = "Roll Number: $currentStudentRoll",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
 
             Spacer(modifier = Modifier.height(36.dp))
 
@@ -198,7 +168,7 @@ fun SharedTransitionScope.StudentDetailScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = (-25).dp)
+                    .offset(y = (-13).dp)
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -224,103 +194,54 @@ fun SharedTransitionScope.StudentDetailScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Section Header: Logs (Now outside the card)
-            Text(
-                text = "Logs",
+            // Section Header: Attendance Statistics
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = (-30).dp)
-                    .padding(horizontal = 30.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 20.sp
-            )
+                    .padding(horizontal = 25.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Statistics",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 18.sp
+                )
+                
+                Row(verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.offset(x = (-2).dp)) {
+                    Box(modifier = Modifier.size(8.dp).background(AbsentRed, CircleShape))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("You", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Box(modifier = Modifier.size(8.dp).background(Color(0xFF4285F4), CircleShape))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Avg", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
 
-            // Attendance Log Card (Refined to match reference image)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Attendance Graph Card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = (-25).dp)
                     .padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        LogTab(
-                            text = "All",
-                            isSelected = selectedFilter == "All",
-                            modifier = Modifier.weight(1f),
-                            onClick = { selectedFilter = "All" }
-                        )
-                        LogTab(
-                            text = "Present",
-                            isSelected = selectedFilter == "Present",
-                            modifier = Modifier.weight(1f),
-                            onClick = { selectedFilter = "Present" }
-                        )
-                        LogTab(
-                            text = "Absent",
-                            isSelected = selectedFilter == "Absent",
-                            modifier = Modifier.weight(1f),
-                            onClick = { selectedFilter = "Absent" }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(28.dp))
-
-                    val filteredLogs = remember(state.attendanceLogs, selectedFilter) {
-                        when (selectedFilter) {
-                            "Present" -> state.attendanceLogs.filter { it.status == AttendanceStatus.PRESENT }
-                            "Absent" -> state.attendanceLogs.filter { it.status == AttendanceStatus.ABSENT }
-                            else -> state.attendanceLogs
-                        }
-                    }
-
-                    if (filteredLogs.isEmpty()) {
-                        Text(
-                            text = "No logs available",
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                    }
-
-                    filteredLogs.forEachIndexed { index, record ->
-                        val date = remember(record.date) {
-                            try {
-                                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(record.date)
-                            } catch (_: Exception) {
-                                null
-                            }
-                        }
-                        val dayStr = date?.let { SimpleDateFormat("EEE", Locale.getDefault()).format(it) } ?: "---"
-                        val dayNum = date?.let { SimpleDateFormat("dd", Locale.getDefault()).format(it) } ?: "--"
-                        val monthStr = date?.let { SimpleDateFormat("MMM dd", Locale.getDefault()).format(it) } ?: record.date
-
-                        AttendanceLogItem(
-                            day = dayStr,
-                            date = dayNum,
-                            monthDate = monthStr,
-                            lectureInfo = "Attendance marked",
-                            isPresent = record.status == AttendanceStatus.PRESENT
-                        )
-                        if (index < filteredLogs.size - 1) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 4.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                            )
-                        }
-                    }
+                    AttendanceBarChart(
+                        studentData = listOf(85f, 70f, 90f, 95f),
+                        classAvgData = listOf(75f, 75f, 80f, 85f),
+                        labels = listOf("Week 1", "Week 2", "Week 3", "Week 4"),
+                        modifier = Modifier.fillMaxWidth().height(220.dp)
+                    )
                 }
             }
             
@@ -330,13 +251,12 @@ fun SharedTransitionScope.StudentDetailScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = (-30).dp)
                     .padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     val enrollmentDate = remember(state.student?.createdAt) {
@@ -359,6 +279,102 @@ fun SharedTransitionScope.StudentDetailScreen(
             }
             
             Spacer(modifier = Modifier.height(40.dp))
+        }
+    }
+}
+
+@Composable
+fun AttendanceBarChart(
+    studentData: List<Float>,
+    classAvgData: List<Float>,
+    labels: List<String>,
+    modifier: Modifier = Modifier
+) {
+    val maxVal = 100f
+    val gridLines = 5
+    val density = LocalDensity.current
+    val labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f).toArgb()
+    
+    val textPaint = remember(labelColor) {
+        android.graphics.Paint().apply {
+            color = labelColor
+            textSize = with(density) { 11.sp.toPx() }
+            textAlign = android.graphics.Paint.Align.RIGHT
+            isAntiAlias = true
+        }
+    }
+    val labelPaint = remember(labelColor) {
+        android.graphics.Paint().apply {
+            color = labelColor
+            textSize = with(density) { 11.sp.toPx() }
+            textAlign = android.graphics.Paint.Align.CENTER
+            isAntiAlias = true
+        }
+    }
+
+    Canvas(modifier = modifier.padding(start = 35.dp, end = 10.dp, bottom = 25.dp, top = 10.dp)) {
+        val width = size.width
+        val height = size.height
+        val barWidth = 10.dp.toPx()
+        val groupSpacing = width / labels.size
+        
+        // Draw horizontal grid lines and Y-axis labels
+        for (i in 0..gridLines) {
+            val y = height - (i * height / gridLines)
+            val value = (i * maxVal / gridLines).toInt()
+            val label = when {
+                value >= 90 -> "A"
+                value >= 75 -> "B"
+                value >= 60 -> "C"
+                value >= 45 -> "D"
+                else -> "F"
+            }
+            
+            drawContext.canvas.nativeCanvas.drawText(
+                label,
+                -12.dp.toPx(),
+                y + 4.dp.toPx(),
+                textPaint
+            )
+            
+            drawLine(
+                color = Color.Gray.copy(alpha = 0.15f),
+                start = Offset(0f, y),
+                end = Offset(width, y),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f), 0f)
+            )
+        }
+
+        // Draw Bars
+        labels.forEachIndexed { index, label ->
+            val xCenter = index * groupSpacing + groupSpacing / 2
+            
+            // Student Bar (Red)
+            val studentBarHeight = (studentData[index] / maxVal) * height
+            drawRoundRect(
+                color = AbsentRed,
+                topLeft = Offset(xCenter - barWidth - 3.dp.toPx(), height - studentBarHeight),
+                size = androidx.compose.ui.geometry.Size(barWidth, studentBarHeight),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
+            )
+
+            // Class Avg Bar (Blue)
+            val avgBarHeight = (classAvgData[index] / maxVal) * height
+            drawRoundRect(
+                color = Color(0xFF4285F4),
+                topLeft = Offset(xCenter + 3.dp.toPx(), height - avgBarHeight),
+                size = androidx.compose.ui.geometry.Size(barWidth, avgBarHeight),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
+            )
+
+            // X-Axis Labels
+            drawContext.canvas.nativeCanvas.drawText(
+                label,
+                xCenter,
+                height + 22.dp.toPx(),
+                labelPaint
+            )
         }
     }
 }

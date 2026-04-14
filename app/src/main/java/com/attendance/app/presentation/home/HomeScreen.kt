@@ -1,4 +1,6 @@
 package com.attendance.app.presentation.home
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -35,10 +38,25 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val greeting = when (LocalTime.now().hour) {
         in 0..11 -> "Good Morning"
         in 12..16 -> "Good Afternoon"
         else -> "Good Evening"
+    }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.importAttendance(context, it) }
+    }
+
+    LaunchedEffect(state.message) {
+        state.message?.let {
+            // Show toast or snackbar
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
+            viewModel.clearMessage()
+        }
     }
 
     HomeContent(
@@ -48,6 +66,7 @@ fun HomeScreen(
         onNavigateToReports = onNavigateToReports,
         onNavigateToStudents = onNavigateToStudents,
         onNavigateToSettings = onNavigateToSettings,
+        onImportClick = { filePickerLauncher.launch("*/*") },
         modifier = modifier,
         paddingValues = paddingValues
     )
@@ -61,6 +80,7 @@ private fun HomeContent(
     onNavigateToReports: () -> Unit,
     onNavigateToStudents: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onImportClick: () -> Unit,
     modifier: Modifier = Modifier,
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
@@ -100,7 +120,8 @@ private fun HomeContent(
                         QuickActionsSection(
                             onAttendanceClick = onNavigateToAttendance,
                             onReportsClick = onNavigateToReports,
-                            onStudentsClick = onNavigateToStudents
+                            onStudentsClick = onNavigateToStudents,
+                            onImportClick = onImportClick
                         )
                     }
                     // Recent Sessions Header
@@ -213,7 +234,7 @@ private fun StatsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 20.dp),
+            .padding(horizontal = 20.dp, vertical = 25.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         StatsCard(
@@ -241,7 +262,8 @@ private fun StatsRow(
 private fun QuickActionsSection(
     onAttendanceClick: () -> Unit,
     onReportsClick: () -> Unit,
-    onStudentsClick: () -> Unit
+    onStudentsClick: () -> Unit,
+    onImportClick: () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
         Text(
@@ -271,11 +293,23 @@ private fun QuickActionsSection(
                 modifier = Modifier.weight(1f),
                 onClick = onReportsClick
             )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             QuickActionButton(
                 icon = R.drawable.graduation_cap_icon,
                 label = "Students",
                 modifier = Modifier.weight(1f),
                 onClick = onStudentsClick
+            )
+            QuickActionButton(
+                icon = R.drawable.reload_sync_icon,
+                label = "Import",
+                modifier = Modifier.weight(1f),
+                onClick = onImportClick
             )
         }
     }
@@ -365,6 +399,7 @@ fun HomePreview() {
             onNavigateToReports = {},
             onNavigateToStudents = {},
             onNavigateToSettings = {},
+            onImportClick = {},
             greeting = "Good Morning"
         )
     }

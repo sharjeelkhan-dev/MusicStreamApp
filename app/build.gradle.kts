@@ -101,6 +101,9 @@ dependencies {
     // Gson for backup/restore
     implementation("com.google.code.gson:gson:2.13.2")
 
+    // Excel Parsing (Apache POI)
+    implementation("org.apache.poi:poi-ooxml:5.2.5")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")

@@ -68,7 +68,8 @@ class AttendanceViewModel @Inject constructor(
                 val attendanceFlow = attendanceRepository.getAttendanceByClassAndDate(classId, today)
 
                 combine(classModelFlow, studentsFlow, attendanceFlow) { classModel, students, existingRecords ->
-                    val studentStates = students.map { student ->
+                    val sortedStudents = students.sortedBy { it.createdAt } // Sort by enrollment date (oldest first)
+                    val studentStates = sortedStudents.map { student ->
                         val existing = existingRecords.find { it.studentId == student.id }
                         StudentAttendanceState(
                             student = student,

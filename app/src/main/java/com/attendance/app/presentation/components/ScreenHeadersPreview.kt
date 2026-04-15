@@ -53,7 +53,7 @@ fun StandardHeader(
             .fillMaxWidth()
             .background(backgroundColor)
             .statusBarsPadding()
-            .height(70.dp) // Strictly maintained 75.dp height
+            .height(70.dp) // Strictly maintained 70.dp height
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.Center
     ) {
@@ -61,7 +61,7 @@ fun StandardHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(26.dp),
+                .height(20.dp), // Reduced from 26.dp to save space
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -85,10 +85,9 @@ fun StandardHeader(
                     )
                     Text(
                         text = dateFormatted,
-                        modifier = Modifier.offset(y = (-2).dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = secondaryContentColor,
-                        fontSize = 14.sp
+                        fontSize = 12.sp // Slightly reduced to fit better
                     )
                 }
             }
@@ -98,7 +97,7 @@ fun StandardHeader(
                 if (showExpand) {
                     IconButton(
                         onClick = onExpandClick,
-                        modifier = Modifier.size(24.dp).offset(y = 5.dp)
+                        modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -115,26 +114,24 @@ fun StandardHeader(
                         enabled = !isSaving,
                         shape = RoundedCornerShape(100),
                         color = Color.White,
-                        modifier = Modifier
-                            .height(23.dp)
-                            .offset(y = 6.dp)
+                        modifier = Modifier.height(20.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 14.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (isSaving) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(12.dp),
+                                    modifier = Modifier.size(10.dp),
                                     color = PrimaryGreenDark,
-                                    strokeWidth = 2.dp
+                                    strokeWidth = 1.5.dp
                                 )
                             } else {
                                 Text(
                                     text = if (isSaved) "Saved" else "Save",
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
+                                    fontSize = 11.sp,
                                     color = PrimaryGreenDark
                                 )
                                 if (isSaved) {
@@ -142,7 +139,7 @@ fun StandardHeader(
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = null,
-                                        modifier = Modifier.size(12.dp),
+                                        modifier = Modifier.size(10.dp),
                                         tint = PrimaryGreenDark
                                     )
                                 }
@@ -170,11 +167,10 @@ fun StandardHeader(
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
                         onClick = onSettingsClick,
-                        modifier = Modifier.size(24.dp).offset(y = 5.dp)
+                        modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
-                            painter = painterResource
-                                (id = R.drawable.setting_icon),
+                            painter = painterResource(id = R.drawable.setting_icon),
                             contentDescription = "Settings",
                             tint = contentColor,
                             modifier = Modifier.size(18.dp)
@@ -184,15 +180,14 @@ fun StandardHeader(
             }
         }
 
-        // Title and Subtitle with original sizes and NO offsets
+        // Title and Subtitle with original sizes, but removed negative offsets to prevent clipping
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,
             color = contentColor,
-            modifier = Modifier.offset(y = (-4).dp),
             fontWeight = FontWeight.Bold,
-            fontSize = 25.sp,
-            lineHeight = 30.sp,
+            fontSize = 25.sp, // Kept original size
+            lineHeight = 28.sp,
             maxLines = 1,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
@@ -201,12 +196,10 @@ fun StandardHeader(
             style = MaterialTheme.typography.bodyMedium,
             color = secondaryContentColor,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.offset(y = (-4).dp),
-            fontSize = 14.sp,
+            fontSize = 14.sp, // Kept original size
             lineHeight = 16.sp,
             maxLines = 1,
-            overflow = androidx.compose.ui.
-            text.style.TextOverflow.Ellipsis
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
     }
 }

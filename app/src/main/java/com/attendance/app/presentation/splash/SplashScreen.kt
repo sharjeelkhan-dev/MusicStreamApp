@@ -1,10 +1,7 @@
 package com.attendance.app.presentation.splash
-
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,7 +40,6 @@ fun SplashScreen(
     )
 
     LaunchedEffect(true) {
-        startAnimation = true
         delay(1500)
         onSplashComplete()
     }
@@ -78,17 +74,19 @@ private fun SplashContent(
                 tint = Color.White,
                 modifier = Modifier.size(80.dp)
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = "Student Attendance",
                 style = MaterialTheme.typography.headlineLarge,
                 color = Color.White,
+                modifier = Modifier.offset(y = (-9).dp),
                 fontWeight = FontWeight.Bold,
                 fontSize = 28.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Manage. Track. Report.",
+                modifier = Modifier.offset(y = (-10).dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.8f),
                 fontWeight = FontWeight.Medium

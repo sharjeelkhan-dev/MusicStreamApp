@@ -9,7 +9,6 @@ import com.attendance.app.domain.repository.AttendanceRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 
 class AttendanceRepositoryImpl @Inject constructor(

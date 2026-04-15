@@ -115,7 +115,7 @@ class ReportsViewModel @Inject constructor(
                                     summary = SessionSummary(dateStr, enrolledStudents.size, presentCount, enrolledStudents.size - presentCount),
                                     studentStatuses = studentStatuses
                                 ) to sessionDate
-                            } catch (e: Exception) { null }
+                            } catch (_: Exception) { null }
                         }.sortedByDescending { it.second }
 
                         val finalSessions = sessionList.map { it.first }
@@ -158,7 +158,7 @@ class ReportsViewModel @Inject constructor(
                     isRefreshing = false
                 ) }
             }
-            .catch { e -> _state.update { it.copy(isLoading = false, isRefreshing = false) } }
+            .catch { _ -> _state.update { it.copy(isLoading = false, isRefreshing = false) } }
             .launchIn(viewModelScope)
     }
 }

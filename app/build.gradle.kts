@@ -1,7 +1,6 @@
 @file:Suppress("DEPRECATION")
 
 plugins {
-    id("org.jetbrains.kotlin.android")
     id("com.android.application")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
@@ -38,9 +37,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -102,7 +98,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.13.2")
 
     // Excel Parsing (Apache POI)
-    implementation("org.apache.poi:poi-ooxml:5.2.5")
+    implementation("org.apache.poi:poi-ooxml:5.5.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

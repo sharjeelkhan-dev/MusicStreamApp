@@ -89,22 +89,24 @@ open class StudentDetailViewModel @Inject constructor(
     }
 
     private fun calculateWeeklyData(logs: List<AttendanceRecord>): List<Float> {
-        // Logic to group logs by week and calculate percentage
-        // For now, providing semi-realistic dynamic data based on actual logs
-        val total = logs.size.toFloat().coerceAtLeast(1f)
-        val present = logs.count { it.status == com.attendance.app.domain.model.AttendanceStatus.PRESENT }.toFloat()
-        val overallBase = (present / total) * 100f
+        // Group logs by week (simplified: just showing variation based on latest records)
+        if (logs.isEmpty()) return listOf(0f, 0f, 0f, 0f)
         
-        return listOf(
-            (overallBase - 10f).coerceIn(0f, 100f),
-            (overallBase + 5f).coerceIn(0f, 100f),
-            overallBase,
-            (overallBase + 10f).coerceIn(0f, 100f)
-        )
+        val sortedLogs = logs.sortedBy { it.date }
+        val chunkSize = (sortedLogs.size / 4).coerceAtLeast(1)
+        
+        return sortedLogs.chunked(chunkSize).take(4).map { weekLogs ->
+            val present = weekLogs.count { it.status == com.attendance.app.domain.model.AttendanceStatus.PRESENT }
+            (present.toFloat() / weekLogs.size.toFloat()) * 100f
+        }.let { 
+            // Pad with zeros if less than 4 weeks of data
+            if (it.size < 4) it + List(4 - it.size) { 0f } else it
+        }
     }
 
     private fun calculateClassAvgData(): List<Float> {
         // In a real app, this would be fetched from the repository for the whole class
-        return listOf(75f, 72f, 78f, 80f)
+        // Providing some variation for "Average Class Grade" to make the UI dynamic
+        return listOf(75f, 68f, 82f, 70f)
     }
 }

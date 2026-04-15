@@ -6,7 +6,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -19,14 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -184,10 +177,21 @@ fun SharedTransitionScope.StudentDetailScreen(
                     label = "Attendance",
                     value = String.format(Locale.getDefault(), "%.0f%%", state.attendancePercentage),
                     valueColor = Color(0xFF00ACC1),
-                    modifier = Modifier.weight(1f))
-                }
+                    modifier = Modifier.weight(1f)
+                )
             }
-            
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Attendance Statistics Graph
+            AttendanceChart(
+                studentData = state.weeklyStudentData,
+                classAvgData = state.weeklyClassAvgData,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
 
             // Info Section
@@ -224,7 +228,165 @@ fun SharedTransitionScope.StudentDetailScreen(
             Spacer(modifier = Modifier.height(40.dp))
         }
     }
+}
 
+@Composable
+private fun AttendanceChart(
+    studentData: List<Float>,
+    classAvgData: List<Float>,
+    modifier: Modifier = Modifier
+) {
+    val labels = listOf("Week 1", "Week 2", "Week 3", "Week 4")
+    val percentages = listOf("100%", "75%", "50%", "25%", "0%")
+    
+    // Fixed dimensions for pixel-perfect alignment
+    val rowHeight = 32.dp
+    val plottingAreaHeight = rowHeight * 4
+    val yLabelWidth = 48.dp
+
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Attendance",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LegendItem(color = AbsentRed, label = "you")
+                    LegendItem(color = Color(0xFF4A90E2), label = "class avg")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Box(modifier = Modifier.fillMaxWidth().height(plottingAreaHeight + rowHeight)) {
+                    // 1. Grid Lines & Y-Labels
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        percentages.forEach { pct ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth().height(rowHeight)
+                            ) {
+                                Text(
+                                    text = pct,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    modifier = Modifier.width(yLabelWidth).padding(end = 12.dp),
+                                    textAlign = TextAlign.End,
+                                    fontSize = 10.sp
+                                )
+                                HorizontalDivider(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    thickness = 0.5.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                                )
+                            }
+                        }
+                    }
+
+                    // 2. Bars
+                    Row(
+                        modifier = Modifier
+                            .padding(start = yLabelWidth, top = rowHeight / 2)
+                            .height(plottingAreaHeight)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        repeat(4) { index ->
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.fillMaxHeight()
+                            ) {
+                                val studentValue = studentData.getOrElse(index) { 0f }
+                                val classValue = classAvgData.getOrElse(index) { 0f }
+
+                                Bar(
+                                    value = studentValue,
+                                    color = AbsentRed,
+                                    modifier = Modifier.fillMaxHeight((studentValue / 100f).coerceIn(0.01f, 1f))
+                                )
+                                Bar(
+                                    value = classValue,
+                                    color = Color(0xFF4A90E2),
+                                    modifier = Modifier.fillMaxHeight((classValue / 100f).coerceIn(0.01f, 1f))
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 3. X-Axis Labels
+                Row(
+                    modifier = Modifier
+                        .padding(start = yLabelWidth)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    labels.forEach { label ->
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            fontSize = 10.sp,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LegendItem(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(color, RoundedCornerShape(2.dp))
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            fontSize = 10.sp
+        )
+    }
+}
+
+@Composable
+private fun Bar(value: Float, color: Color, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .width(12.dp)
+            .background(color, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+    )
+}
 
 @Composable
 private fun DetailRow(icon: ImageVector, label: String, value: String) {

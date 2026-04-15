@@ -306,7 +306,7 @@ private fun QuickActionsSection(
                 onClick = onStudentsClick
             )
             QuickActionButton(
-                icon = R.drawable.reload_sync_icon,
+                icon = R.drawable.import_icon,
                 label = "Import",
                 modifier = Modifier.weight(1f),
                 onClick = onImportClick

@@ -80,7 +80,7 @@ fun StandardHeader(
                     )
                     Text(
                         text = dateFormatted,
-                        modifier = Modifier.offset(y = 1.dp),
+                        modifier = Modifier.offset(y = 2.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = secondaryContentColor,
                         fontSize = 14.sp
@@ -149,13 +149,14 @@ fun StandardHeader(
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
                         onClick = onSettingsClick,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp).offset(y = 5.dp)
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.setting_icon),
+                            painter = painterResource
+                                (id = R.drawable.setting_icon),
                             contentDescription = "Settings",
                             tint = contentColor,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -167,7 +168,7 @@ fun StandardHeader(
             text = title,
             style = MaterialTheme.typography.titleLarge,
             color = contentColor,
-            modifier = Modifier.offset(y = (-3).dp),
+            modifier = Modifier.offset(y = (-2).dp),
             fontWeight = FontWeight.Bold,
             fontSize = 25.sp,
             lineHeight = 30.sp,
@@ -179,7 +180,7 @@ fun StandardHeader(
             style = MaterialTheme.typography.bodyMedium,
             color = secondaryContentColor,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.offset(y = (-3).dp),
+            modifier = Modifier.offset(y = (-2).dp),
             fontSize = 14.sp,
             lineHeight = 16.sp,
             maxLines = 1,

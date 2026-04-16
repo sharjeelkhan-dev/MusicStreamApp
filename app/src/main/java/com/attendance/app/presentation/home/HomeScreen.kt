@@ -174,19 +174,30 @@ private fun HomeContent(
                                 }
                             }
 
-                            Surface(
-                                onClick = onNavigateToReports,
-                                shape = RoundedCornerShape(100), // Perfect Pill shape
-                                color = MaterialTheme.colorScheme.surface,
-                                shadowElevation = 8.dp
+                            CompositionLocalProvider(
+                                LocalRippleConfiguration provides RippleConfiguration(color = Color.Gray.copy(alpha = 0.2f))
                             ) {
-                                Text(
-                                    text = "See All",
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
-                                )
+                                Surface(
+                                    onClick = onNavigateToReports,
+                                    shape = RoundedCornerShape(100), // Perfect Pill shape
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shadowElevation = 8.dp
+                                ) {
+                                    Text(
+                                        text = "See All",
+                                        modifier = Modifier
+                                            .padding(
+                                                horizontal = 16.dp,
+                                                vertical = 6.dp
+                                            ),
+                                        style = MaterialTheme
+                                            .typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark)
+                                            MaterialTheme.colorScheme
+                                                .primary else PrimaryGreen
+                                    )
+                                }
                             }
                         }
                     }
@@ -290,52 +301,56 @@ private fun QuickActionsSection(
     onStudentsClick: () -> Unit,
     onImportClick: () -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-        Text(
-            text = "QUICK ACTIONS",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onBackground
-                .copy(alpha = 0.6f),
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(vertical = 14.dp, horizontal = 5.dp)
-        )
+    CompositionLocalProvider(
+        LocalRippleConfiguration provides RippleConfiguration(color = Color.Gray.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+            Text(
+                text = "QUICK ACTIONS",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onBackground
+                    .copy(alpha = 0.6f),
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(vertical = 14.dp, horizontal = 5.dp)
+            )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            QuickActionButton(
-                icon = R.drawable.hand_line_icon,
-                label = "Attendance",
-                isHighlighted = true,
-                modifier = Modifier.weight(1f),
-                onClick = onAttendanceClick
-            )
-            QuickActionButton(
-                icon = R.drawable.reports_icon,
-                label = "Reports",
-                modifier = Modifier.weight(1f),
-                onClick = onReportsClick
-            )
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            QuickActionButton(
-                icon = R.drawable.graduation_cap_icon,
-                label = "Students",
-                modifier = Modifier.weight(1f),
-                onClick = onStudentsClick
-            )
-            QuickActionButton(
-                icon = R.drawable.import_icon,
-                label = "Import",
-                modifier = Modifier.weight(1f),
-                onClick = onImportClick
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                QuickActionButton(
+                    icon = R.drawable.hand_line_icon,
+                    label = "Attendance",
+                    isHighlighted = true,
+                    modifier = Modifier.weight(1f),
+                    onClick = onAttendanceClick
+                )
+                QuickActionButton(
+                    icon = R.drawable.reports_icon,
+                    label = "Reports",
+                    modifier = Modifier.weight(1f),
+                    onClick = onReportsClick
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                QuickActionButton(
+                    icon = R.drawable.graduation_cap_icon,
+                    label = "Students",
+                    modifier = Modifier.weight(1f),
+                    onClick = onStudentsClick
+                )
+                QuickActionButton(
+                    icon = R.drawable.import_icon,
+                    label = "Import",
+                    modifier = Modifier.weight(1f),
+                    onClick = onImportClick
+                )
+            }
         }
     }
 }

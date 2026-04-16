@@ -75,7 +75,7 @@ fun SessionCard(
                         .clip(CircleShape)
                         .background(accentColor)
                 )
-                
+
                 Spacer(modifier = Modifier.width(12.dp))
 
                 // Date
@@ -168,22 +168,22 @@ fun SessionCard(
                     } else {
                         // Fallback dummy data
                         listOf(
-                            "Aisha Khan" to true, 
-                            "Bilal Ahmed" to true, 
-                            "Fatima Malik" to false, 
-                            "Hamza Ali" to true, 
-                            "Ira Naeem" to true, 
+                            "Aisha Khan" to true,
+                            "Bilal Ahmed" to true,
+                            "Fatima Malik" to false,
+                            "Hamza Ali" to true,
+                            "Ira Naeem" to true,
                             "Junaid Rashid" to false
                         ).sortedBy { !it.second }
                     }
-                    
+
                     namesToShow.forEach { (name, isPresent) ->
                         val initials = name.split(" ")
                             .filter { it.isNotBlank() }
                             .take(2)
                             .mapNotNull { it.firstOrNull()?.uppercaseChar() }
                             .joinToString("")
-                            
+
                         Box(
                             modifier = Modifier
                                 .size(28.dp)
@@ -283,7 +283,7 @@ fun SessionsSummaryCard(
                     fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(14.dp))
-                
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.offset(x = (-10).dp),

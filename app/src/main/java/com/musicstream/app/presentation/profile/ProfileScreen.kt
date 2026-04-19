@@ -1,5 +1,4 @@
 package com.musicstream.app.presentation.profile
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,11 +27,25 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.musicstream.app.ui.theme.*
 
+import com.musicstream.app.data.MockData
+
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    ProfileContent(
+        state = state,
+        onSignOut = { viewModel.signOut() }
+    )
+}
+
+@Composable
+fun ProfileContent(
+    state: ProfileUiState,
+    onSignOut: () -> Unit = {}
+) {
     val scrollState = rememberScrollState()
 
     Column(
@@ -222,7 +235,7 @@ fun ProfileScreen(
                 .clip(RoundedCornerShape(28.dp))
                 .border(1.dp, SignOutBorder, RoundedCornerShape(28.dp))
                 .background(Color.Transparent)
-                .clickable { viewModel.signOut() }
+                .clickable { onSignOut() }
                 .padding(vertical = 14.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -311,6 +324,19 @@ private fun SettingsItem(
             contentDescription = null,
             tint = TextTertiary,
             modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0A12)
+@Composable
+fun ProfileScreenPreview() {
+    MusicStreamTheme {
+        ProfileContent(
+            state = ProfileUiState(
+                user = MockData.currentUser,
+                isLoading = false
+            )
         )
     }
 }

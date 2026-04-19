@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -57,7 +58,7 @@ fun PlayerScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Top bar
             Row(
@@ -65,31 +66,48 @@ fun PlayerScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Filled.KeyboardArrowDown,
-                    contentDescription = "Back",
-                    tint = TextPrimary,
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clickable { onBackClick() }
-                )
+                Surface(
+                    modifier = Modifier.size(44.dp),
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.08f),
+                    onClick = { onBackClick() }
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.KeyboardArrowDown,
+                            contentDescription = "Back",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
                 Text(
-                    text = "Now Playing",
-                    color = TextPrimary,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
+                    text = "NOW PLAYING",
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 2.sp
                 )
-                Icon(
-                    imageVector = Icons.Filled.MoreVert,
-                    contentDescription = "More",
-                    tint = TextPrimary,
-                    modifier = Modifier.size(24.dp).clickable {
+                Surface(
+                    modifier = Modifier.size(44.dp),
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.08f),
+                    onClick = {
                         Toast.makeText(context, "More options coming soon!", Toast.LENGTH_SHORT).show()
                     }
-                )
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "More",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
             // Album Art
             state.currentSong?.let { song ->
@@ -100,47 +118,56 @@ fun PlayerScreen(
                     Gradients.songThumbGreen,
                     Gradients.trendingPurple
                 )
-                if (song.coverUrl.isNotEmpty()) {
-                    AsyncImage(
-                        model = song.coverUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(280.dp)
-                            .clip(RoundedCornerShape(28.dp))
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(280.dp)
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(thumbGradients[song.gradientIndex % thumbGradients.size]),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.MusicNote,
+                
+                Surface(
+                    modifier = Modifier
+                        .size(320.dp)
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(40.dp),
+                    shadowElevation = 24.dp,
+                    color = DarkCardSurface
+                ) {
+                    if (song.coverUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = song.coverUrl,
                             contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.4f),
-                            modifier = Modifier.size(100.dp)
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(thumbGradients[song.gradientIndex % thumbGradients.size]),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.MusicNote,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.4f),
+                                modifier = Modifier.size(100.dp)
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(36.dp))
+                Spacer(modifier = Modifier.height(48.dp))
 
                 // Song Info
                 Text(
                     text = song.title,
                     color = TextPrimary,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    textAlign = TextAlign.Center,
+                    letterSpacing = (-0.5).sp
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = song.artist,
-                    color = TextSecondary,
-                    fontSize = 15.sp,
+                    color = AccentPurple,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center
                 )
             }
@@ -185,64 +212,64 @@ fun PlayerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Shuffle
-                Icon(
-                    imageVector = Icons.Filled.Shuffle,
-                    contentDescription = "Shuffle",
-                    tint = if (state.isShuffleOn) AccentOrange else TextSecondary,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable { viewModel.toggleShuffle() }
-                )
-
-                // Previous
-                Icon(
-                    imageVector = Icons.Filled.SkipPrevious,
-                    contentDescription = "Previous",
-                    tint = TextPrimary,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clickable { viewModel.previousSong() }
-                )
-
-                // Play/Pause
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(AccentOrange)
-                        .clickable { viewModel.togglePlayPause() },
-                    contentAlignment = Alignment.Center
-                ) {
+                IconButton(onClick = { viewModel.toggleShuffle() }) {
                     Icon(
-                        imageVector = if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = if (state.isPlaying) "Pause" else "Play",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
+                        imageVector = Icons.Filled.Shuffle,
+                        contentDescription = "Shuffle",
+                        tint = if (state.isShuffleOn) AccentPurple else Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
+                // Previous
+                IconButton(onClick = { viewModel.previousSong() }) {
+                    Icon(
+                        imageVector = Icons.Filled.SkipPrevious,
+                        contentDescription = "Previous",
+                        tint = Color.White,
+                        modifier = Modifier.size(44.dp)
+                    )
+                }
+
+                // Play/Pause
+                Surface(
+                    modifier = Modifier.size(80.dp),
+                    shape = CircleShape,
+                    color = Color.White,
+                    onClick = { viewModel.togglePlayPause() }
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                            contentDescription = if (state.isPlaying) "Pause" else "Play",
+                            tint = Color.Black,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                }
+
                 // Next
-                Icon(
-                    imageVector = Icons.Filled.SkipNext,
-                    contentDescription = "Next",
-                    tint = TextPrimary,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clickable { viewModel.nextSong() }
-                )
+                IconButton(onClick = { viewModel.nextSong() }) {
+                    Icon(
+                        imageVector = Icons.Filled.SkipNext,
+                        contentDescription = "Next",
+                        tint = Color.White,
+                        modifier = Modifier.size(44.dp)
+                    )
+                }
 
                 // Repeat
-                Icon(
-                    imageVector = when (state.repeatMode) {
-                        RepeatMode.ONE -> Icons.Filled.RepeatOne
-                        else -> Icons.Filled.Repeat
-                    },
-                    contentDescription = "Repeat",
-                    tint = if (state.repeatMode != RepeatMode.OFF) AccentOrange else TextSecondary,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable { viewModel.toggleRepeat() }
-                )
+                IconButton(onClick = { viewModel.toggleRepeat() }) {
+                    Icon(
+                        imageVector = when (state.repeatMode) {
+                            RepeatMode.ONE -> Icons.Filled.RepeatOne
+                            else -> Icons.Filled.Repeat
+                        },
+                        contentDescription = "Repeat",
+                        tint = if (state.repeatMode != RepeatMode.OFF) AccentPurple else Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -319,4 +346,12 @@ private fun formatTime(ms: Long): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return "$minutes:${seconds.toString().padStart(2, '0')}"
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PlayerScreenPreview() {
+    MusicStreamTheme {
+        PlayerScreen(onBackClick = {})
+    }
 }

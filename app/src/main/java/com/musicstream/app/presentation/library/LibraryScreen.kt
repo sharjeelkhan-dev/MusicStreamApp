@@ -12,29 +12,22 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
+import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
 import com.musicstream.app.presentation.components.SongListItem
 import com.musicstream.app.ui.theme.*
 
@@ -45,9 +38,38 @@ fun LibraryScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
-    val context = LocalContext.current
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
+    var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
+    var selectedSongForOptions by remember { mutableStateOf<Song?>(null) }
+
+    if (selectedSongIdForPlaylist != null) {
+        PlaylistSelectionBottomSheet(
+            playlists = state.playlists,
+            onPlaylistSelected = { playlist: Playlist ->
+                viewModel.addSongToPlaylist(playlist.id, selectedSongIdForPlaylist!!)
+                selectedSongIdForPlaylist = null
+            },
+            onCreatePlaylistClick = {
+                showCreateDialog = true
+            },
+            onDismissRequest = {
+                selectedSongIdForPlaylist = null
+            }
+        )
+    }
+
+    if (selectedSongForOptions != null) {
+        com.musicstream.app.presentation.components.SongOptionsBottomSheet(
+            song = selectedSongForOptions!!,
+            onDismissRequest = { selectedSongForOptions = null },
+            onFavoriteClick = { viewModel.toggleFavorite(selectedSongForOptions!!.id) },
+            onAddToPlaylistClick = { selectedSongIdForPlaylist = selectedSongForOptions!!.id },
+            onDownloadClick = { /* TODO: Implement Download */ },
+            onShareClick = { /* TODO: Implement Share */ },
+            onGoToArtistClick = { /* TODO: Navigate to Artist */ }
+        )
+    }
 
     if (showCreateDialog) {
         AlertDialog(
@@ -102,40 +124,42 @@ fun LibraryScreen(
 
         // Title
         Text(
-            text = "Library",
+            text = "Your Library",
             color = TextPrimary,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 20.dp)
+            fontSize = 32.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = (-1).sp,
+            modifier = Modifier.padding(horizontal = 24.dp)
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Tab Chips
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             LibraryTab.entries.forEach { tab ->
                 val isSelected = state.selectedTab == tab
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(
-                            if (isSelected) AccentPurple
-                            else DarkCardSurface
-                        )
-                        .clickable { viewModel.selectTab(tab) }
-                        .padding(horizontal = 18.dp, vertical = 10.dp)
+                Surface(
+                    modifier = Modifier.height(44.dp),
+                    shape = RoundedCornerShape(22.dp),
+                    color = if (isSelected) AccentPurple else DarkCardSurface,
+                    onClick = { viewModel.selectTab(tab) }
                 ) {
-                    Text(
-                        text = tab.name,
-                        color = if (isSelected) TextPrimary else TextSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                    )
+                    Box(
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = tab.name,
+                            color = if (isSelected) Color.White else TextSecondary,
+                            fontSize = 14.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
                 }
             }
         }
@@ -158,9 +182,7 @@ fun LibraryScreen(
                     state.playlists.forEach { playlist ->
                         PlaylistListItem(
                             playlist = playlist,
-                            onClick = {
-                                Toast.makeText(context, "Playlist '${playlist.name}' clicked", Toast.LENGTH_SHORT).show()
-                            }
+                            onClick = { viewModel.togglePlaylist(playlist.id) }
                         )
                     }
                 }
@@ -173,7 +195,8 @@ fun LibraryScreen(
                             SongListItem(
                                 song = song,
                                 onSongClick = onSongClick,
-                                onFavoriteClick = { viewModel.toggleFavorite(it) }
+                                onFavoriteClick = { viewModel.toggleFavorite(it) },
+                                onMoreClick = { selectedSongForOptions = it }
                             )
                         }
                     }
@@ -187,7 +210,8 @@ fun LibraryScreen(
                             SongListItem(
                                 song = song,
                                 onSongClick = onSongClick,
-                                onFavoriteClick = { viewModel.toggleFavorite(it) }
+                                onFavoriteClick = { viewModel.toggleFavorite(it) },
+                                onMoreClick = { selectedSongForOptions = it }
                             )
                         }
                     }
@@ -236,7 +260,7 @@ private fun CreatePlaylistCard(onClick: () -> Unit) {
                 text = "Create Playlist",
                 color = TextPrimary,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold
             )
             Text(
                 text = "Add your favorite songs",
@@ -263,56 +287,67 @@ private fun PlaylistListItem(playlist: Playlist, onClick: () -> Unit) {
         Gradients.trendingPurple
     )
 
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(DarkCardSurface)
             .clickable { onClick() }
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(16.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(gradients[playlist.gradientIndex % gradients.size]),
-            contentAlignment = Alignment.Center
+        Row(
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Filled.MusicNote,
-                contentDescription = null,
-                tint = TextPrimary.copy(alpha = 0.7f),
-                modifier = Modifier.size(20.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(gradients[playlist.gradientIndex % gradients.size]),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.MusicNote,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.5f),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = playlist.name,
+                    color = TextPrimary,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Playlist • ${playlist.songCount} songs",
+                    color = Color(0xFF7B7BFF),
+                    fontSize = 13.sp
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Download,
+                    contentDescription = "Download",
+                    tint = TextTertiary.copy(alpha = 0.5f),
+                    modifier = Modifier.size(18.dp)
+                )
+                Icon(
+                    imageVector = Icons.Filled.ChevronRight,
+                    contentDescription = null,
+                    tint = TextTertiary.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
-        Spacer(modifier = Modifier.width(14.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = playlist.name,
-                color = TextPrimary,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = "${playlist.songCount} songs",
-                color = TextSecondary,
-                fontSize = 12.sp
-            )
-        }
-        Icon(
-            imageVector = Icons.Filled.Download,
-            contentDescription = "Download",
-            tint = TextTertiary,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Icon(
-            imageVector = Icons.Filled.ChevronRight,
-            contentDescription = null,
-            tint = TextTertiary,
-            modifier = Modifier.size(18.dp)
-        )
     }
 }
 
@@ -335,13 +370,23 @@ private fun EmptyState(title: String, subtitle: String) {
             text = title,
             color = TextPrimary,
             fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = subtitle,
             color = TextSecondary,
             fontSize = 13.sp
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0A12)
+@Composable
+fun LibraryScreenPreview() {
+    MusicStreamTheme {
+        LibraryScreen(
+            onSongClick = {}
         )
     }
 }

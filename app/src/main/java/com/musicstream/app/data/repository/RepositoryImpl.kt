@@ -6,6 +6,7 @@ import com.musicstream.app.data.local.dao.PlaylistDao
 import com.musicstream.app.data.local.dao.SongDao
 import com.musicstream.app.data.local.entity.FavoriteEntity
 import com.musicstream.app.data.local.entity.PlaylistEntity
+import com.musicstream.app.data.local.entity.PlaylistSongCrossRef
 import com.musicstream.app.data.local.entity.RecentlyPlayedEntity
 import com.musicstream.app.data.remote.api.MusicApi
 import com.musicstream.app.data.remote.dto.SaavnSongDto
@@ -98,8 +99,8 @@ class MusicRepositoryImpl @Inject constructor(
         allSongs.filter { favIds.contains(it.id) }.map { it.toDomain().copy(isFavorite = true) }
     }
 
-    override fun getDownloads(): Flow<List<Song>> = flow {
-        emit(emptyList())
+    override fun getDownloads(): Flow<List<Song>> = songDao.getAllSongs().map { songs ->
+        songs.filter { it.localPath != null }.map { it.toDomain() }
     }
 
     override fun getSongById(songId: String): Flow<Song?> = flow {
@@ -117,9 +118,24 @@ class MusicRepositoryImpl @Inject constructor(
 
     override suspend fun createPlaylist(name: String) {
         val id = UUID.randomUUID().toString()
+        val gradientIndex = (name.hashCode() and Integer.MAX_VALUE) % 5
         playlistDao.insertPlaylist(
-            PlaylistEntity(id = id, name = name, songCount = 0)
+            PlaylistEntity(id = id, name = name, songCount = 0, gradientIndex = gradientIndex)
         )
+    }
+
+    override suspend fun addSongToPlaylist(playlistId: String, songId: String) {
+        playlistDao.insertPlaylistSongCrossRef(
+            PlaylistSongCrossRef(playlistId = playlistId, songId = songId)
+        )
+        playlistDao.incrementSongCount(playlistId)
+    }
+
+    override suspend fun removeSongFromPlaylist(playlistId: String, songId: String) {
+        playlistDao.deletePlaylistSongCrossRef(
+            PlaylistSongCrossRef(playlistId = playlistId, songId = songId)
+        )
+        playlistDao.decrementSongCount(playlistId)
     }
 
     override suspend fun addToRecentlyPlayed(song: Song) {

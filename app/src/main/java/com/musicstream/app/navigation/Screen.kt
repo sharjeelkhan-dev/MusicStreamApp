@@ -8,4 +8,5 @@ sealed class Screen(val route: String) {
     data object Player : Screen("player")
     data object Login : Screen("login")
     data object Notifications : Screen("notifications")
+    data object RecentlyPlayed : Screen("recently_played")
 }

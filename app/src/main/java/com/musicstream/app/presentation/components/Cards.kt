@@ -1,5 +1,4 @@
 package com.musicstream.app.presentation.components
-
 import android.annotation.SuppressLint
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
@@ -10,7 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicstream.app.ui.theme.TextPrimary
 import com.musicstream.app.ui.theme.TextSecondary
+import androidx.compose.ui.tooling.preview.Preview
+import com.musicstream.app.ui.theme.MusicStreamTheme
+import com.musicstream.app.ui.theme.Gradients
 
 @Composable
 fun GradientCard(
@@ -116,9 +117,10 @@ fun TrendingCard(
         Box(
             modifier = Modifier
                 .size(160.dp)
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(32.dp))
                 .background(gradient)
-                .clickable { onClick() }
+                .clickable { onClick() },
+            contentAlignment = Alignment.Center
         ) {
             if (coverUrl.isNotEmpty()) {
                 AsyncImage(
@@ -127,63 +129,83 @@ fun TrendingCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                // Bottom gradient overlay for the image
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.4f)),
-                                startY = 300f
-                            )
-                        )
-                )
             } else {
                 Icon(
                     imageVector = Icons.Filled.MusicNote,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.3f),
-                    modifier = Modifier
-                        .size(64.dp)
-                        .align(Alignment.Center)
-                )
-            }
-            
-            // Play button overlay
-            Box(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.3f))
-                    .align(Alignment.BottomEnd),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
+                    tint = Color.White.copy(alpha = 0.5f),
+                    modifier = Modifier.size(64.dp)
                 )
             }
         }
-        Spacer(modifier = Modifier.height(10.dp))
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
         Text(
             text = title,
             color = TextPrimary,
-            fontSize = 15.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 2.dp)
+            overflow = TextOverflow.Ellipsis
         )
+        
         Text(
             text = artist,
             color = TextSecondary,
-            fontSize = 13.sp,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 2.dp)
+            overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0D0B1E)
+@Composable
+fun GradientCardPreview() {
+    MusicStreamTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            GradientCard(
+                gradient = Gradients.featured,
+                modifier = Modifier.size(200.dp, 100.dp)
+            ) {
+                Text(
+                    text = "Featured Card",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0D0B1E)
+@Composable
+fun PlaylistCardPreview() {
+    MusicStreamTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            PlaylistCard(
+                name = "Today's Top Hits",
+                songCount = 50,
+                gradient = Gradients.playlistBlue
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0D0B1E)
+@Composable
+fun TrendingCardPreview() {
+    MusicStreamTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            TrendingCard(
+                title = "Starboy",
+                artist = "The Weeknd",
+                gradient = Gradients.trendingPink
+            )
+        }
     }
 }

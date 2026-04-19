@@ -15,6 +15,7 @@ data class HomeUiState(
     val featuredSong: Song? = null,
     val trendingSongs: List<Song> = emptyList(),
     val recentlyPlayed: List<Song> = emptyList(),
+    val newSongs: List<Song> = emptyList(),
     val playlists: List<Playlist> = emptyList(),
     val isLoading: Boolean = true
 )
@@ -44,13 +45,17 @@ class HomeViewModel @Inject constructor(
             combine(
                 musicRepository.getFeaturedSong(),
                 musicRepository.getTrendingSongs(),
+                musicRepository.searchSongs("new releases").map { songs -> 
+                    songs.filter { !it.isExplicit } 
+                },
                 musicRepository.getRecentlyPlayed(),
                 musicRepository.getPlaylists()
-            ) { featured, trending, recent, playlists ->
+            ) { featured, trending, new, recent, playlists ->
                 HomeUiState(
                     greeting = greeting,
                     featuredSong = featured,
                     trendingSongs = trending,
+                    newSongs = new,
                     recentlyPlayed = recent,
                     playlists = playlists,
                     isLoading = false
@@ -64,6 +69,18 @@ class HomeViewModel @Inject constructor(
     fun toggleFavorite(songId: String) {
         viewModelScope.launch {
             musicRepository.toggleFavorite(songId)
+        }
+    }
+
+    fun addSongToPlaylist(playlistId: String, songId: String) {
+        viewModelScope.launch {
+            musicRepository.addSongToPlaylist(playlistId, songId)
+        }
+    }
+
+    fun createPlaylist(name: String) {
+        viewModelScope.launch {
+            musicRepository.createPlaylist(name)
         }
     }
 }

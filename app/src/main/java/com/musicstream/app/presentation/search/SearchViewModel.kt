@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musicstream.app.domain.model.Genre
+import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
 import com.musicstream.app.domain.repository.MusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +18,7 @@ data class SearchUiState(
     val genres: List<Genre> = emptyList(),
     val trendingSearches: List<String> = emptyList(),
     val searchResults: List<Song> = emptyList(),
+    val playlists: List<Playlist> = emptyList(),
     val isSearching: Boolean = false
 )
 
@@ -43,11 +45,18 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 musicRepository.getGenres(),
-                musicRepository.getTrendingSearches()
-            ) { genres, searches ->
-                Pair(genres, searches)
-            }.collect { (genres, searches) ->
-                _uiState.update { it.copy(genres = genres, trendingSearches = searches) }
+                musicRepository.getTrendingSearches(),
+                musicRepository.getPlaylists()
+            ) { genres, searches, playlists ->
+                Triple(genres, searches, playlists)
+            }.collect { (genres, searches, playlists) ->
+                _uiState.update { 
+                    it.copy(
+                        genres = genres, 
+                        trendingSearches = searches,
+                        playlists = playlists
+                    ) 
+                }
             }
         }
     }
@@ -84,6 +93,18 @@ class SearchViewModel @Inject constructor(
     fun toggleFavorite(songId: String) {
         viewModelScope.launch {
             musicRepository.toggleFavorite(songId)
+        }
+    }
+
+    fun addSongToPlaylist(playlistId: String, songId: String) {
+        viewModelScope.launch {
+            musicRepository.addSongToPlaylist(playlistId, songId)
+        }
+    }
+
+    fun createPlaylist(name: String) {
+        viewModelScope.launch {
+            musicRepository.createPlaylist(name)
         }
     }
 }

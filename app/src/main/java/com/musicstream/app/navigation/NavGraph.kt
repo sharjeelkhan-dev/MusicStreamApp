@@ -14,6 +14,7 @@ import com.musicstream.app.presentation.player.PlayerScreen
 import com.musicstream.app.presentation.player.PlayerViewModel
 
 import com.musicstream.app.presentation.notifications.NotificationScreen
+import com.musicstream.app.presentation.recently_played.RecentlyPlayedScreen
 
 @Composable
 fun NavGraph(
@@ -30,11 +31,18 @@ fun NavGraph(
         composable(Screen.Home.route) {
             HomeScreen(
                 onSongClick = onSongClick,
-                onNotificationClick = { navController.navigate(Screen.Notifications.route) }
+                onNotificationClick = { navController.navigate(Screen.Notifications.route) },
+                onRecentlyPlayedSeeAllClick = { navController.navigate(Screen.RecentlyPlayed.route) }
             )
         }
         composable(Screen.Notifications.route) {
             NotificationScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.RecentlyPlayed.route) {
+            RecentlyPlayedScreen(
+                onSongClick = onSongClick,
                 onBackClick = { navController.popBackStack() }
             )
         }

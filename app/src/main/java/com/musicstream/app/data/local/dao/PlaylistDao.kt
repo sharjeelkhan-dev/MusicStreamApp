@@ -19,6 +19,12 @@ interface PlaylistDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaylistSongCrossRef(crossRef: PlaylistSongCrossRef)
 
+    @Query("UPDATE playlists SET songCount = songCount + 1 WHERE id = :playlistId")
+    suspend fun incrementSongCount(playlistId: String)
+
+    @Query("UPDATE playlists SET songCount = CASE WHEN songCount > 0 THEN songCount - 1 ELSE 0 END WHERE id = :playlistId")
+    suspend fun decrementSongCount(playlistId: String)
+
     @Query("DELETE FROM playlists WHERE id = :id")
     suspend fun deletePlaylist(id: String)
 

@@ -10,6 +10,7 @@ data class Song(
     val streamUrl: String = "",
     val localPath: String? = null,
     val isFavorite: Boolean = false,
+    val isExplicit: Boolean = false,
     val playCount: Long = 0L,
     val gradientIndex: Int = 0 // for gradient thumb selection
 ) {

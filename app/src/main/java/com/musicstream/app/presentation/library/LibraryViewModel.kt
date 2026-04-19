@@ -60,9 +60,20 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
+    fun togglePlaylist(playlistId: String) {
+        // This could open a detail screen or do something else
+        // For now, let's just log it or update some state if needed
+    }
+
     fun toggleFavorite(songId: String) {
         viewModelScope.launch {
             musicRepository.toggleFavorite(songId)
+        }
+    }
+
+    fun addSongToPlaylist(playlistId: String, songId: String) {
+        viewModelScope.launch {
+            musicRepository.addSongToPlaylist(playlistId, songId)
         }
     }
 }

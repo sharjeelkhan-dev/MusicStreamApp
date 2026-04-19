@@ -19,6 +19,8 @@ interface MusicRepository {
     fun getSongById(songId: String): Flow<Song?>
     suspend fun toggleFavorite(songId: String)
     suspend fun createPlaylist(name: String)
+    suspend fun addSongToPlaylist(playlistId: String, songId: String)
+    suspend fun removeSongFromPlaylist(playlistId: String, songId: String)
     suspend fun addToRecentlyPlayed(song: Song)
 }
 

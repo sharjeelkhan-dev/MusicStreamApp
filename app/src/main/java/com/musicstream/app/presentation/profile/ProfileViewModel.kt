@@ -18,7 +18,8 @@ data class ProfileUiState(
     val plan: String = "Premium",
     val devices: String = "2 active",
     val equalizer: String = "Custom",
-    val privacy: String = "Friends only"
+    val privacy: String = "Friends only",
+    val isLoading: Boolean = false
 )
 
 @HiltViewModel

@@ -1,0 +1,23 @@
+package com.musicstream.app.domain.model
+
+data class Song(
+    val id: String,
+    val title: String,
+    val artist: String,
+    val album: String = "",
+    val duration: Long = 0L, // in milliseconds
+    val coverUrl: String = "",
+    val streamUrl: String = "",
+    val localPath: String? = null,
+    val isFavorite: Boolean = false,
+    val playCount: Long = 0L,
+    val gradientIndex: Int = 0 // for gradient thumb selection
+) {
+    val durationFormatted: String
+        get() {
+            val totalSeconds = duration / 1000
+            val minutes = totalSeconds / 60
+            val seconds = totalSeconds % 60
+            return "$minutes:${seconds.toString().padStart(2, '0')}"
+        }
+}

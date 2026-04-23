@@ -3,14 +3,15 @@ import android.annotation.SuppressLint
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,85 +23,105 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.musicstream.app.ui.theme.TextPrimary
-import com.musicstream.app.ui.theme.TextSecondary
 import androidx.compose.ui.tooling.preview.Preview
 import com.musicstream.app.ui.theme.MusicStreamTheme
 import com.musicstream.app.ui.theme.Gradients
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GradientCard(
     gradient: Brush,
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 16.dp,
     onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
     content: @Composable BoxScope.() -> Unit
 ) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(cornerRadius))
             .background(gradient)
-            .clickable { onClick() },
+            .combinedClickable(
+                onClick = { onClick() },
+                onLongClick = { onLongClick() }
+            ),
         content = content
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PlaylistCard(
     name: String,
     songCount: Int,
     gradient: Brush,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {}
 ) {
     Column(
-        modifier = modifier.width(150.dp),
+        modifier = modifier.width(155.dp),
         horizontalAlignment = Alignment.Start
     ) {
         Box(
             modifier = Modifier
-                .size(150.dp)
+                .aspectRatio(1f)
+                .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
                 .background(gradient)
-                .clickable { onClick() },
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick
+                ),
             contentAlignment = Alignment.Center
         ) {
             // Glassmorphism effect for the icon container
             Box(
                 modifier = Modifier
-                    .size(60.dp)
+                    .size(64.dp)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.2f))
-                    .padding(12.dp),
+                    .padding(14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Filled.MusicNote,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(30.dp)
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = name,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 4.dp)
         )
-        Text(
-            text = "$songCount songs",
-            color = TextSecondary,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
+        if (songCount >= 0) {
+            Text(
+                text = "$songCount songs",
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 4.dp).offset(y = (-6.5).dp)
+            )
+        } else {
+            // Case for "Liked Songs" or special playlists
+            Text(
+                text = "Personalized",
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 4.dp).offset(y = (-6.5).dp)
+            )
+        }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TrendingCard(
     title: String,
@@ -108,18 +129,25 @@ fun TrendingCard(
     gradient: Brush,
     coverUrl: String = "",
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
+    downloadProgress: Int? = null,
+    isDownloaded: Boolean = false
 ) {
     Column(
-        modifier = modifier.width(160.dp),
+        modifier = modifier.width(165.dp),
         horizontalAlignment = Alignment.Start
     ) {
         Box(
             modifier = Modifier
-                .size(160.dp)
-                .clip(RoundedCornerShape(32.dp))
+                .aspectRatio(1f)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(28.dp))
                 .background(gradient)
-                .clickable { onClick() },
+                .combinedClickable(
+                    onClick = { onClick() },
+                    onLongClick = { onLongClick() }
+                ),
             contentAlignment = Alignment.Center
         ) {
             if (coverUrl.isNotEmpty()) {
@@ -133,30 +161,72 @@ fun TrendingCard(
                 Icon(
                     imageVector = Icons.Filled.MusicNote,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.5f),
-                    modifier = Modifier.size(64.dp)
+                    tint = Color.White.copy(alpha = 0.4f),
+                    modifier = Modifier.size(56.dp)
                 )
+            }
+
+            if (downloadProgress != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        progress = { downloadProgress / 100f },
+                        modifier = Modifier.size(40.dp),
+                        color = Color.White,
+                        strokeWidth = 3.dp,
+                        trackColor = Color.White.copy(alpha = 0.2f)
+                    )
+                    Text(
+                        text = "$downloadProgress%",
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else if (isDownloaded) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.DownloadDone,
+                        contentDescription = "Downloaded",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         
         Text(
             text = title,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 2.dp)
         )
         
         Text(
             text = artist,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 2.dp).offset(y = (-6.5).dp)
         )
     }
 }

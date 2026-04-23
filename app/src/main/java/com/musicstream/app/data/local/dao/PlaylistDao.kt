@@ -28,6 +28,17 @@ interface PlaylistDao {
     @Query("DELETE FROM playlists WHERE id = :id")
     suspend fun deletePlaylist(id: String)
 
+    @Query("DELETE FROM playlists")
+    suspend fun deleteAllPlaylists()
+
     @Delete
     suspend fun deletePlaylistSongCrossRef(crossRef: PlaylistSongCrossRef)
+
+    @Transaction
+    @Query("""
+        SELECT s.* FROM songs s
+        INNER JOIN playlist_song_cross_ref ps ON s.id = ps.songId
+        WHERE ps.playlistId = :playlistId
+    """)
+    fun getSongsForPlaylist(playlistId: String): Flow<List<com.musicstream.app.data.local.entity.SongEntity>>
 }

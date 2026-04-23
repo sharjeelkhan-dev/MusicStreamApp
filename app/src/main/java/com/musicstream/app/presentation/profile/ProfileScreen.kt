@@ -9,8 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -37,21 +36,31 @@ fun ProfileScreen(
 
     ProfileContent(
         state = state,
-        onSignOut = { viewModel.signOut() }
+        onSignOut = { viewModel.signOut() },
+        onAudioQualityClick = { viewModel.updateAudioQuality() },
+        onThemeClick = { viewModel.updateTheme() },
+        onNotificationsClick = { viewModel.toggleNotifications() },
+        onLanguageClick = { viewModel.updateLanguage() },
+        onEqualizerClick = { viewModel.updateEqualizer() }
     )
 }
 
 @Composable
 fun ProfileContent(
     state: ProfileUiState,
-    onSignOut: () -> Unit = {}
+    onSignOut: () -> Unit = {},
+    onAudioQualityClick: () -> Unit = {},
+    onThemeClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
+    onLanguageClick: () -> Unit = {},
+    onEqualizerClick: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState)
     ) {
         // Gradient Banner
@@ -82,14 +91,14 @@ fun ProfileContent(
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(DarkCardSurface)
-                    .border(3.dp, DarkBackground, CircleShape),
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(3.dp, MaterialTheme.colorScheme.background, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Filled.Person,
                     contentDescription = "Avatar",
-                    tint = TextSecondary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(40.dp)
                 )
             }
@@ -100,14 +109,14 @@ fun ProfileContent(
                     .align(Alignment.TopEnd)
                     .offset(y = 48.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .border(1.dp, DarkElevated, RoundedCornerShape(20.dp))
-                    .background(DarkCardSurface)
+                    .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surface)
                     .clickable { }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = "Edit Profile",
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -124,7 +133,7 @@ fun ProfileContent(
             state.user?.let { user ->
                 Text(
                     text = user.name,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -132,7 +141,7 @@ fun ProfileContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = user.email,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         fontSize = 13.sp
                     )
                     Spacer(modifier = Modifier.width(10.dp))
@@ -166,7 +175,7 @@ fun ProfileContent(
         // SETTINGS label
         Text(
             text = "SETTINGS",
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.5.sp,
@@ -180,25 +189,29 @@ fun ProfileContent(
             icon = Icons.Filled.MusicNote,
             iconColor = AccentPurple,
             title = "Audio Quality",
-            value = state.audioQuality
+            value = state.audioQuality,
+            onClick = onAudioQualityClick
         )
         SettingsItem(
             icon = Icons.Filled.DarkMode,
             iconColor = AccentAmber,
             title = "Theme",
-            value = state.theme
+            value = state.theme,
+            onClick = onThemeClick
         )
         SettingsItem(
             icon = Icons.Filled.Notifications,
             iconColor = AccentOrange,
             title = "Notifications",
-            value = state.notifications
+            value = state.notifications,
+            onClick = onNotificationsClick
         )
         SettingsItem(
             icon = Icons.Filled.Language,
             iconColor = AccentGreen,
             title = "Language",
-            value = state.language
+            value = state.language,
+            onClick = onLanguageClick
         )
         SettingsItem(
             icon = Icons.Filled.Diamond,
@@ -214,9 +227,10 @@ fun ProfileContent(
         )
         SettingsItem(
             icon = Icons.Filled.Equalizer,
-            iconColor = TextSecondary,
+            iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = "Equalizer",
-            value = state.equalizer
+            value = state.equalizer,
+            onClick = onEqualizerClick
         )
         SettingsItem(
             icon = Icons.Filled.Lock,
@@ -233,7 +247,7 @@ fun ProfileContent(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .clip(RoundedCornerShape(28.dp))
-                .border(1.dp, SignOutBorder, RoundedCornerShape(28.dp))
+                .border(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f), RoundedCornerShape(28.dp))
                 .background(Color.Transparent)
                 .clickable { onSignOut() }
                 .padding(vertical = 14.dp),
@@ -241,13 +255,13 @@ fun ProfileContent(
         ) {
             Text(
                 text = "Sign Out",
-                color = SignOutRed,
+                color = MaterialTheme.colorScheme.error,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold
             )
         }
 
-        Spacer(modifier = Modifier.height(120.dp))
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
@@ -263,14 +277,14 @@ private fun StatItem(
     ) {
         Text(
             text = value,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onBackground,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             fontSize = 12.sp
         )
     }
@@ -308,21 +322,21 @@ private fun SettingsItem(
         Spacer(modifier = Modifier.width(14.dp))
         Text(
             text = title,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
         )
         Text(
             text = value,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 13.sp
         )
         Spacer(modifier = Modifier.width(4.dp))
         Icon(
             imageVector = Icons.Filled.ChevronRight,
             contentDescription = null,
-            tint = TextTertiary,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
             modifier = Modifier.size(18.dp)
         )
     }

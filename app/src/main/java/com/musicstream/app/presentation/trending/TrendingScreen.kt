@@ -1,4 +1,4 @@
-package com.musicstream.app.presentation.recently_played
+package com.musicstream.app.presentation.trending
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,21 +18,24 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.tooling.preview.Preview
 import com.musicstream.app.domain.model.Song
+import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.data.MockData
 import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
 import com.musicstream.app.presentation.components.SongListItem
 import com.musicstream.app.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecentlyPlayedScreen(
-    viewModel: RecentlyPlayedViewModel = hiltViewModel(),
+fun TrendingScreen(
+    viewModel: TrendingViewModel = hiltViewModel(),
     onSongClick: (Song) -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    RecentlyPlayedContent(
+    TrendingContent(
         state = state,
+        onRefresh = { viewModel.refresh() },
         onSongClick = onSongClick,
         onBackClick = onBackClick,
         onFavoriteClick = { viewModel.toggleFavorite(it) },
@@ -41,9 +45,11 @@ fun RecentlyPlayedScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecentlyPlayedContent(
-    state: RecentlyPlayedUiState,
+fun TrendingContent(
+    state: TrendingUiState,
+    onRefresh: () -> Unit,
     onSongClick: (Song) -> Unit = {},
     onBackClick: () -> Unit = {},
     onFavoriteClick: (String) -> Unit = {},
@@ -51,6 +57,7 @@ fun RecentlyPlayedContent(
     onCreatePlaylist: (String) -> Unit = {},
     onDownloadSong: (Song) -> Unit = {}
 ) {
+    val pullToRefreshState = rememberPullToRefreshState()
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
@@ -101,7 +108,7 @@ fun RecentlyPlayedContent(
     if (selectedSongIdForPlaylist != null) {
         PlaylistSelectionBottomSheet(
             playlists = state.playlists,
-            onPlaylistSelected = { playlist: com.musicstream.app.domain.model.Playlist ->
+            onPlaylistSelected = { playlist: Playlist ->
                 onAddSongToPlaylist(playlist.id, selectedSongIdForPlaylist!!)
                 selectedSongIdForPlaylist = null
             },
@@ -114,47 +121,64 @@ fun RecentlyPlayedContent(
         )
     }
 
-    Column(
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
+        state = pullToRefreshState,
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-    ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Text(
-                text = "Recently Played",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 8.dp)
+            .background(MaterialTheme.colorScheme.background),
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                state = pullToRefreshState,
+                isRefreshing = state.isRefreshing,
+                modifier = Modifier.align(Alignment.TopCenter),
+                containerColor = MaterialTheme.colorScheme.background,
+                color = AccentPurple
             )
         }
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 80.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
         ) {
-            items(state.songs) { song ->
-                SongListItem(
-                    song = song,
-                    onSongClick = onSongClick,
-                    onFavoriteClick = onFavoriteClick,
-                    onMoreClick = { selectedSongIdForPlaylist = it.id },
-                    downloadProgress = state.downloadingSongs[song.id]
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBackClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Text(
+                    text = "Trending Now",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 8.dp)
                 )
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 80.dp)
+            ) {
+                items(state.songs) { song ->
+                    SongListItem(
+                        song = song,
+                        onSongClick = onSongClick,
+                        onFavoriteClick = onFavoriteClick,
+                        onMoreClick = { selectedSongIdForPlaylist = it.id },
+                        downloadProgress = state.downloadingSongs[song.id]
+                    )
+                }
             }
         }
     }
@@ -162,13 +186,14 @@ fun RecentlyPlayedContent(
 
 @Preview(showBackground = true, backgroundColor = 0xFF0A0A12)
 @Composable
-fun RecentlyPlayedScreenPreview() {
+fun TrendingScreenPreview() {
     MusicStreamTheme {
-        RecentlyPlayedContent(
-            state = RecentlyPlayedUiState(
-                songs = MockData.recentlyPlayed,
+        TrendingContent(
+            state = TrendingUiState(
+                songs = MockData.trendingSongs,
                 playlists = MockData.playlists
             ),
+            onRefresh = {},
             onSongClick = {},
             onBackClick = {}
         )

@@ -11,12 +11,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import com.musicstream.app.navigation.NavGraph
 import com.musicstream.app.navigation.Screen
 import com.musicstream.app.presentation.components.BottomNavBar
 import com.musicstream.app.presentation.player.MiniPlayerBar
 import com.musicstream.app.presentation.player.PlayerViewModel
-import com.musicstream.app.ui.theme.DarkBackground
 
 @Composable
 fun MainApp(
@@ -34,62 +35,62 @@ fun MainApp(
         Screen.Profile.route
     )
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DarkBackground)
-    ) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        bottomBar = {
+            if (showBottomBar) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme
+                            .colorScheme
+                            .background
+                            .copy(alpha = 0.95f)) // Slight transparency
+                        .navigationBarsPadding()
+                ) {
+                    // Mini player
+                    AnimatedVisibility(
+                        visible = playerState.currentSong != null,
+                        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                    ) {
+                        MiniPlayerBar(
+                            song = playerState.currentSong,
+                            isPlaying = playerState.isPlaying,
+                            progress = playerState.progress,
+                            onPlayPauseClick = { playerViewModel.togglePlayPause() },
+                            onNextClick = { playerViewModel.nextSong() },
+                            onClick = { navController.navigate(Screen.Player.route) }
+                        )
+                    }
+
+                    // Bottom Navigation
+                    BottomNavBar(
+                        currentRoute = currentRoute,
+                        onNavigate = { route ->
+                            if (route != currentRoute) {
+                                navController.navigate(route) {
+                                    popUpTo(Screen.Home.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
         // Navigation host
         NavGraph(
             navController = navController,
             playerViewModel = playerViewModel,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(
-                    bottom = if (showBottomBar) {
-                        if (playerState.currentSong != null) 130.dp else 72.dp
-                    } else 0.dp
-                ),
+                .padding(bottom = if (showBottomBar) 0.dp else innerPadding.calculateBottomPadding()),
             onSongClick = { song ->
                 playerViewModel.playSong(song)
             }
         )
-
-        // Mini Player + Bottom Nav
-        if (showBottomBar) {
-            Column(
-                modifier = Modifier.align(Alignment.BottomCenter)
-            ) {
-                // Mini player
-                AnimatedVisibility(
-                    visible = playerState.currentSong != null,
-                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-                ) {
-                    MiniPlayerBar(
-                        song = playerState.currentSong,
-                        isPlaying = playerState.isPlaying,
-                        progress = playerState.progress,
-                        onPlayPauseClick = { playerViewModel.togglePlayPause() },
-                        onNextClick = { playerViewModel.nextSong() },
-                        onClick = { navController.navigate(Screen.Player.route) }
-                    )
-                }
-
-                // Bottom Navigation
-                BottomNavBar(
-                    currentRoute = currentRoute,
-                    onNavigate = { route ->
-                        if (route != currentRoute) {
-                            navController.navigate(route) {
-                                popUpTo(Screen.Home.route) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    }
-                )
-            }
-        }
     }
 }

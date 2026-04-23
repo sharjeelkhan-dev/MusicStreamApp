@@ -1,23 +1,22 @@
 package com.musicstream.app.presentation.components
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import com.musicstream.app.ui.theme.AccentPurple
 import com.musicstream.app.ui.theme.DarkCardSurface
-import com.musicstream.app.ui.theme.TextPrimary
-import com.musicstream.app.ui.theme.TextSecondary
 
 @Composable
 fun SectionHeader(
@@ -27,9 +26,9 @@ fun SectionHeader(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier
+        modifier = modifier.offset(y = (-23).dp)
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(start = 24.dp, end = 12.dp, top = 5.dp, bottom = 5.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -43,7 +42,7 @@ fun SectionHeader(
             }
             Text(
                 text = title,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.5).sp
@@ -55,7 +54,7 @@ fun SectionHeader(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
                     .clickable { onSeeAllClick() },
-                color = DarkCardSurface.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(
@@ -65,7 +64,7 @@ fun SectionHeader(
                 ) {
                     Text(
                         text = "See all",
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -77,6 +76,23 @@ fun SectionHeader(
                     )
                 }
             }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SectionHeaderPreview() {
+    com.musicstream.app.ui.theme.MusicStreamTheme {
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp)) {
+            SectionHeader(
+                title = "Trending",
+                emoji = "🔥",
+                onSeeAllClick = {}
+            )
         }
     }
 }

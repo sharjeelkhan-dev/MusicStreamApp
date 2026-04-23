@@ -1,25 +1,21 @@
 package com.musicstream.app.presentation.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.pulltorefresh.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.musicstream.app.data.MockData
@@ -29,48 +25,127 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.musicstream.app.presentation.components.*
 import com.musicstream.app.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onSongClick: (Song) -> Unit = {},
     onNotificationClick: () -> Unit = {},
-    onRecentlyPlayedSeeAllClick: () -> Unit = {}
+    onTrendingSeeAllClick: () -> Unit = {},
+    onRecentlyPlayedSeeAllClick: () -> Unit = {},
+    onYourCollectionsSeeAllClick: () -> Unit = {},
+    onGoToArtist: (String) -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
 
     HomeContent(
         state = state,
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.refresh() },
         onSongClick = onSongClick,
         onNotificationClick = onNotificationClick,
+        onTrendingSeeAllClick = onTrendingSeeAllClick,
         onRecentlyPlayedSeeAllClick = onRecentlyPlayedSeeAllClick,
+        onYourCollectionsSeeAllClick = onYourCollectionsSeeAllClick,
         onCreatePlaylist = { viewModel.createPlaylist(it) },
+        onDeletePlaylist = { viewModel.deletePlaylist(it) },
+        onDeleteAllPlaylists = { viewModel.deleteAllPlaylists() },
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
-        onToggleFavorite = { viewModel.toggleFavorite(it) }
+        onToggleFavorite = { viewModel.toggleFavorite(it) },
+        onDownloadSong = { viewModel.downloadSong(it) },
+        onGoToArtist = onGoToArtist
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeContent(
     state: HomeUiState,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
     onSongClick: (Song) -> Unit = {},
     onNotificationClick: () -> Unit = {},
+    onTrendingSeeAllClick: () -> Unit = {},
     onRecentlyPlayedSeeAllClick: () -> Unit = {},
+    onYourCollectionsSeeAllClick: () -> Unit = {},
     onCreatePlaylist: (String) -> Unit = {},
+    onDeletePlaylist: (String) -> Unit = {},
+    onDeleteAllPlaylists: () -> Unit = {},
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
-    onToggleFavorite: (String) -> Unit = {}
+    onToggleFavorite: (String) -> Unit = {},
+    onDownloadSong: (Song) -> Unit = {},
+    onGoToArtist: (String) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+    val pullToRefreshState = rememberPullToRefreshState()
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
     var selectedSongForOptions by remember { mutableStateOf<Song?>(null) }
+    var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
+    var showDeleteAllDialog by remember { mutableStateOf(false) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
+    
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    if (showDeleteAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllDialog = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            title = { Text("Delete All Playlists") },
+            text = { Text("Are you sure you want to delete all playlists? This cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteAllPlaylists()
+                        showDeleteAllDialog = false
+                    }
+                ) {
+                    Text("Delete All", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAllDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (playlistToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { playlistToDelete = null },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            title = { Text("Delete Playlist") },
+            text = { Text("Are you sure you want to delete '${playlistToDelete?.name}'?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeletePlaylist(playlistToDelete!!.id)
+                        playlistToDelete = null
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { playlistToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     if (showCreateDialog) {
         AlertDialog(
             onDismissRequest = { showCreateDialog = false },
-            containerColor = DarkCardSurface,
-            titleContentColor = TextPrimary,
-            textContentColor = TextSecondary,
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = { Text("New Playlist") },
             text = {
                 OutlinedTextField(
@@ -79,11 +154,8 @@ fun HomeContent(
                     label = { Text("Playlist Name") },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentPurple,
-                        cursorColor = AccentPurple,
-                        focusedLabelColor = AccentPurple,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
             },
@@ -97,12 +169,12 @@ fun HomeContent(
                         }
                     }
                 ) {
-                    Text("Create", color = AccentPurple)
+                    Text("Create")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCreateDialog = false }) {
-                    Text("Cancel", color = TextSecondary)
+                    Text("Cancel")
                 }
             }
         )
@@ -129,340 +201,183 @@ fun HomeContent(
             song = selectedSongForOptions!!,
             onDismissRequest = { selectedSongForOptions = null },
             onFavoriteClick = { onToggleFavorite(selectedSongForOptions!!.id) },
-            onAddToPlaylistClick = { selectedSongIdForPlaylist = selectedSongForOptions!!.id },
-            onDownloadClick = { /* TODO: Implement Download */ },
-            onShareClick = { /* TODO: Implement Share */ },
-            onGoToArtistClick = { /* TODO: Navigate to Artist */ }
+            onAddToPlaylistClick = { 
+                selectedSongIdForPlaylist = selectedSongForOptions!!.id
+                selectedSongForOptions = null
+            },
+            onDownloadClick = { 
+                selectedSongForOptions?.let { onDownloadSong(it) }
+            },
+            onShareClick = { 
+                val shareIntent = android.content.Intent().apply {
+                    action = android.content.Intent.ACTION_SEND
+                    putExtra(android.content.Intent.EXTRA_TEXT, "Listening to ${selectedSongForOptions?.title} by ${selectedSongForOptions?.artist} on MusicStream!")
+                    type = "text/plain"
+                }
+                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share song via"))
+            },
+            onGoToArtistClick = { 
+                selectedSongForOptions?.artist?.let { onGoToArtist(it) }
+                selectedSongForOptions = null
+            }
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DarkBackground)
-            .verticalScroll(scrollState)
-            .statusBarsPadding()
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        state = pullToRefreshState,
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                state = pullToRefreshState,
+                isRefreshing = isRefreshing,
+                modifier = Modifier.align(Alignment.TopCenter),
+                containerColor = MaterialTheme.colorScheme.background,
+                color = AccentPurple
+            )
+        }
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Greeting + Header
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .verticalScroll(scrollState)
         ) {
-            Column {
-                Text(
-                    text = state.greeting,
-                    color = TextSecondary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.5.sp
-                )
-                Text(
-                    text = "Discover",
-                    color = TextPrimary,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-1).sp
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    modifier = Modifier.size(44.dp),
-                    shape = CircleShape,
-                    color = DarkCardSurface,
-                    onClick = { onNotificationClick() }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Filled.Notifications,
-                            contentDescription = "Notifications",
-                            tint = TextPrimary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Surface(
-                    modifier = Modifier.size(44.dp),
-                    shape = CircleShape,
-                    color = AccentPurple
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Filled.Person,
-                            contentDescription = "Profile",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Featured Card
-        state.featuredSong?.let { featured ->
-            FeaturedCard(
-                song = featured,
-                onClick = { onSongClick(featured) }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Trending Section
-        SectionHeader(
-            title = "Trending",
-            emoji = "🔥",
-            onSeeAllClick = { }
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        TrendingRow(
-            songs = state.trendingSongs,
-            onSongClick = onSongClick,
-            onMoreClick = { selectedSongForOptions = it }
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Recently Played
-        SectionHeader(
-            title = "Recently Played",
-            emoji = "🕐",
-            onSeeAllClick = { onRecentlyPlayedSeeAllClick() }
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        state.recentlyPlayed.take(5).forEach { song ->
-            SongListItem(
-                song = song,
-                onSongClick = onSongClick,
-                onFavoriteClick = { onToggleFavorite(it) },
-                onMoreClick = { selectedSongForOptions = it }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Your Playlists
-        SectionHeader(
-            title = "Your Playlists",
-            emoji = "🎵",
-            onSeeAllClick = { }
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        PlaylistRow(playlists = state.playlists)
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // New Releases
-        SectionHeader(
-            title = "New Releases",
-            emoji = "✨",
-            onSeeAllClick = { }
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        NewSongsRow(
-            songs = state.newSongs,
-            onSongClick = onSongClick,
-            onMoreClick = { selectedSongForOptions = it }
-        )
-
-        // Bottom padding for nav bar
-        Spacer(modifier = Modifier.height(120.dp))
-    }
-}
-
-@Composable
-private fun FeaturedCard(
-    song: Song,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            //.offset(y = (-10).dp)
-            .padding(horizontal = 24.dp)
-            .height(200.dp),
-        shape = RoundedCornerShape(28.dp),
-        color = Color(0xFFFFC107), // Golden yellow base
-        onClick = onClick
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Gradient Background
-            Box(
+            // Greeting + Header
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFFFFD54F),
-                                Color(0xFFFFA000)
-                            )
-                        )
-                    )
-            )
-
-            // Decorative Circle
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .offset(x = 40.dp)
-                    .size(180.dp)
-                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
-                        text = "✦ FEATURED",
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                        text = state.greeting,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = song.title,
-                        color = Color.White,
+                        text = "Discover",
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
-                        lineHeight = 36.sp
-                    )
-                    Text(
-                        text = "${song.artist} • ${MockData.formatPlayCount(song.playCount)} plays",
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
+                        letterSpacing = (-0.5).sp
                     )
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.Black.copy(alpha = 0.2f),
-                    onClick = onClick
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        modifier = Modifier.size(44.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme
+                            .colorScheme
+                            .onBackground
+                            .copy(alpha = 0.05f),
+                        onClick = { onNotificationClick() }
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.PlayArrow,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Play Now",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Filled.Notifications,
+                                contentDescription = "Notifications",
+                                tint = Color(0xFFFFC107),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Surface(
+                        modifier = Modifier.size(44.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme
+                            .colorScheme
+                            .onBackground
+                            .copy(alpha = 0.05f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Filled.Person,
+                                contentDescription = "Profile",
+                                tint = Color(0xFFCE93D8),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun TrendingRow(
-    songs: List<Song>,
-    onSongClick: (Song) -> Unit,
-    onMoreClick: (Song) -> Unit = {}
-) {
-    val gradients = listOf(
-        Gradients.trendingPink,
-        Gradients.trendingPurple,
-        Gradients.trendingOrange,
-        Gradients.playlistBlue,
-        Gradients.playlistPink
-    )
+            Spacer(modifier = Modifier.height(12.dp))
 
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        items(songs) { song ->
-            TrendingCard(
-                title = song.title,
-                artist = song.artist,
-                gradient = gradients[songs.indexOf(song) % gradients.size],
-                coverUrl = song.coverUrl,
-                onClick = { onSongClick(song) }
+            state.featuredSong?.let { featured ->
+                FeaturedCard(
+                    song = featured,
+                    onClick = { onSongClick(featured) },
+                    onLongClick = { selectedSongForOptions = featured }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Trending Section
+            SectionHeader(
+                title = "Trending",
+                emoji = "🔥",
+                onSeeAllClick = { onTrendingSeeAllClick() }
             )
-        }
-    }
-}
-
-@Composable
-private fun PlaylistRow(
-    playlists: List<com.musicstream.app.domain.model.Playlist>
-) {
-    val gradients = listOf(
-        Gradients.playlistBlue,
-        Gradients.playlistPink,
-        Gradients.playlistGreen,
-        Gradients.trendingOrange,
-        Gradients.trendingPurple
-    )
-
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        items(playlists) { playlist ->
-            PlaylistCard(
-                name = playlist.name,
-                songCount = playlist.songCount,
-                gradient = gradients[playlists.indexOf(playlist) % gradients.size]
+            TrendingRow(
+                songs = state.trendingSongs,
+                onSongClick = onSongClick,
+                onLongClick = { song -> selectedSongForOptions = song },
+                downloadingSongs = state.downloadingSongs
             )
-        }
-    }
-}
 
-@Composable
-private fun NewSongsRow(
-    songs: List<Song>,
-    onSongClick: (Song) -> Unit,
-    onMoreClick: (Song) -> Unit = {}
-) {
-    val gradients = listOf(
-        Gradients.playlistGreen,
-        Gradients.playlistBlue,
-        Gradients.songThumbOrange,
-        Gradients.songThumbPink,
-        Gradients.trendingPurple
-    )
+            Spacer(modifier = Modifier.height(20.dp))
 
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        items(songs) { song ->
-            TrendingCard(
-                title = song.title,
-                artist = song.artist,
-                gradient = gradients[songs.indexOf(song) % gradients.size],
-                coverUrl = song.coverUrl,
-                onClick = { onSongClick(song) }
+            // Recently Played
+            SectionHeader(
+                title = "Recently Played",
+                emoji = "🕐",
+                onSeeAllClick = { onRecentlyPlayedSeeAllClick() }
             )
+            state.recentlyPlayed.take(5).forEach { song ->
+                SongListItem(
+                    song = song,
+                    modifier = Modifier.offset(y = (-10).dp),
+                    onSongClick = onSongClick,
+                    onFavoriteClick = { onToggleFavorite(it) },
+                    onDownloadClick = { onDownloadSong(it) },
+                    onMoreClick = { selectedSongForOptions = it },
+                    onLongClick = { 
+                        selectedSongIdForPlaylist = it.id
+                    },
+                    downloadProgress = state.downloadingSongs[song.id]
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Your Collections
+            SectionHeader(
+                title = "Your Collections",
+                emoji = "🎵",
+                onSeeAllClick = { onYourCollectionsSeeAllClick() }
+            )
+            PlaylistRow(
+                playlists = state.playlists,
+                onPlaylistClick = { /* Navigate to Playlist */ },
+                modifier = Modifier,
+                onPlaylistLongClick = { playlistToDelete = it }
+            )
+            
+            Spacer(modifier = Modifier.height(120.dp))
         }
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF0A0A12)
+@Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
     MusicStreamTheme {
@@ -472,10 +387,11 @@ fun HomeScreenPreview() {
                 featuredSong = MockData.featuredSong,
                 trendingSongs = MockData.trendingSongs,
                 recentlyPlayed = MockData.recentlyPlayed,
-                newSongs = MockData.trendingSongs,
-                playlists = MockData.playlists,
-                isLoading = false
-            )
+                playlists = MockData.playlists
+            ),
+            isRefreshing = false,
+            onRefresh = {},
+            onGoToArtist = {}
         )
     }
 }

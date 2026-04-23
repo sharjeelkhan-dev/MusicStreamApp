@@ -48,7 +48,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun MusicStreamTheme(
-    darkTheme: Boolean = true, // Default to dark matching UI
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme

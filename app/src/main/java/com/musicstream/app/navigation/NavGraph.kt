@@ -15,6 +15,8 @@ import com.musicstream.app.presentation.player.PlayerViewModel
 
 import com.musicstream.app.presentation.notifications.NotificationScreen
 import com.musicstream.app.presentation.recently_played.RecentlyPlayedScreen
+import com.musicstream.app.presentation.favorites.FavoritesScreen
+import com.musicstream.app.presentation.trending.TrendingScreen
 
 @Composable
 fun NavGraph(
@@ -32,7 +34,20 @@ fun NavGraph(
             HomeScreen(
                 onSongClick = onSongClick,
                 onNotificationClick = { navController.navigate(Screen.Notifications.route) },
-                onRecentlyPlayedSeeAllClick = { navController.navigate(Screen.RecentlyPlayed.route) }
+                onTrendingSeeAllClick = { navController.navigate(Screen.Trending.route) },
+                onRecentlyPlayedSeeAllClick = { navController.navigate(Screen.RecentlyPlayed.route) },
+                onYourCollectionsSeeAllClick = { 
+                    navController.navigate(Screen.Favorites.route)
+                },
+                onGoToArtist = { artistName ->
+                    navController.navigate(Screen.Search.route) // Reuse search for now
+                }
+            )
+        }
+        composable(Screen.Trending.route) {
+            TrendingScreen(
+                onSongClick = onSongClick,
+                onBackClick = { navController.popBackStack() }
             )
         }
         composable(Screen.Notifications.route) {
@@ -46,11 +61,27 @@ fun NavGraph(
                 onBackClick = { navController.popBackStack() }
             )
         }
+        composable(Screen.Favorites.route) {
+            FavoritesScreen(
+                onSongClick = onSongClick,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
         composable(Screen.Search.route) {
-            SearchScreen(onSongClick = onSongClick)
+            SearchScreen(
+                onSongClick = onSongClick,
+                onGoToArtist = { artistName ->
+                    navController.navigate(Screen.Search.route) // Reuse search for now
+                }
+            )
         }
         composable(Screen.Library.route) {
-            LibraryScreen(onSongClick = onSongClick)
+            LibraryScreen(
+                onSongClick = onSongClick,
+                onGoToArtist = { artistName ->
+                    navController.navigate(Screen.Search.route) // Reuse search for now
+                }
+            )
         }
         composable(Screen.Profile.route) {
             ProfileScreen()
@@ -58,7 +89,14 @@ fun NavGraph(
         composable(Screen.Player.route) {
             PlayerScreen(
                 viewModel = playerViewModel,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onGoToArtist = { artistName ->
+                    navController.navigate(Screen.Search.route) // Reuse search for now
+                },
+                onGoToAlbum = { albumId ->
+                    // For now, navigate to search with album name or a placeholder
+                    navController.navigate(Screen.Search.route)
+                }
             )
         }
     }

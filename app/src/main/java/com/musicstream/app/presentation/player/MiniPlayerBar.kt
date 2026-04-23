@@ -54,8 +54,9 @@ fun MiniPlayerBar(
             .padding(horizontal = 8.dp, vertical = 8.dp)
             .height(68.dp),
         shape = RoundedCornerShape(20.dp),
-        color = DarkElevated,
+        color = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp,
+        shadowElevation = 4.dp,
         onClick = onClick
     ) {
         Column {
@@ -69,7 +70,7 @@ fun MiniPlayerBar(
                 Surface(
                     modifier = Modifier.size(48.dp),
                     shape = RoundedCornerShape(12.dp),
-                    color = DarkCardSurface
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     if (song.coverUrl.isNotEmpty()) {
                         AsyncImage(
@@ -101,7 +102,7 @@ fun MiniPlayerBar(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = song.title,
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -109,7 +110,7 @@ fun MiniPlayerBar(
                     )
                     Text(
                         text = song.artist,
-                        color = AccentPurple,
+                        color = MaterialTheme.colorScheme.primary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
@@ -126,13 +127,13 @@ fun MiniPlayerBar(
                         Surface(
                             modifier = Modifier.size(40.dp),
                             shape = CircleShape,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.primary
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                     contentDescription = if (isPlaying) "Pause" else "Play",
-                                    tint = Color.Black,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -143,7 +144,7 @@ fun MiniPlayerBar(
                         Icon(
                             imageVector = Icons.Filled.SkipNext,
                             contentDescription = "Next",
-                            tint = TextPrimary,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(28.dp)
                         )
                     }

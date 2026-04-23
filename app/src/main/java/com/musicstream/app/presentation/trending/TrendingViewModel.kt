@@ -1,4 +1,4 @@
-package com.musicstream.app.presentation.recently_played
+package com.musicstream.app.presentation.trending
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,20 +11,21 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class RecentlyPlayedUiState(
+data class TrendingUiState(
     val songs: List<Song> = emptyList(),
     val playlists: List<Playlist> = emptyList(),
     val downloadingSongs: Map<String, Int> = emptyMap(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false
 )
 
 @HiltViewModel
-class RecentlyPlayedViewModel @Inject constructor(
+class TrendingViewModel @Inject constructor(
     private val musicRepository: MusicRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(RecentlyPlayedUiState())
-    val uiState: StateFlow<RecentlyPlayedUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(TrendingUiState())
+    val uiState: StateFlow<TrendingUiState> = _uiState.asStateFlow()
 
     init {
         loadData()
@@ -32,14 +33,27 @@ class RecentlyPlayedViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            musicRepository.getRecentlyPlayed().collect { songs ->
-                _uiState.update { it.copy(songs = songs, isLoading = false) }
+            combine(
+                musicRepository.getTrendingSongs(),
+                musicRepository.getPlaylists()
+            ) { trendingSongs, playlists ->
+                TrendingUiState(
+                    songs = trendingSongs,
+                    playlists = playlists,
+                    isLoading = false,
+                    isRefreshing = false
+                )
+            }.collect { state ->
+                _uiState.value = state
             }
         }
+    }
+
+    fun refresh() {
         viewModelScope.launch {
-            musicRepository.getPlaylists().collect { playlists ->
-                _uiState.update { it.copy(playlists = playlists) }
-            }
+            _uiState.update { it.copy(isRefreshing = true) }
+            // Repository should handle network refresh
+            loadData()
         }
     }
 

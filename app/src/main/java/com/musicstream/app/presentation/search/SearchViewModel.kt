@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.musicstream.app.domain.model.Genre
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
+import com.musicstream.app.domain.repository.DownloadProgress
 import com.musicstream.app.domain.repository.MusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
@@ -14,12 +15,15 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class SearchUiState(
+    val greeting: String = "",
     val query: String = "",
     val genres: List<Genre> = emptyList(),
     val trendingSearches: List<String> = emptyList(),
     val searchResults: List<Song> = emptyList(),
     val playlists: List<Playlist> = emptyList(),
-    val isSearching: Boolean = false
+    val downloadingSongs: Map<String, Int> = emptyMap(),
+    val isSearching: Boolean = false,
+    val isRefreshing: Boolean = false
 )
 
 @OptIn(FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -41,8 +45,25 @@ class SearchViewModel @Inject constructor(
         setupSearch()
     }
 
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
+            // Simulating a refresh by reloading data
+            loadData()
+            _uiState.update { it.copy(isRefreshing = false) }
+        }
+    }
+
     private fun loadData() {
         viewModelScope.launch {
+            // Set greeting based on time of day
+            val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            val greeting = when {
+                hour < 12 -> "Good Morning 👋"
+                hour < 17 -> "Good Afternoon ☀️"
+                else -> "Good Evening 🌙"
+            }
+
             combine(
                 musicRepository.getGenres(),
                 musicRepository.getTrendingSearches(),
@@ -52,6 +73,7 @@ class SearchViewModel @Inject constructor(
             }.collect { (genres, searches, playlists) ->
                 _uiState.update { 
                     it.copy(
+                        greeting = greeting,
                         genres = genres, 
                         trendingSearches = searches,
                         playlists = playlists
@@ -105,6 +127,25 @@ class SearchViewModel @Inject constructor(
     fun createPlaylist(name: String) {
         viewModelScope.launch {
             musicRepository.createPlaylist(name)
+        }
+    }
+
+    fun downloadSong(song: Song) {
+        viewModelScope.launch {
+            musicRepository.downloadSong(song).collect { progress ->
+                when (progress) {
+                    is DownloadProgress.Progress -> {
+                        _uiState.update { it.copy(
+                            downloadingSongs = it.downloadingSongs + (song.id to progress.percent)
+                        ) }
+                    }
+                    is DownloadProgress.Completed, is DownloadProgress.Failed -> {
+                        _uiState.update { it.copy(
+                            downloadingSongs = it.downloadingSongs - song.id
+                        ) }
+                    }
+                }
+            }
         }
     }
 }

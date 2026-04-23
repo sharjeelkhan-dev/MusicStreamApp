@@ -1,4 +1,4 @@
-package com.musicstream.app.presentation.recently_played
+package com.musicstream.app.presentation.favorites
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,22 +15,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.tooling.preview.Preview
 import com.musicstream.app.domain.model.Song
-import com.musicstream.app.data.MockData
 import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
 import com.musicstream.app.presentation.components.SongListItem
 import com.musicstream.app.ui.theme.*
 
 @Composable
-fun RecentlyPlayedScreen(
-    viewModel: RecentlyPlayedViewModel = hiltViewModel(),
+fun FavoritesScreen(
+    viewModel: FavoritesViewModel = hiltViewModel(),
     onSongClick: (Song) -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    RecentlyPlayedContent(
+    FavoritesContent(
         state = state,
         onSongClick = onSongClick,
         onBackClick = onBackClick,
@@ -42,8 +40,8 @@ fun RecentlyPlayedScreen(
 }
 
 @Composable
-fun RecentlyPlayedContent(
-    state: RecentlyPlayedUiState,
+fun FavoritesContent(
+    state: FavoritesUiState,
     onSongClick: (Song) -> Unit = {},
     onBackClick: () -> Unit = {},
     onFavoriteClick: (String) -> Unit = {},
@@ -101,7 +99,7 @@ fun RecentlyPlayedContent(
     if (selectedSongIdForPlaylist != null) {
         PlaylistSelectionBottomSheet(
             playlists = state.playlists,
-            onPlaylistSelected = { playlist: com.musicstream.app.domain.model.Playlist ->
+            onPlaylistSelected = { playlist ->
                 onAddSongToPlaylist(playlist.id, selectedSongIdForPlaylist!!)
                 selectedSongIdForPlaylist = null
             },
@@ -135,7 +133,7 @@ fun RecentlyPlayedContent(
                 )
             }
             Text(
-                text = "Recently Played",
+                text = "Liked Songs",
                 color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
@@ -143,34 +141,33 @@ fun RecentlyPlayedContent(
             )
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 80.dp)
-        ) {
-            items(state.songs) { song ->
-                SongListItem(
-                    song = song,
-                    onSongClick = onSongClick,
-                    onFavoriteClick = onFavoriteClick,
-                    onMoreClick = { selectedSongIdForPlaylist = it.id },
-                    downloadProgress = state.downloadingSongs[song.id]
+        if (state.songs.isEmpty() && !state.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No liked songs yet",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 16.sp
                 )
             }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 80.dp)
+            ) {
+                items(state.songs) { song ->
+                    SongListItem(
+                        song = song,
+                        onSongClick = onSongClick,
+                        onFavoriteClick = onFavoriteClick,
+                        onDownloadClick = onDownloadSong,
+                        onMoreClick = { selectedSongIdForPlaylist = it.id },
+                        downloadProgress = state.downloadingSongs[song.id]
+                    )
+                }
+            }
         }
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0A0A12)
-@Composable
-fun RecentlyPlayedScreenPreview() {
-    MusicStreamTheme {
-        RecentlyPlayedContent(
-            state = RecentlyPlayedUiState(
-                songs = MockData.recentlyPlayed,
-                playlists = MockData.playlists
-            ),
-            onSongClick = {},
-            onBackClick = {}
-        )
     }
 }

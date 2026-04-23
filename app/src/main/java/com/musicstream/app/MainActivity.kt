@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.musicstream.app.presentation.MainApp
@@ -19,7 +20,7 @@ class MainActivity : ComponentActivity() {
             MusicStreamTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = com.musicstream.app.ui.theme.DarkBackground
+                    color = MaterialTheme.colorScheme.background
                 ) {
                     MainApp()
                 }

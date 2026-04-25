@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,10 +38,12 @@ fun RecentlyPlayedScreen(
         onFavoriteClick = { viewModel.toggleFavorite(it) },
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
         onCreatePlaylist = { viewModel.createPlaylist(it) },
-        onDownloadSong = { viewModel.downloadSong(it) }
+        onDownloadSong = { viewModel.downloadSong(it) },
+        onRefresh = viewModel::refresh
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecentlyPlayedContent(
     state: RecentlyPlayedUiState,
@@ -49,7 +52,8 @@ fun RecentlyPlayedContent(
     onFavoriteClick: (String) -> Unit = {},
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
     onCreatePlaylist: (String) -> Unit = {},
-    onDownloadSong: (Song) -> Unit = {}
+    onDownloadSong: (Song) -> Unit = {},
+    onRefresh: () -> Unit = {}
 ) {
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -114,19 +118,24 @@ fun RecentlyPlayedContent(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
     ) {
-        // Header
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
         ) {
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -145,7 +154,7 @@ fun RecentlyPlayedContent(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 80.dp)
+            contentPadding = PaddingValues(bottom = 120.dp)
         ) {
             items(state.songs) { song ->
                 SongListItem(
@@ -158,6 +167,7 @@ fun RecentlyPlayedContent(
             }
         }
     }
+}
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0A0A12)

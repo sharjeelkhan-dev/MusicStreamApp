@@ -41,8 +41,8 @@ class HomeViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _isRefreshing.value = true
-            // In a real app, this would trigger a network fetch that updates the DB
-            // For now, we'll just reload the data which triggers the .onStart { ... } network logic in RepositoryImpl
+            // Add a small delay to show the refresh indicator
+            kotlinx.coroutines.delay(1500)
             loadData()
             _isRefreshing.value = false
         }

@@ -40,3 +40,16 @@ interface UserRepository {
     suspend fun updateUser(user: User)
     suspend fun signOut()
 }
+
+interface SettingsRepository {
+    fun getAudioQuality(): Flow<String>
+    suspend fun setAudioQuality(quality: String)
+    fun getTheme(): Flow<String>
+    suspend fun setTheme(theme: String)
+    fun getNotificationsEnabled(): Flow<Boolean>
+    suspend fun setNotificationsEnabled(enabled: Boolean)
+    fun getLanguage(): Flow<String>
+    suspend fun setLanguage(language: String)
+    fun getEqualizerPreset(): Flow<String>
+    suspend fun setEqualizerPreset(preset: String)
+}

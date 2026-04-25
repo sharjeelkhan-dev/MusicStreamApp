@@ -13,7 +13,9 @@ import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.pulltorefresh.*
+import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,46 +29,63 @@ import com.musicstream.app.domain.model.Notification
 import com.musicstream.app.domain.model.NotificationType
 import com.musicstream.app.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationScreen(
     onBackClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
+    var isRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            scope.launch {
+                isRefreshing = true
+                kotlinx.coroutines.delay(1500)
+                isRefreshing = false
+            }
+        },
+        modifier = Modifier.fillMaxSize()
             .background(DarkBackground)
-            .statusBarsPadding()
     ) {
-        // Header
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .statusBarsPadding()
         ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = TextPrimary
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBackClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = TextPrimary
+                    )
+                }
+                Text(
+                    text = "Notifications",
+                    color = TextPrimary,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 8.dp)
                 )
             }
-            Text(
-                text = "Notifications",
-                color = TextPrimary,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(MockData.notifications) { notification ->
-                NotificationItem(notification)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp,
+                    end = 16.dp, top = 16.dp, bottom = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(MockData.notifications) { notification ->
+                    NotificationItem(notification)
+                }
             }
         }
     }

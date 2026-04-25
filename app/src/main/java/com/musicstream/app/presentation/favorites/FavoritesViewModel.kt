@@ -14,6 +14,7 @@ data class FavoritesUiState(
     val songs: List<Song> = emptyList(),
     val playlists: List<Playlist> = emptyList(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val downloadingSongs: Map<String, Int> = emptyMap()
 )
 
@@ -47,15 +48,26 @@ class FavoritesViewModel @Inject constructor(
         }
     }
 
-    fun toggleFavorite(songId: String) {
+    fun refresh() {
         viewModelScope.launch {
-            repository.toggleFavorite(songId)
+            _uiState.update { it.copy(isRefreshing = true) }
+            // Add a small delay to show the refresh indicator
+            kotlinx.coroutines.delay(1500)
+            loadFavorites()
+            loadPlaylists()
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 
     fun addSongToPlaylist(playlistId: String, songId: String) {
         viewModelScope.launch {
             repository.addSongToPlaylist(playlistId, songId)
+        }
+    }
+
+    fun toggleFavorite(songId: String) {
+        viewModelScope.launch {
+            repository.toggleFavorite(songId)
         }
     }
 

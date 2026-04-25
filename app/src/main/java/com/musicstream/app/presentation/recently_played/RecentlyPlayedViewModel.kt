@@ -15,7 +15,8 @@ data class RecentlyPlayedUiState(
     val songs: List<Song> = emptyList(),
     val playlists: List<Playlist> = emptyList(),
     val downloadingSongs: Map<String, Int> = emptyMap(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false
 )
 
 @HiltViewModel
@@ -58,6 +59,16 @@ class RecentlyPlayedViewModel @Inject constructor(
     fun createPlaylist(name: String) {
         viewModelScope.launch {
             musicRepository.createPlaylist(name)
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
+            // Add a small delay to show the refresh indicator
+            kotlinx.coroutines.delay(1500)
+            loadData()
+            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 

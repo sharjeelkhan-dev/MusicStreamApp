@@ -2,8 +2,10 @@ package com.musicstream.app.di
 
 import com.musicstream.app.data.repository.MusicRepositoryImpl
 import com.musicstream.app.data.repository.UserRepositoryImpl
+import com.musicstream.app.data.repository.SettingsRepositoryImpl
 import com.musicstream.app.domain.repository.MusicRepository
 import com.musicstream.app.domain.repository.UserRepository
+import com.musicstream.app.domain.repository.SettingsRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,4 +23,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindUserRepository(impl: UserRepositoryImpl): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
 }

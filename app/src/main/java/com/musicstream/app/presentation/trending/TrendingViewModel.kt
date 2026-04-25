@@ -52,7 +52,8 @@ class TrendingViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            // Repository should handle network refresh
+            // Add a small delay to show the refresh indicator
+            kotlinx.coroutines.delay(1500)
             loadData()
         }
     }

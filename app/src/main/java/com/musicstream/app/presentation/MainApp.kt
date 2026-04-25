@@ -13,6 +13,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import com.musicstream.app.navigation.NavGraph
 import com.musicstream.app.navigation.Screen
 import com.musicstream.app.presentation.components.BottomNavBar
@@ -28,55 +29,60 @@ fun MainApp(
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Home.route
     val playerState by playerViewModel.uiState.collectAsStateWithLifecycle()
 
-    val showBottomBar = currentRoute in listOf(
+    val isMainScreen = currentRoute in listOf(
         Screen.Home.route,
         Screen.Search.route,
         Screen.Library.route,
         Screen.Profile.route
     )
+    val showMiniPlayer = playerState.currentSong != null && currentRoute != Screen.Player.route
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            if (showBottomBar) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme
-                            .colorScheme
-                            .background
-                            .copy(alpha = 0.95f)) // Slight transparency
-                        .navigationBarsPadding()
+            if (isMainScreen || showMiniPlayer) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.background.copy(alpha = 0.95f),
+                    shadowElevation = 8.dp
                 ) {
-                    // Mini player
-                    AnimatedVisibility(
-                        visible = playerState.currentSong != null,
-                        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .windowInsetsPadding(WindowInsets.navigationBars)
                     ) {
-                        MiniPlayerBar(
-                            song = playerState.currentSong,
-                            isPlaying = playerState.isPlaying,
-                            progress = playerState.progress,
-                            onPlayPauseClick = { playerViewModel.togglePlayPause() },
-                            onNextClick = { playerViewModel.nextSong() },
-                            onClick = { navController.navigate(Screen.Player.route) }
-                        )
-                    }
-
-                    // Bottom Navigation
-                    BottomNavBar(
-                        currentRoute = currentRoute,
-                        onNavigate = { route ->
-                            if (route != currentRoute) {
-                                navController.navigate(route) {
-                                    popUpTo(Screen.Home.route) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
+                        // Mini player
+                        AnimatedVisibility(
+                            visible = showMiniPlayer,
+                            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                        ) {
+                            MiniPlayerBar(
+                                song = playerState.currentSong,
+                                isPlaying = playerState.isPlaying,
+                                progress = playerState.progress,
+                                onPlayPauseClick = { playerViewModel.togglePlayPause() },
+                                onNextClick = { playerViewModel.nextSong() },
+                                onClick = { navController.navigate(Screen.Player.route) }
+                            )
                         }
-                    )
+
+                        // Bottom Navigation
+                        if (isMainScreen) {
+                            BottomNavBar(
+                                currentRoute = currentRoute,
+                                onNavigate = { route ->
+                                    if (route != currentRoute) {
+                                        navController.navigate(route) {
+                                            popUpTo(Screen.Home.route) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -87,7 +93,7 @@ fun MainApp(
             playerViewModel = playerViewModel,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = if (showBottomBar) 0.dp else innerPadding.calculateBottomPadding()),
+                .padding(bottom = innerPadding.calculateBottomPadding()),
             onSongClick = { song ->
                 playerViewModel.playSong(song)
             }

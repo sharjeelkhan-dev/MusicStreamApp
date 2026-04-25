@@ -28,7 +28,8 @@ fun SectionHeader(
     Row(
         modifier = modifier.offset(y = (-23).dp)
             .fillMaxWidth()
-            .padding(start = 24.dp, end = 12.dp, top = 5.dp, bottom = 5.dp),
+            .padding(start = 24.dp, end = 12.dp,
+                top = 5.dp, bottom = 5.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -58,7 +59,8 @@ fun SectionHeader(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp,
+                        vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {

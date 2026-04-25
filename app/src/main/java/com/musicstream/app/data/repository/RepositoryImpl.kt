@@ -17,6 +17,9 @@ import com.musicstream.app.domain.model.User
 import com.musicstream.app.domain.repository.DownloadProgress
 import com.musicstream.app.domain.repository.MusicRepository
 import com.musicstream.app.domain.repository.UserRepository
+import com.musicstream.app.domain.repository.SettingsRepository
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.util.UUID
@@ -31,6 +34,7 @@ class MusicRepositoryImpl @Inject constructor(
     private val favoriteDao: FavoriteDao,
     private val musicApi: MusicApi,
     private val okHttpClient: okhttp3.OkHttpClient,
+    private val settingsRepository: SettingsRepository,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : MusicRepository {
 
@@ -194,6 +198,21 @@ class MusicRepositoryImpl @Inject constructor(
     override suspend fun downloadSong(song: Song): Flow<DownloadProgress> = flow {
         try {
             emit(DownloadProgress.Progress(0))
+            
+            // Get user's preferred audio quality
+            val quality = settingsRepository.getAudioQuality().first()
+            val qualityBitrate = when (quality) {
+                "Low" -> "12kbps"
+                "Normal" -> "48kbps"
+                "High (320kbps)" -> "320kbps"
+                "Ultra (Hi-Fi)" -> "320kbps" // Saavn API usually maxes at 320kbps
+                else -> "320kbps"
+            }
+            
+            // Try to find the URL for the selected quality if available in the DTO or meta
+            // For now we use streamUrl which is already set to 320kbps in mapping if available
+            // In a real app we might need to re-fetch or use a different property
+
             val request = okhttp3.Request.Builder().url(song.streamUrl).build()
             val response = okHttpClient.newCall(request).execute()
             
@@ -295,7 +314,12 @@ class MusicRepositoryImpl @Inject constructor(
 }
 
 @Singleton
-class UserRepositoryImpl @Inject constructor() : UserRepository {
+class UserRepositoryImpl @Inject constructor(
+    private val songDao: SongDao,
+    private val playlistDao: PlaylistDao,
+    private val favoriteDao: FavoriteDao,
+    private val dataStore: DataStore<Preferences>
+) : UserRepository {
 
     private val _user = MutableStateFlow(MockData.currentUser)
 
@@ -306,5 +330,66 @@ class UserRepositoryImpl @Inject constructor() : UserRepository {
     }
 
     override suspend fun signOut() {
+        withContext(Dispatchers.IO) {
+            favoriteDao.deleteAllFavorites()
+            playlistDao.deleteAllPlaylists()
+            // We keep songs (downloads) but could clear them if needed
+            dataStore.edit { it.clear() }
+            _user.value = MockData.currentUser.copy(name = "Guest User", email = "")
+        }
+    }
+}
+
+@Singleton
+class SettingsRepositoryImpl @Inject constructor(
+    private val dataStore: DataStore<Preferences>
+) : SettingsRepository {
+
+    private object PreferencesKeys {
+        val AUDIO_QUALITY = stringPreferencesKey("audio_quality")
+        val THEME = stringPreferencesKey("theme")
+        val NOTIFICATIONS = booleanPreferencesKey("notifications")
+        val LANGUAGE = stringPreferencesKey("language")
+        val EQUALIZER = stringPreferencesKey("equalizer")
+    }
+
+    override fun getAudioQuality(): Flow<String> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.AUDIO_QUALITY] ?: "High (320kbps)"
+    }
+
+    override suspend fun setAudioQuality(quality: String) {
+        dataStore.edit { it[PreferencesKeys.AUDIO_QUALITY] = quality }
+    }
+
+    override fun getTheme(): Flow<String> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.THEME] ?: "System Default"
+    }
+
+    override suspend fun setTheme(theme: String) {
+        dataStore.edit { it[PreferencesKeys.THEME] = theme }
+    }
+
+    override fun getNotificationsEnabled(): Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.NOTIFICATIONS] ?: true
+    }
+
+    override suspend fun setNotificationsEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.NOTIFICATIONS] = enabled }
+    }
+
+    override fun getLanguage(): Flow<String> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.LANGUAGE] ?: "English"
+    }
+
+    override suspend fun setLanguage(language: String) {
+        dataStore.edit { it[PreferencesKeys.LANGUAGE] = language }
+    }
+
+    override fun getEqualizerPreset(): Flow<String> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.EQUALIZER] ?: "Custom"
+    }
+
+    override suspend fun setEqualizerPreset(preset: String) {
+        dataStore.edit { it[PreferencesKeys.EQUALIZER] = preset }
     }
 }

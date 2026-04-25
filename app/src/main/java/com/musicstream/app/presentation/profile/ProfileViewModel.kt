@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musicstream.app.domain.model.User
 import com.musicstream.app.domain.repository.UserRepository
+import com.musicstream.app.domain.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -12,23 +13,43 @@ import javax.inject.Inject
 data class ProfileUiState(
     val user: User? = null,
     val audioQuality: String = "High (320kbps)",
-    val theme: String = "Dark Mode",
+    val theme: String = "System Default",
     val notifications: String = "On",
     val language: String = "English",
-    val plan: String = "Premium",
-    val devices: String = "2 active",
     val equalizer: String = "Custom",
-    val privacy: String = "Friends only",
     val isLoading: Boolean = false
 )
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
-    val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<ProfileUiState> = combine(
+        _uiState,
+        settingsRepository.getAudioQuality(),
+        settingsRepository.getTheme(),
+        settingsRepository.getNotificationsEnabled(),
+        settingsRepository.getLanguage(),
+        settingsRepository.getEqualizerPreset()
+    ) { params: Array<Any> ->
+        val state = params[0] as ProfileUiState
+        val audio = params[1] as String
+        val theme = params[2] as String
+        val notifications = params[3] as Boolean
+        val language = params[4] as String
+        val equalizer = params[5] as String
+
+        state.copy(
+            audioQuality = audio,
+            theme = theme,
+            notifications = if (notifications) "On" else "Off",
+            language = language,
+            equalizer = equalizer
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfileUiState())
 
     init {
         viewModelScope.launch {
@@ -38,37 +59,35 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun updateAudioQuality() {
-        val qualities = listOf("Low", "Normal", "High (320kbps)", "Ultra (Hi-Fi)")
-        val currentIndex = qualities.indexOf(_uiState.value.audioQuality)
-        val nextIndex = (currentIndex + 1) % qualities.size
-        _uiState.update { it.copy(audioQuality = qualities[nextIndex]) }
+    fun setAudioQuality(quality: String) {
+        viewModelScope.launch {
+            settingsRepository.setAudioQuality(quality)
+        }
     }
 
-    fun updateTheme() {
-        val themes = listOf("Dark Mode", "Light Mode", "System Default")
-        val currentIndex = themes.indexOf(_uiState.value.theme)
-        val nextIndex = (currentIndex + 1) % themes.size
-        _uiState.update { it.copy(theme = themes[nextIndex]) }
+    fun setTheme(theme: String) {
+        viewModelScope.launch {
+            settingsRepository.setTheme(theme)
+        }
     }
 
     fun toggleNotifications() {
-        val status = if (_uiState.value.notifications == "On") "Off" else "On"
-        _uiState.update { it.copy(notifications = status) }
+        viewModelScope.launch {
+            val isEnabled = uiState.value.notifications == "On"
+            settingsRepository.setNotificationsEnabled(!isEnabled)
+        }
     }
 
-    fun updateLanguage() {
-        val languages = listOf("English", "Spanish", "French", "German", "Hindi")
-        val currentIndex = languages.indexOf(_uiState.value.language)
-        val nextIndex = (currentIndex + 1) % languages.size
-        _uiState.update { it.copy(language = languages[nextIndex]) }
+    fun setLanguage(language: String) {
+        viewModelScope.launch {
+            settingsRepository.setLanguage(language)
+        }
     }
 
-    fun updateEqualizer() {
-        val presets = listOf("Flat", "Bass Boost", "Electronic", "Rock", "Pop", "Custom")
-        val currentIndex = presets.indexOf(_uiState.value.equalizer)
-        val nextIndex = (currentIndex + 1) % presets.size
-        _uiState.update { it.copy(equalizer = presets[nextIndex]) }
+    fun setEqualizerPreset(preset: String) {
+        viewModelScope.launch {
+            settingsRepository.setEqualizerPreset(preset)
+        }
     }
 
     fun signOut() {

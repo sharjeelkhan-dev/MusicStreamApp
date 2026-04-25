@@ -68,8 +68,6 @@ fun SearchContent(
     onDownloadSong: (Song) -> Unit = {},
     onGoToArtist: (String) -> Unit = {}
 ) {
-    val scrollState = rememberScrollState()
-    val pullToRefreshState = rememberPullToRefreshState()
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
     var selectedSongForOptions by remember { mutableStateOf<Song?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -149,18 +147,9 @@ fun SearchContent(
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
         onRefresh = onRefresh,
-        state = pullToRefreshState,
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        indicator = {
-            PullToRefreshDefaults.Indicator(
-                state = pullToRefreshState,
-                isRefreshing = state.isRefreshing,
-                modifier = Modifier.align(Alignment.TopCenter),
-                containerColor = MaterialTheme.colorScheme.background,
-                color = AccentPurple
-            )
-        }
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -336,8 +325,6 @@ fun SearchContent(
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
-            
-            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }

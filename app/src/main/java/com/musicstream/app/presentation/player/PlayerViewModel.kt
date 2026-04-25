@@ -37,6 +37,7 @@ enum class RepeatMode { OFF, ONE, ALL }
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val musicRepository: MusicRepository,
+    private val settingsRepository: com.musicstream.app.domain.repository.SettingsRepository,
     private val exoPlayer: ExoPlayer
 ) : ViewModel() {
 
@@ -49,6 +50,7 @@ class PlayerViewModel @Inject constructor(
 
     init {
         loadPlaylists()
+        observeEqualizerSettings()
         exoPlayer.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _uiState.update { it.copy(isPlaying = isPlaying) }
@@ -112,11 +114,14 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun playSong(song: Song) {
-        // Prevent restarting the song if it's already playing
+        // If the same song is tapped, restart it from the beginning
         if (_uiState.value.currentSong?.id == song.id) {
-            if (!exoPlayer.isPlaying) {
-                exoPlayer.play()
+            exoPlayer.seekTo(0)
+            if (exoPlayer.playbackState == Player.STATE_ENDED) {
+                exoPlayer.prepare()
             }
+            exoPlayer.play()
+            _uiState.update { it.copy(isPlaying = true, currentPosition = 0) }
             return
         }
 
@@ -150,7 +155,7 @@ class PlayerViewModel @Inject constructor(
                     // Append instead of Prepend to avoid "up and down" jumping of items
                     currentQueue + latestSong
                 }
-                
+
                 val newIndex = if (existingIndex >= 0) {
                     existingIndex
                 } else {
@@ -201,11 +206,14 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun playSongById(songId: String) {
-        // Prevent restarting if same song
+        // If the same song is tapped, restart it from the beginning
         if (_uiState.value.currentSong?.id == songId) {
-            if (!exoPlayer.isPlaying) {
-                exoPlayer.play()
+            exoPlayer.seekTo(0)
+            if (exoPlayer.playbackState == Player.STATE_ENDED) {
+                exoPlayer.prepare()
             }
+            exoPlayer.play()
+            _uiState.update { it.copy(isPlaying = true, currentPosition = 0) }
             return
         }
         viewModelScope.launch {
@@ -226,6 +234,9 @@ class PlayerViewModel @Inject constructor(
         if (exoPlayer.isPlaying) {
             exoPlayer.pause()
         } else {
+            if (exoPlayer.playbackState == Player.STATE_ENDED) {
+                exoPlayer.seekTo(0)
+            }
             exoPlayer.play()
         }
     }
@@ -362,6 +373,54 @@ class PlayerViewModel @Inject constructor(
             }
             _uiState.update { it.copy(isSleepTimerActive = false, sleepTimerTimeLeft = 0) }
             exoPlayer.pause()
+        }
+    }
+
+    private fun observeEqualizerSettings() {
+        settingsRepository.getEqualizerPreset()
+            .onEach { preset ->
+                applyEqualizerPreset(preset)
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun applyEqualizerPreset(preset: String) {
+        val equalizer = android.media.audiofx.Equalizer(0, exoPlayer.audioSessionId)
+        if (!equalizer.enabled) equalizer.enabled = true
+        
+        // Very simplified mapping of presets to bands
+        // In a real app, you would define these values more carefully
+        val numBands = equalizer.numberOfBands
+        val (minLevel, maxLevel) = equalizer.bandLevelRange
+        val center = (minLevel + maxLevel) / 2
+        
+        when (preset) {
+            "Flat" -> {
+                for (i in 0 until numBands) equalizer.setBandLevel(i.toShort(), center.toShort())
+            }
+            "Bass Boost" -> {
+                if (numBands > 0) equalizer.setBandLevel(0, maxLevel.toShort())
+                if (numBands > 1) equalizer.setBandLevel(1, (center + (maxLevel - center) / 2).toShort())
+            }
+            "Rock" -> {
+                if (numBands >= 5) {
+                    equalizer.setBandLevel(0, (center + 300).toShort())
+                    equalizer.setBandLevel(1, (center + 100).toShort())
+                    equalizer.setBandLevel(2, (center - 200).toShort())
+                    equalizer.setBandLevel(3, (center + 200).toShort())
+                    equalizer.setBandLevel(4, (center + 400).toShort())
+                }
+            }
+            "Pop" -> {
+                if (numBands >= 5) {
+                    equalizer.setBandLevel(0, (center - 100).toShort())
+                    equalizer.setBandLevel(1, (center + 200).toShort())
+                    equalizer.setBandLevel(2, (center + 400).toShort())
+                    equalizer.setBandLevel(3, (center + 100).toShort())
+                    equalizer.setBandLevel(4, (center - 100).toShort())
+                }
+            }
+            // Add more mappings as needed
         }
     }
 

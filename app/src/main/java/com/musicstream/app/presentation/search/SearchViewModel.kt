@@ -48,7 +48,8 @@ class SearchViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            // Simulating a refresh by reloading data
+            // Add a small delay to show the refresh indicator
+            kotlinx.coroutines.delay(1500)
             loadData()
             _uiState.update { it.copy(isRefreshing = false) }
         }

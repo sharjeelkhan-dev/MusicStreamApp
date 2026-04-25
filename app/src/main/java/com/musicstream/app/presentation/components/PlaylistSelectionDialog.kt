@@ -2,6 +2,7 @@ package com.musicstream.app.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,11 +32,11 @@ fun PlaylistSelectionBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        containerColor = DarkCardSurface,
+        containerColor = MaterialTheme.colorScheme.surface,
         scrimColor = Color.Black.copy(alpha = 0.6f),
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         dragHandle = {
-            BottomSheetDefaults.DragHandle(color = TextSecondary.copy(alpha = 0.3f))
+            BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
         }
     ) {
         Column(
@@ -45,7 +46,7 @@ fun PlaylistSelectionBottomSheet(
         ) {
             Text(
                 text = "Add to Playlist",
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
@@ -66,19 +67,19 @@ fun PlaylistSelectionBottomSheet(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(AccentPurple.copy(alpha = 0.1f)),
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = null,
-                                tint = AccentPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(
                             text = "Create New Playlist",
-                            color = AccentPurple,
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -97,26 +98,26 @@ fun PlaylistSelectionBottomSheet(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(DarkBackground),
+                                .background(if (isSystemInDarkTheme()) DarkBackground else Color(0xFFF0F0F5)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.PlaylistPlay,
                                 contentDescription = null,
-                                tint = TextSecondary
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
                             Text(
                                 text = playlist.name,
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = "${playlist.songCount} songs",
-                                color = TextSecondary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 13.sp
                             )
                         }

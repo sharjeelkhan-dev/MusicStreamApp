@@ -17,6 +17,8 @@ import com.musicstream.app.presentation.notifications.NotificationScreen
 import com.musicstream.app.presentation.recently_played.RecentlyPlayedScreen
 import com.musicstream.app.presentation.favorites.FavoritesScreen
 import com.musicstream.app.presentation.trending.TrendingScreen
+import com.musicstream.app.presentation.auth.AuthScreen
+import com.musicstream.app.presentation.splash.SplashScreen
 
 @Composable
 fun NavGraph(
@@ -27,9 +29,18 @@ fun NavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route,
+        startDestination = Screen.Splash.route,
         modifier = modifier
     ) {
+        composable(Screen.Splash.route) {
+            SplashScreen(
+                onSplashFinished = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Screen.Home.route) {
             HomeScreen(
                 onSongClick = onSongClick,
@@ -85,6 +96,19 @@ fun NavGraph(
         }
         composable(Screen.Profile.route) {
             ProfileScreen()
+        }
+        composable(Screen.Login.route) {
+            AuthScreen(
+                onLoginClick = { email, password ->
+                    // Handle login
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                },
+                onSignUpClick = { name, email, password ->
+                    // Handle sign up
+                }
+            )
         }
         composable(Screen.Player.route) {
             PlayerScreen(

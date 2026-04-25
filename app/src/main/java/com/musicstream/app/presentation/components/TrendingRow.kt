@@ -19,7 +19,7 @@ fun TrendingRow(
     onSongClick: (Song) -> Unit,
     onLongClick: (Song) -> Unit = {},
     downloadingSongs: Map<String, Int> = emptyMap(),
-    modifier: Modifier = Modifier.offset(y = (-10).dp)
+    modifier: Modifier = Modifier.offset(y = (-15).dp)
 ) {
     val gradients = listOf(
         Gradients.trendingPink,

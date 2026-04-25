@@ -78,7 +78,6 @@ fun HomeContent(
     onGoToArtist: (String) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
-    val pullToRefreshState = rememberPullToRefreshState()
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
     var selectedSongForOptions by remember { mutableStateOf<Song?>(null) }
     var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
@@ -211,10 +210,16 @@ fun HomeContent(
             onShareClick = { 
                 val shareIntent = android.content.Intent().apply {
                     action = android.content.Intent.ACTION_SEND
-                    putExtra(android.content.Intent.EXTRA_TEXT, "Listening to ${selectedSongForOptions?.title} by ${selectedSongForOptions?.artist} on MusicStream!")
+                    putExtra(android.content.Intent.EXTRA_TEXT,
+                        "Listening to" +
+                                " ${selectedSongForOptions?.title} by " +
+                                "${selectedSongForOptions?.artist} on MusicStream!")
                     type = "text/plain"
                 }
-                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share song via"))
+                context.startActivity(android.content
+                    .Intent
+                    .createChooser(shareIntent,
+                        "Share song via"))
             },
             onGoToArtistClick = { 
                 selectedSongForOptions?.artist?.let { onGoToArtist(it) }
@@ -226,17 +231,9 @@ fun HomeContent(
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
-        state = pullToRefreshState,
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        indicator = {
-            PullToRefreshDefaults.Indicator(
-                state = pullToRefreshState,
-                isRefreshing = isRefreshing,
-                modifier = Modifier.align(Alignment.TopCenter),
-                containerColor = MaterialTheme.colorScheme.background,
-                color = AccentPurple
-            )
-        }
+        modifier = Modifier.fillMaxSize()
+            .background(MaterialTheme
+                .colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -339,14 +336,15 @@ fun HomeContent(
             // Recently Played
             SectionHeader(
                 title = "Recently Played",
+                modifier = Modifier.offset(y = (-10).dp),
                 emoji = "🕐",
                 onSeeAllClick = { onRecentlyPlayedSeeAllClick() }
             )
             state.recentlyPlayed.take(5).forEach { song ->
                 SongListItem(
                     song = song,
-                    modifier = Modifier.offset(y = (-10).dp),
                     onSongClick = onSongClick,
+                    modifier = Modifier.offset(y = (-25).dp),
                     onFavoriteClick = { onToggleFavorite(it) },
                     onDownloadClick = { onDownloadSong(it) },
                     onMoreClick = { selectedSongForOptions = it },
@@ -362,17 +360,17 @@ fun HomeContent(
             // Your Collections
             SectionHeader(
                 title = "Your Collections",
+                modifier = Modifier.offset(y = (-15).dp),
                 emoji = "🎵",
                 onSeeAllClick = { onYourCollectionsSeeAllClick() }
             )
             PlaylistRow(
                 playlists = state.playlists,
+                modifier = Modifier.offset(y = (-20).dp),
                 onPlaylistClick = { /* Navigate to Playlist */ },
-                modifier = Modifier,
                 onPlaylistLongClick = { playlistToDelete = it }
             )
-            
-            Spacer(modifier = Modifier.height(120.dp))
+
         }
     }
 }

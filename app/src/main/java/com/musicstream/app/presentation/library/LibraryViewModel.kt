@@ -23,7 +23,8 @@ data class LibraryUiState(
     val playlistSongs: List<Song> = emptyList(),
     val downloadingSongs: Map<String, Int> = emptyMap(),
     val downloadingSongsList: List<Song> = emptyList(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false
 )
 
 @HiltViewModel
@@ -39,8 +40,9 @@ class LibraryViewModel @Inject constructor(
     }
 
     private fun loadData() {
-        viewModelScope.launch {
-            musicRepository.getPlaylists().collect { playlists ->
+        // Collect Playlists with automatic updates
+        musicRepository.getPlaylists()
+            .onEach { playlists ->
                 _uiState.update { currentState ->
                     val updatedSelectedPlaylist = currentState.selectedPlaylist?.let { selected ->
                         playlists.find { it.id == selected.id }
@@ -52,26 +54,36 @@ class LibraryViewModel @Inject constructor(
                     )
                 }
             }
-        }
-        viewModelScope.launch {
-            musicRepository.getTrendingSongs().collect { songs ->
-                _uiState.update { it.copy(songs = songs) }
-            }
-        }
-        viewModelScope.launch {
-            musicRepository.getFavorites().collect { favorites ->
-                _uiState.update { it.copy(favorites = favorites) }
-            }
-        }
-        viewModelScope.launch {
-            musicRepository.getDownloads().collect { downloads ->
-                _uiState.update { it.copy(downloads = downloads) }
-            }
-        }
+            .launchIn(viewModelScope)
+
+        // Collect Trending Songs
+        musicRepository.getTrendingSongs()
+            .onEach { songs -> _uiState.update { it.copy(songs = songs) } }
+            .launchIn(viewModelScope)
+
+        // Collect Favorites
+        musicRepository.getFavorites()
+            .onEach { favorites -> _uiState.update { it.copy(favorites = favorites) } }
+            .launchIn(viewModelScope)
+
+        // Collect Downloads
+        musicRepository.getDownloads()
+            .onEach { downloads -> _uiState.update { it.copy(downloads = downloads) } }
+            .launchIn(viewModelScope)
     }
 
     fun selectTab(tab: LibraryTab) {
         _uiState.update { it.copy(selectedTab = tab, selectedPlaylist = null) }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
+            // Add a small delay to show the refresh indicator
+            kotlinx.coroutines.delay(1500)
+            loadData()
+            _uiState.update { it.copy(isRefreshing = false) }
+        }
     }
 
     fun selectPlaylist(playlist: Playlist?) {

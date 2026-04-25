@@ -5,6 +5,10 @@ import androidx.room.Room
 import com.musicstream.app.data.local.MusicDatabase
 import com.musicstream.app.data.local.dao.FavoriteDao
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStoreFile
 import com.musicstream.app.data.local.dao.PlaylistDao
 import com.musicstream.app.data.local.dao.SongDao
 import com.musicstream.app.data.remote.api.MusicApi
@@ -62,6 +66,14 @@ object AppModule {
 
     @Provides
     fun provideFavoriteDao(db: MusicDatabase): FavoriteDao = db.favoriteDao()
+
+    @Provides
+    @Singleton
+    fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
+        return PreferenceDataStoreFactory.create(
+            produceFile = { context.preferencesDataStoreFile("settings") }
+        )
+    }
 
     @Provides
     @Singleton

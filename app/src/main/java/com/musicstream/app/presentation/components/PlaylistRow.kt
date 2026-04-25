@@ -30,7 +30,7 @@ fun PlaylistRow(
     )
 
     LazyRow(
-        modifier = modifier.offset(y = (-25).dp),
+        modifier = modifier.offset(y = (-10).dp),
         contentPadding = PaddingValues(start = 24.dp, end = 48.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp)
     ) {

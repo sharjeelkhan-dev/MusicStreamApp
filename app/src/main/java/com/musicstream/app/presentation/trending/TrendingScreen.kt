@@ -57,7 +57,6 @@ fun TrendingContent(
     onCreatePlaylist: (String) -> Unit = {},
     onDownloadSong: (Song) -> Unit = {}
 ) {
-    val pullToRefreshState = rememberPullToRefreshState()
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
@@ -124,19 +123,9 @@ fun TrendingContent(
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
         onRefresh = onRefresh,
-        state = pullToRefreshState,
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        indicator = {
-            PullToRefreshDefaults.Indicator(
-                state = pullToRefreshState,
-                isRefreshing = state.isRefreshing,
-                modifier = Modifier.align(Alignment.TopCenter),
-                containerColor = MaterialTheme.colorScheme.background,
-                color = AccentPurple
-            )
-        }
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -168,7 +157,7 @@ fun TrendingContent(
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = 120.dp)
             ) {
                 items(state.songs) { song ->
                     SongListItem(

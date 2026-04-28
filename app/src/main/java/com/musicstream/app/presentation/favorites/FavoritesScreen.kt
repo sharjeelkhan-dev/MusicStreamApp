@@ -165,7 +165,7 @@ fun FavoritesContent(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 120.dp)
+                contentPadding = PaddingValues(bottom = 160.dp) // Space for bottom nav bleed
             ) {
                 items(state.songs) { song ->
                     SongListItem(

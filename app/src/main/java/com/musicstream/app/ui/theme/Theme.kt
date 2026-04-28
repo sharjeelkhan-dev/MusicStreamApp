@@ -57,8 +57,8 @@ fun MusicStreamTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = Color.Transparent.toArgb()
-            window.navigationBarColor = Color.Transparent.toArgb()
+            // We don't set status/nav bar colors here as enableEdgeToEdge() handles it,
+            // but we MUST control the icon appearance (light/dark icons).
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = !darkTheme
                 isAppearanceLightNavigationBars = !darkTheme

@@ -5,6 +5,7 @@ data class User(
     val name: String,
     val email: String,
     val avatarUrl: String = "",
+    val bannerUrl: String = "",
     val isPremium: Boolean = true,
     val songCount: Int = 247,
     val playlistCount: Int = 12,

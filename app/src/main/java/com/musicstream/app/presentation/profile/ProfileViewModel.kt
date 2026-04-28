@@ -26,49 +26,62 @@ class ProfileViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ProfileUiState())
+    // Ab humne _uiState ko khatam kar diya hai kyunki hum
+    // direct Repository flows ko combine kar rahe hain.
     val uiState: StateFlow<ProfileUiState> = combine(
-        _uiState,
+        userRepository.getCurrentUser(),
         settingsRepository.getAudioQuality(),
         settingsRepository.getTheme(),
         settingsRepository.getNotificationsEnabled(),
         settingsRepository.getLanguage(),
         settingsRepository.getEqualizerPreset()
-    ) { params: Array<Any> ->
-        val state = params[0] as ProfileUiState
-        val audio = params[1] as String
-        val theme = params[2] as String
-        val notifications = params[3] as Boolean
-        val language = params[4] as String
-        val equalizer = params[5] as String
+    ) { args: Array<Any?> -> // 6 flows ke liye Array use karein
+        val user = args[0] as User
+        val audio = args[1] as String
+        val theme = args[2] as String
+        val notifications = args[3] as Boolean
+        val language = args[4] as String
+        val equalizer = args[5] as String
 
-        state.copy(
+        ProfileUiState(
+            user = user,
             audioQuality = audio,
             theme = theme,
             notifications = if (notifications) "On" else "Off",
             language = language,
-            equalizer = equalizer
+            equalizer = equalizer,
+            isLoading = false
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ProfileUiState())
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ProfileUiState(isLoading = true)
+    )
 
-    init {
+    fun updateProfile(name: String, email: String, avatarUrl: String, bannerUrl: String) {
         viewModelScope.launch {
-            userRepository.getCurrentUser().collect { user ->
-                _uiState.update { it.copy(user = user) }
+            // uiState.value.user se current user ki ID aur baqi info mil jayegi
+            uiState.value.user?.let { currentUser ->
+                val updatedUser = currentUser.copy(
+                    name = name,
+                    email = email,
+                    avatarUrl = avatarUrl,
+                    bannerUrl = bannerUrl
+                )
+                // Ye repository method database (Room/DataStore) mein save karna chahiye
+                userRepository.updateUser(updatedUser)
             }
         }
     }
 
+    // --- Settings Update Functions ---
+
     fun setAudioQuality(quality: String) {
-        viewModelScope.launch {
-            settingsRepository.setAudioQuality(quality)
-        }
+        viewModelScope.launch { settingsRepository.setAudioQuality(quality) }
     }
 
     fun setTheme(theme: String) {
-        viewModelScope.launch {
-            settingsRepository.setTheme(theme)
-        }
+        viewModelScope.launch { settingsRepository.setTheme(theme) }
     }
 
     fun toggleNotifications() {
@@ -79,20 +92,14 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun setLanguage(language: String) {
-        viewModelScope.launch {
-            settingsRepository.setLanguage(language)
-        }
+        viewModelScope.launch { settingsRepository.setLanguage(language) }
     }
 
     fun setEqualizerPreset(preset: String) {
-        viewModelScope.launch {
-            settingsRepository.setEqualizerPreset(preset)
-        }
+        viewModelScope.launch { settingsRepository.setEqualizerPreset(preset) }
     }
 
     fun signOut() {
-        viewModelScope.launch {
-            userRepository.signOut()
-        }
+        viewModelScope.launch { userRepository.signOut() }
     }
 }

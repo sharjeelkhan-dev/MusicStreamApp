@@ -11,6 +11,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,13 +23,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.musicstream.app.presentation.MainViewModel
 import com.musicstream.app.ui.theme.MusicStreamTheme
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
-    onSplashFinished: () -> Unit
+    onSplashFinished: (Boolean) -> Unit
 ) {
+    val viewModel: MainViewModel = hiltViewModel()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+    
     val scale = remember { Animatable(0.5f) }
     val alpha = remember { Animatable(0f) }
 
@@ -41,7 +48,7 @@ fun SplashScreen(
             animationSpec = tween(durationMillis = 1000)
         )
         delay(1000) // Stay for a moment
-        onSplashFinished()
+        onSplashFinished(isLoggedIn == true)
     }
 
     Box(
@@ -61,6 +68,9 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .scale(scale.value)
                 .alpha(alpha.value)
         ) {

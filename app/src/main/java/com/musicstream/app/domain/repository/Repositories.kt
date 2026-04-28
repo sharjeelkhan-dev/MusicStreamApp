@@ -1,5 +1,4 @@
 package com.musicstream.app.domain.repository
-
 import com.musicstream.app.domain.model.Genre
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
@@ -37,6 +36,8 @@ sealed class DownloadProgress {
 
 interface UserRepository {
     fun getCurrentUser(): Flow<User>
+    fun isLoggedIn(): Flow<Boolean>
+    suspend fun isEmailRegistered(email: String): Boolean
     suspend fun updateUser(user: User)
     suspend fun signOut()
 }

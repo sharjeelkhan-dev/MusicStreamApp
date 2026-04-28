@@ -21,6 +21,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -28,19 +29,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicstream.app.ui.theme.MusicStreamTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun AuthScreen(
     onLoginClick: (String, String) -> Unit,
-    onSignUpClick: (String, String, String) -> Unit
+    onSignUpClick: (String, String, String) -> Unit,
+    isEmailRegistered: suspend (String) -> Boolean = { false }
 ) {
-    // Forcing theme based on system setting for the main screen
-    val isSystemDark = isSystemInDarkTheme()
-    
-    if (isSystemDark) {
-        AuthScreenDark(onLoginClick, onSignUpClick)
+    if (isSystemInDarkTheme()) {
+        AuthScreenDark(onLoginClick, onSignUpClick, isEmailRegistered)
     } else {
-        AuthScreenLight(onLoginClick, onSignUpClick)
+        AuthScreenLight(onLoginClick, onSignUpClick, isEmailRegistered)
     }
 }
 
@@ -48,13 +48,15 @@ fun AuthScreen(
 @Composable
 fun AuthScreenLight(
     onLoginClick: (String, String) -> Unit,
-    onSignUpClick: (String, String, String) -> Unit
+    onSignUpClick: (String, String, String) -> Unit,
+    isEmailRegistered: suspend (String) -> Boolean
 ) {
     var isLoginMode by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var message by remember { mutableStateOf<Pair<String, Boolean>?>(null) } // Text and isError
+    val scope = rememberCoroutineScope()
 
     val nameInteractionSource = remember { MutableInteractionSource() }
     val emailInteractionSource = remember { MutableInteractionSource() }
@@ -64,11 +66,11 @@ fun AuthScreenLight(
     val isEmailFocused by emailInteractionSource.collectIsFocusedAsState()
     val isPasswordFocused by passwordInteractionSource.collectIsFocusedAsState()
 
-    // Clear error message after 3 seconds
-    LaunchedEffect(errorMessage) {
-        if (errorMessage != null) {
+    // Clear message after 3 seconds
+    LaunchedEffect(message) {
+        if (message != null) {
             delay(3000)
-            errorMessage = null
+            message = null
         }
     }
 
@@ -85,9 +87,17 @@ fun AuthScreenLight(
         unfocusedPlaceholderColor = Color.Black.copy(alpha = 0.6f)
     )
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(Color.White)
+    ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -100,9 +110,10 @@ fun AuthScreenLight(
             if (!isLoginMode) {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
+                    textStyle = TextStyle(color = Color.Black),
                     label = { Text("Full Name", color = Color.Black) },
                     placeholder = if (!isNameFocused) { { Text("Enter your full name") } } else null,
-                    modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) errorMessage = null },
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) message = null },
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = Color.Black) },
                     shape = RoundedCornerShape(12.dp), singleLine = true, colors = fieldColors,
                     interactionSource = nameInteractionSource
@@ -112,21 +123,13 @@ fun AuthScreenLight(
 
             OutlinedTextField(
                 value = email,
-                // Jab aap type karenge, ye 'email' variable ko update karega aur UI refresh hogi
                 onValueChange = { email = it },
-                label = { Text("Email Address",
-                    color = Color.Black) },
-                placeholder = {
-                    // Placeholder handling simplified
-                    if (!isEmailFocused) {
-                        Text("Enter your email")
-                    }
-                },
+                textStyle = TextStyle(color = Color.Black),
+                label = { Text("Email Address", color = Color.Black) },
+                placeholder = if (!isEmailFocused) { { Text("Enter your email") } } else null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onFocusChanged {
-                        if (it.isFocused) errorMessage = null
-                    },
+                    .onFocusChanged { if (it.isFocused) message = null },
                 leadingIcon = { Icon(Icons.Default.Email, null, tint = Color.Black) },
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true,
@@ -138,18 +141,14 @@ fun AuthScreenLight(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password",
-                    color = Color.Black) },
-                placeholder = if (!isPasswordFocused)
-                { { Text("Password") } } else null,
+                textStyle = TextStyle(color = Color.Black),
+                label = { Text("Password", color = Color.Black) },
+                placeholder = if (!isPasswordFocused) { { Text("Password") } } else null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onFocusChanged
-                    { if (it.isFocused)
-                        errorMessage = null },
-                leadingIcon = { Icon(Icons
-                    .Default.Lock, null,
-                    tint = Color.Black) },
+                    .onFocusChanged { if (it.isFocused) message = null },
+                leadingIcon = { Icon(Icons.Default.Lock,
+                    null, tint = Color.Black) },
                 visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true,
@@ -171,10 +170,10 @@ fun AuthScreenLight(
                 }
             } else { Spacer(Modifier.height(24.dp)) }
 
-            errorMessage?.let {
+            message?.let { (text, isError) ->
                 Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
+                    text = text,
+                    color = if (isError) MaterialTheme.colorScheme.error else Color(0xFF4CAF50),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -183,10 +182,27 @@ fun AuthScreenLight(
             Button(
                 onClick = {
                     if (email.isBlank() || password.isBlank() || (!isLoginMode && name.isBlank())) {
-                        errorMessage = "Please enter your email and password"
+                        message = "Please enter your email and password" to true
                     } else {
-                        if (isLoginMode) onLoginClick(email, password)
-                        else onSignUpClick(name, email, password)
+                        scope.launch {
+                            val registered = isEmailRegistered(email)
+                            if (isLoginMode) {
+                                if (!registered) {
+                                    message = "Email not registered. Please Sign Up." to true
+                                } else {
+                                    onLoginClick(email, password)
+                                }
+                            } else {
+                                if (registered) {
+                                    message = "Email already registered. Please Login." to true
+                                } else {
+                                    onSignUpClick(name, email, password)
+                                    // Switch to log in mode after signup
+                                    isLoginMode = true
+                                    message = "Registration successful! Please Login." to false
+                                }
+                            }
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -221,9 +237,9 @@ fun AuthScreenLight(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.clickable { 
-                        isLoginMode = !isLoginMode 
-                        errorMessage = null
+                    modifier = Modifier.clickable {
+                        isLoginMode = !isLoginMode
+                        message = null
                     }
                 )
             }
@@ -235,13 +251,15 @@ fun AuthScreenLight(
 @Composable
 fun AuthScreenDark(
     onLoginClick: (String, String) -> Unit,
-    onSignUpClick: (String, String, String) -> Unit
+    onSignUpClick: (String, String, String) -> Unit,
+    isEmailRegistered: suspend (String) -> Boolean
 ) {
     var isLoginMode by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var message by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+    val scope = rememberCoroutineScope()
 
     val nameInteractionSource = remember { MutableInteractionSource() }
     val emailInteractionSource = remember { MutableInteractionSource() }
@@ -251,11 +269,11 @@ fun AuthScreenDark(
     val isEmailFocused by emailInteractionSource.collectIsFocusedAsState()
     val isPasswordFocused by passwordInteractionSource.collectIsFocusedAsState()
 
-    // Clear error message after 3 seconds
-    LaunchedEffect(errorMessage) {
-        if (errorMessage != null) {
+    // Clear message after 3 seconds
+    LaunchedEffect(message) {
+        if (message != null) {
             delay(3000)
-            errorMessage = null
+            message = null
         }
     }
 
@@ -272,9 +290,17 @@ fun AuthScreenDark(
         unfocusedPlaceholderColor = Color.White.copy(alpha = 0.6f)
     )
 
-    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)
+    ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -287,9 +313,10 @@ fun AuthScreenDark(
             if (!isLoginMode) {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
+                    textStyle = TextStyle(color = Color.White),
                     label = { Text("Full Name", color = Color.White) },
                     placeholder = if (!isNameFocused) { { Text("Enter your full name") } } else null,
-                    modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) errorMessage = null },
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) message = null },
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = Color.White) },
                     shape = RoundedCornerShape(12.dp), singleLine = true, colors = fieldColors,
                     interactionSource = nameInteractionSource
@@ -299,9 +326,10 @@ fun AuthScreenDark(
 
             OutlinedTextField(
                 value = email, onValueChange = { email = it },
+                textStyle = TextStyle(color = Color.White),
                 label = { Text("Email Address", color = Color.White) },
                 placeholder = if (!isEmailFocused) { { Text("Enter your email") } } else null,
-                modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) errorMessage = null },
+                modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) message = null },
                 leadingIcon = { Icon(Icons.Default.Email, null, tint = Color.White) },
                 shape = RoundedCornerShape(12.dp), singleLine = true, colors = fieldColors,
                 interactionSource = emailInteractionSource
@@ -310,9 +338,10 @@ fun AuthScreenDark(
 
             OutlinedTextField(
                 value = password, onValueChange = { password = it },
+                textStyle = TextStyle(color = Color.White),
                 label = { Text("Password", color = Color.White) },
                 placeholder = if (!isPasswordFocused) { { Text("Password") } } else null,
-                modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) errorMessage = null },
+                modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) message = null },
                 leadingIcon = { Icon(Icons.Default.Lock, null, tint = Color.White) },
                 visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(12.dp), singleLine = true, colors = fieldColors,
@@ -333,10 +362,10 @@ fun AuthScreenDark(
                 }
             } else { Spacer(Modifier.height(24.dp)) }
 
-            errorMessage?.let {
+            message?.let { (text, isError) ->
                 Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
+                    text = text,
+                    color = if (isError) MaterialTheme.colorScheme.error else Color(0xFF4CAF50),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -345,10 +374,29 @@ fun AuthScreenDark(
             Button(
                 onClick = {
                     if (email.isBlank() || password.isBlank() || (!isLoginMode && name.isBlank())) {
-                        errorMessage = "Please enter your email and password"
+                        message = "Please enter your email and password" to true
                     } else {
-                        if (isLoginMode) onLoginClick(email, password)
-                        else onSignUpClick(name, email, password)
+                        scope.launch {
+                            val registered = isEmailRegistered(email)
+                            if (isLoginMode) {
+                                if (!registered) {
+                                    message = "Email not registered. Please Sign Up." to true
+                                } else {
+                                    onLoginClick(email, password)
+                                }
+                            } else {
+                                if (registered) {
+                                    message = "Email already registered. " +
+                                            "Please Login." to true
+                                } else {
+                                    onSignUpClick(name, email, password)
+                                    // Switch to log in mode after signup
+                                    isLoginMode = true
+                                    message = "Registration successful! " +
+                                            "Please Login." to false
+                                }
+                            }
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -367,7 +415,7 @@ fun AuthScreenDark(
             OutlinedButton(onClick = {}, modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White))
             { Text("Continue with Google", color = Color.White) }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -383,9 +431,9 @@ fun AuthScreenDark(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.clickable { 
-                        isLoginMode = !isLoginMode 
-                        errorMessage = null
+                    modifier = Modifier.clickable {
+                        isLoginMode = !isLoginMode
+                        message = null
                     }
                 )
             }
@@ -399,7 +447,8 @@ fun AuthScreenDarkPreview() {
     MusicStreamTheme(darkTheme = true) {
         AuthScreenDark(
             onLoginClick = { _, _ -> },
-            onSignUpClick = { _, _, _ -> }
+            onSignUpClick = { _, _, _ -> },
+            isEmailRegistered = { false }
         )
     }
 }
@@ -410,7 +459,8 @@ fun AuthScreenLightPreview() {
     MusicStreamTheme(darkTheme = false) {
         AuthScreenLight(
             onLoginClick = { _, _ -> },
-            onSignUpClick = { _, _, _ -> }
+            onSignUpClick = { _, _, _ -> },
+            isEmailRegistered = { false }
         )
     }
 }

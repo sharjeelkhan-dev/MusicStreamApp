@@ -1,7 +1,9 @@
 package com.musicstream.app.navigation
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -13,6 +15,8 @@ import com.musicstream.app.presentation.profile.ProfileScreen
 import com.musicstream.app.presentation.player.PlayerScreen
 import com.musicstream.app.presentation.player.PlayerViewModel
 
+import com.musicstream.app.domain.model.User
+import com.musicstream.app.presentation.MainViewModel
 import com.musicstream.app.presentation.notifications.NotificationScreen
 import com.musicstream.app.presentation.recently_played.RecentlyPlayedScreen
 import com.musicstream.app.presentation.favorites.FavoritesScreen
@@ -24,7 +28,9 @@ import com.musicstream.app.presentation.splash.SplashScreen
 fun NavGraph(
     navController: NavHostController,
     playerViewModel: PlayerViewModel,
+    mainViewModel: MainViewModel,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     onSongClick: (Song) -> Unit = {}
 ) {
     NavHost(
@@ -34,8 +40,9 @@ fun NavGraph(
     ) {
         composable(Screen.Splash.route) {
             SplashScreen(
-                onSplashFinished = {
-                    navController.navigate(Screen.Login.route) {
+                onSplashFinished = { isLoggedIn ->
+                    val destination = if (isLoggedIn) Screen.Home.route else Screen.Login.route
+                    navController.navigate(destination) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
@@ -100,13 +107,19 @@ fun NavGraph(
         composable(Screen.Login.route) {
             AuthScreen(
                 onLoginClick = { email, password ->
-                    // Handle login
+                    // Save user info and handle login
+                    mainViewModel.updateUser(User(id = java.util.UUID.randomUUID().toString(), name = email.substringBefore("@"), email = email))
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
                 onSignUpClick = { name, email, password ->
-                    // Handle sign up
+                    // Just save user info but DO NOT navigate to Home.
+                    // The AuthScreen will handle switching to Login mode.
+                    mainViewModel.updateUser(User(id = java.util.UUID.randomUUID().toString(), name = name, email = email))
+                },
+                isEmailRegistered = { email ->
+                    mainViewModel.isEmailRegistered(email)
                 }
             )
         }

@@ -1,14 +1,20 @@
 package com.musicstream.app.presentation.player
 
+import android.content.ComponentName
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.MoreExecutors
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
 import com.musicstream.app.domain.repository.MusicRepository
+import com.musicstream.app.service.MusicPlaybackService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -37,8 +43,7 @@ enum class RepeatMode { OFF, ONE, ALL }
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val musicRepository: MusicRepository,
-    private val settingsRepository: com.musicstream.app.domain.repository.SettingsRepository,
-    private val exoPlayer: ExoPlayer
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -47,11 +52,26 @@ class PlayerViewModel @Inject constructor(
     private var progressJob: Job? = null
     private var playJob: Job? = null
     private var sleepTimerJob: Job? = null
+    
+    private var mediaController: MediaController? = null
 
     init {
+        val sessionToken = SessionToken(context, ComponentName(context, MusicPlaybackService::class.java))
+        val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+        controllerFuture.addListener({
+            try {
+                mediaController = controllerFuture.get()
+                setupPlayerListener()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }, MoreExecutors.directExecutor())
+        
         loadPlaylists()
-        observeEqualizerSettings()
-        exoPlayer.addListener(object : Player.Listener {
+    }
+
+    private fun setupPlayerListener() {
+        mediaController?.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _uiState.update { it.copy(isPlaying = isPlaying) }
                 if (isPlaying) {
@@ -70,10 +90,9 @@ class PlayerViewModel @Inject constructor(
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 val currentSong = _uiState.value.currentSong
                 if (currentSong != null) {
-                    val currentUri = exoPlayer.currentMediaItem?.localConfiguration?.uri
+                    val currentUri = mediaController?.currentMediaItem?.localConfiguration?.uri
                     val wasPlayingLocal = currentUri?.scheme == "file"
                     
-                    // If local file failed to play, try falling back to online stream
                     if (wasPlayingLocal && currentSong.streamUrl.isNotEmpty()) {
                         playWithUri(currentSong, currentSong.streamUrl)
                     } else {
@@ -87,59 +106,50 @@ class PlayerViewModel @Inject constructor(
     private fun startProgressTracker() {
         progressJob?.cancel()
         progressJob = viewModelScope.launch {
-            while (true) {
-                val currentPos = exoPlayer.currentPosition
-                val exoDuration = exoPlayer.duration
+            while (mediaController?.isPlaying == true) {
+                val currentPos = mediaController?.currentPosition ?: 0L
+                val exoDuration = mediaController?.duration ?: 0L
                 
-                // C.TIME_UNSET check to prevent early "completion"
                 val effectiveDuration = if (exoDuration > 0) {
                     exoDuration 
                 } else if (_uiState.value.duration > 0) {
                     _uiState.value.duration
                 } else {
-                    1L // Fallback
+                    1L
                 }
 
                 _uiState.update {
                     it.copy(
                         currentPosition = currentPos,
                         progress = (currentPos.toFloat() / effectiveDuration).coerceIn(0f, 1f),
-                        // Update total duration if ExoPlayer finally reports it
                         duration = if (exoDuration > 0) exoDuration else it.duration
                     )
                 }
-                delay(200) // Slightly more stable delay
+                delay(200)
             }
         }
     }
 
     fun playSong(song: Song) {
-        // If the same song is tapped, restart it from the beginning
         if (_uiState.value.currentSong?.id == song.id) {
-            exoPlayer.seekTo(0)
-            if (exoPlayer.playbackState == Player.STATE_ENDED) {
-                exoPlayer.prepare()
+            mediaController?.seekTo(0)
+            if (mediaController?.playbackState == Player.STATE_ENDED) {
+                mediaController?.prepare()
             }
-            exoPlayer.play()
+            mediaController?.play()
             _uiState.update { it.copy(isPlaying = true, currentPosition = 0) }
             return
         }
 
         playJob?.cancel()
         playJob = viewModelScope.launch {
-            // Ensure we have the latest metadata (especially localPath) from the database
             val latestSong = musicRepository.getSongById(song.id).firstOrNull()?.copy(
-                isFavorite = song.isFavorite // Preserve favorite status from UI
+                isFavorite = song.isFavorite
             ) ?: song
 
-            // Check if local file exists before trying to play it
             val localFileExists = !latestSong.localPath.isNullOrEmpty() && java.io.File(latestSong.localPath!!).exists()
             
-            // Debug log to check file path and existence
-            println("Offline Playback: songId=${latestSong.id}, path=${latestSong.localPath}, exists=$localFileExists")
-
             val mediaUri = if (localFileExists) {
-                // Use Uri.fromFile to ensure correct file scheme and character escaping
                 android.net.Uri.fromFile(java.io.File(latestSong.localPath!!)).toString()
             } else {
                 latestSong.streamUrl
@@ -148,11 +158,11 @@ class PlayerViewModel @Inject constructor(
             val currentQueue = _uiState.value.queue
             val existingIndex = currentQueue.indexOfFirst { it.id == latestSong.id }
             
+            var indexToPlay = 0
             _uiState.update { state ->
                 val newQueue = if (existingIndex >= 0) {
                     currentQueue
                 } else {
-                    // Append instead of Prepend to avoid "up and down" jumping of items
                     currentQueue + latestSong
                 }
 
@@ -161,8 +171,8 @@ class PlayerViewModel @Inject constructor(
                 } else {
                     newQueue.size - 1
                 }
+                indexToPlay = newIndex
 
-                // Keep originalQueue in sync for when shuffle is turned off
                 if (!state.isShuffleOn) {
                     originalQueue = newQueue
                 } else if (existingIndex == -1) {
@@ -181,12 +191,44 @@ class PlayerViewModel @Inject constructor(
             musicRepository.addToRecentlyPlayed(latestSong)
             
             if (mediaUri.isNotEmpty()) {
-                playWithUri(latestSong, mediaUri)
+                val mediaItems = _uiState.value.queue.map { qSong ->
+                    val mMetadata = androidx.media3.common.MediaMetadata.Builder()
+                        .setTitle(qSong.title)
+                        .setArtist(qSong.artist)
+                        .setDisplayTitle(qSong.title)
+                        .setArtworkUri(android.net.Uri.parse(qSong.coverUrl))
+                        .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
+                        .setIsBrowsable(false)
+                        .setIsPlayable(true)
+                        .build()
+                    
+                    val qUri = if (!qSong.localPath.isNullOrEmpty() && java.io.File(qSong.localPath!!).exists()) {
+                        android.net.Uri.fromFile(java.io.File(qSong.localPath!!)).toString()
+                    } else {
+                        qSong.streamUrl
+                    }
+
+                    MediaItem.Builder()
+                        .setUri(qUri)
+                        .setMediaId(qSong.id)
+                        .setMimeType(if (qUri.startsWith("file")) "audio/mpeg" else null)
+                        .setMediaMetadata(mMetadata)
+                        .build()
+                }
+                
+                mediaController?.let { controller ->
+                    controller.setMediaItems(mediaItems)
+                    controller.seekTo(indexToPlay, 0L)
+                    controller.prepare()
+                    controller.play()
+                }
             }
         }
     }
 
     private fun playWithUri(song: Song, uri: String) {
+        // This is now redundant if we use the queue logic above, 
+        // but keeping it for simple cases if needed
         val metadata = androidx.media3.common.MediaMetadata.Builder()
             .setTitle(song.title)
             .setArtist(song.artist)
@@ -200,19 +242,18 @@ class PlayerViewModel @Inject constructor(
             .setMediaMetadata(metadata)
             .build()
         
-        exoPlayer.setMediaItem(mediaItem)
-        exoPlayer.prepare()
-        exoPlayer.play()
+        mediaController?.setMediaItem(mediaItem)
+        mediaController?.prepare()
+        mediaController?.play()
     }
 
     fun playSongById(songId: String) {
-        // If the same song is tapped, restart it from the beginning
         if (_uiState.value.currentSong?.id == songId) {
-            exoPlayer.seekTo(0)
-            if (exoPlayer.playbackState == Player.STATE_ENDED) {
-                exoPlayer.prepare()
+            mediaController?.seekTo(0)
+            if (mediaController?.playbackState == Player.STATE_ENDED) {
+                mediaController?.prepare()
             }
-            exoPlayer.play()
+            mediaController?.play()
             _uiState.update { it.copy(isPlaying = true, currentPosition = 0) }
             return
         }
@@ -231,20 +272,20 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun togglePlayPause() {
-        if (exoPlayer.isPlaying) {
-            exoPlayer.pause()
+        if (mediaController?.isPlaying == true) {
+            mediaController?.pause()
         } else {
-            if (exoPlayer.playbackState == Player.STATE_ENDED) {
-                exoPlayer.seekTo(0)
+            if (mediaController?.playbackState == Player.STATE_ENDED) {
+                mediaController?.seekTo(0)
             }
-            exoPlayer.play()
+            mediaController?.play()
         }
     }
 
     fun seekTo(progress: Float) {
-        val duration = exoPlayer.duration.coerceAtLeast(1L)
+        val duration = mediaController?.duration?.coerceAtLeast(1L) ?: 1L
         val newPos = (progress * duration).toLong()
-        exoPlayer.seekTo(newPos)
+        mediaController?.seekTo(newPos)
         _uiState.update {
             it.copy(
                 progress = progress,
@@ -271,11 +312,15 @@ class PlayerViewModel @Inject constructor(
 
     private var originalQueue: List<Song> = emptyList()
 
+    fun pauseSong() {
+        // Agar aap MediaController use kar rahe hain toh:
+        mediaController?.pause()
+    }
+
     fun toggleShuffle() {
         _uiState.update { state ->
             val newShuffleState = !state.isShuffleOn
             if (newShuffleState) {
-                // Save original order before shuffling
                 originalQueue = state.queue
                 
                 val currentSong = state.currentSong
@@ -292,7 +337,6 @@ class PlayerViewModel @Inject constructor(
                     currentIndex = 0
                 )
             } else {
-                // Restore original order
                 val currentSong = state.currentSong
                 val restoreIndex = originalQueue.indexOfFirst { it.id == currentSong?.id }
                 state.copy(
@@ -307,15 +351,15 @@ class PlayerViewModel @Inject constructor(
     fun toggleRepeat() {
         val nextMode = when (_uiState.value.repeatMode) {
             RepeatMode.OFF -> {
-                exoPlayer.repeatMode = Player.REPEAT_MODE_ALL
+                mediaController?.repeatMode = Player.REPEAT_MODE_ALL
                 RepeatMode.ALL
             }
             RepeatMode.ALL -> {
-                exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
+                mediaController?.repeatMode = Player.REPEAT_MODE_ONE
                 RepeatMode.ONE
             }
             RepeatMode.ONE -> {
-                exoPlayer.repeatMode = Player.REPEAT_MODE_OFF
+                mediaController?.repeatMode = Player.REPEAT_MODE_OFF
                 RepeatMode.OFF
             }
         }
@@ -323,7 +367,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun setPlaybackSpeed(speed: Float) {
-        exoPlayer.setPlaybackSpeed(speed)
+        mediaController?.setPlaybackSpeed(speed)
         _uiState.update { it.copy(playbackSpeed = speed) }
     }
 
@@ -372,55 +416,7 @@ class PlayerViewModel @Inject constructor(
                 _uiState.update { it.copy(sleepTimerTimeLeft = timeLeft) }
             }
             _uiState.update { it.copy(isSleepTimerActive = false, sleepTimerTimeLeft = 0) }
-            exoPlayer.pause()
-        }
-    }
-
-    private fun observeEqualizerSettings() {
-        settingsRepository.getEqualizerPreset()
-            .onEach { preset ->
-                applyEqualizerPreset(preset)
-            }
-            .launchIn(viewModelScope)
-    }
-
-    private fun applyEqualizerPreset(preset: String) {
-        val equalizer = android.media.audiofx.Equalizer(0, exoPlayer.audioSessionId)
-        if (!equalizer.enabled) equalizer.enabled = true
-        
-        // Very simplified mapping of presets to bands
-        // In a real app, you would define these values more carefully
-        val numBands = equalizer.numberOfBands
-        val (minLevel, maxLevel) = equalizer.bandLevelRange
-        val center = (minLevel + maxLevel) / 2
-        
-        when (preset) {
-            "Flat" -> {
-                for (i in 0 until numBands) equalizer.setBandLevel(i.toShort(), center.toShort())
-            }
-            "Bass Boost" -> {
-                if (numBands > 0) equalizer.setBandLevel(0, maxLevel.toShort())
-                if (numBands > 1) equalizer.setBandLevel(1, (center + (maxLevel - center) / 2).toShort())
-            }
-            "Rock" -> {
-                if (numBands >= 5) {
-                    equalizer.setBandLevel(0, (center + 300).toShort())
-                    equalizer.setBandLevel(1, (center + 100).toShort())
-                    equalizer.setBandLevel(2, (center - 200).toShort())
-                    equalizer.setBandLevel(3, (center + 200).toShort())
-                    equalizer.setBandLevel(4, (center + 400).toShort())
-                }
-            }
-            "Pop" -> {
-                if (numBands >= 5) {
-                    equalizer.setBandLevel(0, (center - 100).toShort())
-                    equalizer.setBandLevel(1, (center + 200).toShort())
-                    equalizer.setBandLevel(2, (center + 400).toShort())
-                    equalizer.setBandLevel(3, (center + 100).toShort())
-                    equalizer.setBandLevel(4, (center - 100).toShort())
-                }
-            }
-            // Add more mappings as needed
+            mediaController?.pause()
         }
     }
 
@@ -429,6 +425,6 @@ class PlayerViewModel @Inject constructor(
         progressJob?.cancel()
         playJob?.cancel()
         sleepTimerJob?.cancel()
-        // Do not release exoPlayer here, as it's a singleton used by the Service
+        mediaController?.release()
     }
 }

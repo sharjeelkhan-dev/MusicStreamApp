@@ -518,6 +518,10 @@ fun LibraryContent(
                     }
                 }
             }
+            
+            // Bottom spacer for edge-to-edge
+            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+            Spacer(Modifier.height(140.dp))
         }
     }
 

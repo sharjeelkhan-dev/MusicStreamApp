@@ -52,11 +52,13 @@ fun BottomNavBar(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        color = MaterialTheme.colorScheme.surface, // Solid color for compatibility
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         shadowElevation = 16.dp
     ) {
-        Column {
+        Column(
+            modifier = Modifier.navigationBarsPadding() // Padding inside the background
+        ) {
             // Top indicator line
             HorizontalDivider(
                 modifier = Modifier

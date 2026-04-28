@@ -154,7 +154,7 @@ fun RecentlyPlayedContent(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 120.dp)
+            contentPadding = PaddingValues(bottom = 160.dp) // More padding for bottom bars
         ) {
             items(state.songs) { song ->
                 SongListItem(

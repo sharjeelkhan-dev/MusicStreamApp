@@ -1,4 +1,6 @@
 package com.musicstream.app.presentation.profile
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,8 +26,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.musicstream.app.ui.theme.*
 
 import com.musicstream.app.data.MockData
@@ -39,6 +43,7 @@ fun ProfileScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showEqualizerDialog by remember { mutableStateOf(false) }
+    var showEditProfileDialog by remember { mutableStateOf(false) }
 
     ProfileContent(
         state = state,
@@ -47,8 +52,20 @@ fun ProfileScreen(
         onThemeClick = { showThemeDialog = true },
         onNotificationsClick = { viewModel.toggleNotifications() },
         onLanguageClick = { showLanguageDialog = true },
-        onEqualizerClick = { showEqualizerDialog = true }
+        onEqualizerClick = { showEqualizerDialog = true },
+        onEditProfileClick = { showEditProfileDialog = true }
     )
+
+    if (showEditProfileDialog && state.user != null) {
+        EditProfileDialog(
+            user = state.user!!,
+            onDismiss = { showEditProfileDialog = false },
+            onSave = { name, email, avatarUrl, bannerUrl ->
+                viewModel.updateProfile(name, email, avatarUrl, bannerUrl)
+                showEditProfileDialog = false
+            }
+        )
+    }
 
     if (showAudioQualityDialog) {
         SettingsDialog(
@@ -104,6 +121,148 @@ fun ProfileScreen(
 }
 
 @Composable
+fun EditProfileDialog(
+    user: com.musicstream.app.domain.model.User,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, String) -> Unit
+) {
+    var name by remember { mutableStateOf(user.name) }
+    var email by remember { mutableStateOf(user.email) }
+    var avatarUrl by remember { mutableStateOf(user.avatarUrl) }
+    var bannerUrl by remember { mutableStateOf(user.bannerUrl) }
+
+    val avatarLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let { avatarUrl = it.toString() }
+    }
+
+    val bannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let { bannerUrl = it.toString() }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White, // White background for dialog
+        title = { Text("Edit Profile", color = Color.Black, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Banner Picker
+                Text("Profile Banner", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.align(Alignment.Start))
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { bannerLauncher.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (bannerUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = bannerUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(Icons.Rounded.AddPhotoAlternate, null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Change Banner", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Avatar Picker
+                Text("Profile Picture", color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.align(Alignment.Start))
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { avatarLauncher.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (avatarUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(Icons.Rounded.AddAPhoto, null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Change", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name", color = Color.Gray) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = Color.LightGray
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email", color = Color.Gray) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = Color.LightGray
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(name, email, avatarUrl, bannerUrl) },
+                enabled = name.isNotBlank() && email.isNotBlank()
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = Color.DarkGray)
+            }
+        }
+    )
+}
+
+@Composable
 fun SettingsDialog(
     title: String,
     options: List<String>,
@@ -150,7 +309,8 @@ fun ProfileContent(
     onThemeClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     onLanguageClick: () -> Unit = {},
-    onEqualizerClick: () -> Unit = {}
+    onEqualizerClick: () -> Unit = {},
+    onEditProfileClick: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
@@ -160,21 +320,32 @@ fun ProfileContent(
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState)
     ) {
-        // Gradient Banner
+        // Gradient Banner (Full Bleed at top)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(180.dp)
                 .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0xFF8B5CF6),
-                            Color(0xFFD946EF),
-                            Color(0xFFFF8C00)
+                    brush = if (state.user?.bannerUrl?.isEmpty() == true) {
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF8B5CF6),
+                                Color(0xFFD946EF),
+                                Color(0xFFFF8C00)
+                            )
                         )
-                    )
+                    } else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
                 )
-        )
+        ) {
+            if (state.user?.bannerUrl?.isNotEmpty() == true) {
+                AsyncImage(
+                    model = state.user.bannerUrl,
+                    contentDescription = "Profile Banner",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
 
         // Avatar and Edit Profile
         Box(
@@ -192,12 +363,21 @@ fun ProfileContent(
                     .border(3.dp, MaterialTheme.colorScheme.background, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Person,
-                    contentDescription = "Avatar",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(40.dp)
-                )
+                if (state.user?.avatarUrl?.isNotEmpty() == true) {
+                    AsyncImage(
+                        model = state.user.avatarUrl,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize().clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Rounded.Person,
+                        contentDescription = "Avatar",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
             }
 
             // Edit Profile button
@@ -208,7 +388,7 @@ fun ProfileContent(
                     .clip(RoundedCornerShape(20.dp))
                     .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
                     .background(MaterialTheme.colorScheme.surface)
-                    .clickable { }
+                    .clickable { onEditProfileClick() }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
@@ -242,27 +422,6 @@ fun ProfileContent(
                         fontSize = 13.sp
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    if (user.isPremium) {
-                        Text(
-                            text = "✨ Premium",
-                            color = PremiumGold,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Stats Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(0.dp)
-                ) {
-                    StatItem(value = user.songCount.toString(), label = "Songs", modifier = Modifier.weight(1f))
-                    StatItem(value = user.playlistCount.toString(), label = "Playlists", modifier = Modifier.weight(1f))
-                    StatItem(value = user.followingCount.toString(), label = "Following", modifier = Modifier.weight(1f))
-                    StatItem(value = user.followersCount.toString(), label = "Followers", modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -345,32 +504,9 @@ fun ProfileContent(
             )
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
-    }
-}
-
-@Composable
-private fun StatItem(
-    value: String,
-    label: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = label,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            fontSize = 12.sp
-        )
+        // Bottom spacer for edge-to-edge
+        Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+        Spacer(modifier = Modifier.height(140.dp))
     }
 }
 

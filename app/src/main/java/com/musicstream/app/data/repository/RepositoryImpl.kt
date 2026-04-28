@@ -115,11 +115,16 @@ class MusicRepositoryImpl @Inject constructor(
             emit(mergedResults)
         } catch (e: Exception) {
             e.printStackTrace()
-            emitAll(songDao.searchSongs(query).map { entities -> entities.map { it.toDomain() } })
+            emitAll(songDao.searchSongs(query).map
+            { entities -> entities.map { it.toDomain() } })
         }
     }
 
-    override fun getFavorites(): Flow<List<Song>> = favoriteDao.getAllFavorites().combine(songDao.getAllSongs()) { favorites, allSongs ->
+    override fun getFavorites(): Flow<List<Song>> =
+        favoriteDao.getAllFavorites()
+            .combine(songDao
+                .getAllSongs())
+            { favorites, allSongs ->
         val favIds = favorites.map { it.songId }.toSet()
         allSongs.filter { favIds.contains(it.id) }.map { it.toDomain().copy(isFavorite = true) }
     }
@@ -150,7 +155,9 @@ class MusicRepositoryImpl @Inject constructor(
         val id = UUID.randomUUID().toString()
         val gradientIndex = (name.hashCode() and Integer.MAX_VALUE) % 5
         playlistDao.insertPlaylist(
-            PlaylistEntity(id = id, name = name, songCount = 0, gradientIndex = gradientIndex)
+            PlaylistEntity(id = id, name = name,
+                songCount = 0,
+                gradientIndex = gradientIndex)
         )
     }
 
@@ -318,24 +325,105 @@ class UserRepositoryImpl @Inject constructor(
     private val songDao: SongDao,
     private val playlistDao: PlaylistDao,
     private val favoriteDao: FavoriteDao,
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context // Context added for file saving
 ) : UserRepository {
 
-    private val _user = MutableStateFlow(MockData.currentUser)
+    private object UserKeys {
+        val ID = stringPreferencesKey("user_id")
+        val NAME = stringPreferencesKey("user_name")
+        val EMAIL = stringPreferencesKey("user_email")
+        val AVATAR = stringPreferencesKey("user_avatar")
+        val BANNER = stringPreferencesKey("user_banner")
+        val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+        val REGISTERED_EMAILS = stringSetPreferencesKey("registered_emails")
+    }
 
-    override fun getCurrentUser(): Flow<User> = _user
+    // Direct flow from DataStore so UI updates automatically when data changes
+    override fun getCurrentUser(): Flow<User> = dataStore.data.map { preferences ->
+        User(
+            id = preferences[UserKeys.ID] ?: UUID.randomUUID().toString(),
+            name = preferences[UserKeys.NAME] ?: "Guest User",
+            email = preferences[UserKeys.EMAIL] ?: "",
+            avatarUrl = preferences[UserKeys.AVATAR] ?: "",
+            bannerUrl = preferences[UserKeys.BANNER] ?: ""
+        )
+    }
+
+    override fun isLoggedIn(): Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[UserKeys.IS_LOGGED_IN] ?: false
+    }
+
+    override suspend fun isEmailRegistered(email: String): Boolean {
+        val preferences = dataStore.data.first()
+        val emails = preferences[UserKeys.REGISTERED_EMAILS] ?: emptySet()
+        return emails.contains(email)
+    }
 
     override suspend fun updateUser(user: User) {
-        _user.value = user
+        dataStore.edit { preferences ->
+            // Pehle check karein ke kya hamare paas pehle se koi Avatar ya Banner save hai
+            val existingAvatar = preferences[UserKeys.AVATAR] ?: ""
+            val existingBanner = preferences[UserKeys.BANNER] ?: ""
+
+            // Agar naya user object khali hai (Login ke waqt aksar hota hai),
+            // toh purana wala hi use karein.
+            val finalAvatar = if (user.avatarUrl.isEmpty()) existingAvatar else {
+                if (user.avatarUrl.startsWith("content://")) {
+                    saveImageToInternal(user.avatarUrl, "avatar_${user.id}.jpg")
+                } else user.avatarUrl
+            }
+
+            val finalBanner = if (user.bannerUrl.isEmpty()) existingBanner else {
+                if (user.bannerUrl.startsWith("content://")) {
+                    saveImageToInternal(user.bannerUrl, "banner_${user.id}.jpg")
+                } else user.bannerUrl
+            }
+
+            // Data save karein
+            preferences[UserKeys.ID] = user.id
+            preferences[UserKeys.NAME] = user.name
+            preferences[UserKeys.EMAIL] = user.email
+            preferences[UserKeys.AVATAR] = finalAvatar
+            preferences[UserKeys.BANNER] = finalBanner
+            preferences[UserKeys.IS_LOGGED_IN] = true
+
+            val currentEmails = preferences[UserKeys.REGISTERED_EMAILS] ?: emptySet()
+            preferences[UserKeys.REGISTERED_EMAILS] = currentEmails + user.email
+        }
     }
 
     override suspend fun signOut() {
         withContext(Dispatchers.IO) {
+            // Hum favorites aur playlists delete kar rahe hain as per your original code
             favoriteDao.deleteAllFavorites()
             playlistDao.deleteAllPlaylists()
-            // We keep songs (downloads) but could clear them if needed
-            dataStore.edit { it.clear() }
-            _user.value = MockData.currentUser.copy(name = "Guest User", email = "")
+
+            // CRITICAL: Hum sirf Login status remove karenge.
+            // Name, Email, Avatar aur Banner ko remove nahi karenge taake wo "Hamesha Save" rahe.
+            dataStore.edit { preferences ->
+                preferences[UserKeys.IS_LOGGED_IN] = false
+                // ID, NAME, EMAIL, AVATAR, BANNER ko delete nahi kiya taake persistence bani rahe
+            }
+        }
+    }
+
+    // Helper function to save image permanently
+    private fun saveImageToInternal(uriString: String, fileName: String): String {
+        return try {
+            val uri = android.net.Uri.parse(uriString)
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val file = java.io.File(context.filesDir, fileName)
+
+            inputStream?.use { input ->
+                file.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            file.absolutePath // Ab ye permanent path hai
+        } catch (e: Exception) {
+            e.printStackTrace()
+            uriString // Error par wapis wahi bhej do
         }
     }
 }

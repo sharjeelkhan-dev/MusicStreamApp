@@ -325,6 +325,10 @@ fun SearchContent(
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
+            
+            // Bottom spacer for edge-to-edge
+            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+            Spacer(Modifier.height(140.dp))
         }
     }
 }

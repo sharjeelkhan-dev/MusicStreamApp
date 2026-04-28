@@ -66,15 +66,25 @@ fun SectionHeader(
                 ) {
                     Text(
                         text = "See all",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        color = MaterialTheme
+                            .colorScheme
+                            .onBackground
+                            .copy(alpha = 0.6f),
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight =
+                            FontWeight
+                            .SemiBold
                     )
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        imageVector = Icons
+                            .AutoMirrored
+                            .Filled
+                            .ArrowForward,
                         contentDescription = null,
                         tint = AccentPurple,
-                        modifier = Modifier.size(14.dp)
+                        modifier =
+                            Modifier
+                                .size(14.dp)
                     )
                 }
             }

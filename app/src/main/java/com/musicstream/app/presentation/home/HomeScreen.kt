@@ -371,6 +371,9 @@ fun HomeContent(
                 onPlaylistLongClick = { playlistToDelete = it }
             )
 
+            // Bottom spacer for edge-to-edge scrolling behind navigation bars
+            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+            Spacer(Modifier.height(100.dp)) // Extra space for mini player and bottom nav
         }
     }
 }

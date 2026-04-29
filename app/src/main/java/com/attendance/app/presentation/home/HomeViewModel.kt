@@ -138,13 +138,18 @@ class HomeViewModel @Inject constructor(
                             val todaySessions = sessions.filter { it.summary.date == today }
                             val currentStudentsCount = students.size
                             
+                            // Show ONLY the single most recent session from TODAY.
+                            // If no session has been taken today, the list will be empty.
+                            val recentSessionForToday = todaySessions.sortedByDescending { it.summary.date }
+                                .take(1)
+                            
                             HomeState(
                                 classes = classes,
                                 selectedClass = selectedClass,
                                 totalStudents = currentStudentsCount,
                                 presentToday = todaySessions.sumOf { it.summary.presentCount },
                                 absentToday = todaySessions.sumOf { it.summary.absentCount },
-                                recentSessions = todaySessions,
+                                recentSessions = recentSessionForToday,
                                 isLoading = false
                             )
                         }

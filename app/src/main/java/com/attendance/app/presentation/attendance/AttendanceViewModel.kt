@@ -69,22 +69,18 @@ class AttendanceViewModel @Inject constructor(
         combine(
             preferencesManager.selectedClassIdFlow,
             preferencesManager.attendanceDateFlow,
-            refreshTrigger
+            refreshTrigger.onStart { emit(Unit) }
         ) { classId, attendanceDate, _ -> classId to attendanceDate }
             .filter { it.first != -1L }
             .flatMapLatest { (classId, attendanceDate) ->
-                flow {
-                    emit(_state.value.copy(isLoading = true))
-                    
-                    val classModel = classRepository.getClassById(classId)
-                    val students = studentRepository.getStudentsByClass(classId).first()
-                    
-                    // Always use current date as default. 
-                    // If attendanceDate is set in preferences, use it.
-                    val dateStr = attendanceDate ?: LocalDate.now().toString()
-
-                    val existingRecords = attendanceRepository.getAttendanceByClassAndDate(classId, dateStr).first()
-
+                val dateStr = attendanceDate ?: LocalDate.now().toString()
+                
+                // Combine student list and their attendance records for this date
+                combine(
+                    studentRepository.getStudentsByClass(classId),
+                    attendanceRepository.getAttendanceByClassAndDate(classId, dateStr),
+                    flow { emit(classRepository.getClassById(classId)) }
+                ) { students, existingRecords, classModel ->
                     val sortedStudents = students.sortedBy { it.createdAt }
                     val studentStates = sortedStudents.map { student ->
                         val existing = existingRecords.find { it.studentId == student.id }
@@ -94,29 +90,30 @@ class AttendanceViewModel @Inject constructor(
                         )
                     }
                     
-                    emit(_state.value.copy(
+                    AttendanceState(
                         selectedClass = classModel,
                         students = studentStates,
                         presentCount = studentStates.count { s -> s.status == AttendanceStatus.PRESENT },
                         absentCount = studentStates.count { s -> s.status == AttendanceStatus.ABSENT },
                         isLoading = false,
-                        isSaved = false, // Always start with "Save" button enabled
                         attendanceDate = dateStr
-                    ))
+                    )
                 }
             }
-            .onEach { newState -> 
+            .onEach { newState ->
                 _state.update { current ->
+                    // Preserve UI-only states like isSaving and searchQuery
+                    // But update the data-driven states
                     current.copy(
                         selectedClass = newState.selectedClass,
-                        students = newState.students,
-                        presentCount = newState.presentCount,
-                        absentCount = newState.absentCount,
+                        students = if (current.isSaving || current.isSaved) current.students else newState.students,
+                        presentCount = if (current.isSaving || current.isSaved) current.presentCount else newState.presentCount,
+                        absentCount = if (current.isSaving || current.isSaved) current.absentCount else newState.absentCount,
                         isLoading = newState.isLoading,
                         attendanceDate = newState.attendanceDate,
                         error = newState.error
-                    ) 
-                } 
+                    )
+                }
             }
             .catch { e -> _state.update { it.copy(isLoading = false, error = e.message) } }
             .launchIn(viewModelScope)
@@ -187,7 +184,8 @@ class AttendanceViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
-                val date = preferencesManager.attendanceDateFlow.first() ?: LocalDate.now().toString()
+                // IMPORTANT: Use the date from the state to ensure we save to the correct day
+                val date = currentState.attendanceDate ?: LocalDate.now().toString()
                 _state.update { it.copy(isSaving = true) }
                 
                 val records = currentState.students.map {

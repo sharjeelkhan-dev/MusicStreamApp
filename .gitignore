@@ -1,4 +1,34 @@
-# Project exclude paths
-/.gradle/
-/app/build/
-/app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/
+# Project-wide ignore rules
+*.iml
+.gradle
+/local.properties
+/build
+/app/build
+.DS_Store
+/captures
+*.apk
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+
+# Android Studio / IntelliJ IDEA
+.idea/
+!.idea/codeStyles/Project.xml
+!.idea/codeStyles/codeStyleConfig.xml
+!.idea/inspectionProfiles/Project_Default.xml
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# External Native Build
+.externalNativeBuild
+.cxx
+
+# KSP generated files
+build/generated/ksp
+
+# Logcat
+*.log

@@ -18,8 +18,10 @@ import com.musicstream.app.ui.theme.MusicStreamTheme
 fun PlaylistRow(
     playlists: List<Playlist>,
     onPlaylistClick: (Playlist) -> Unit,
+    onDownloadsClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onPlaylistLongClick: (Playlist) -> Unit = {}
+    onPlaylistLongClick: (Playlist) -> Unit = {},
+    downloadCount: Int = 0
 ) {
     val gradients = listOf(
         Gradients.playlistBlue,
@@ -36,10 +38,10 @@ fun PlaylistRow(
     ) {
         item {
             PlaylistCard(
-                name = "Liked Songs",
-                songCount = -1,
+                name = "Downloads",
+                songCount = downloadCount,
                 gradient = Gradients.featured,
-                onClick = { }
+                onClick = onDownloadsClick
             )
         }
 
@@ -73,7 +75,8 @@ fun YourCollectionsPreview() {
             )
             PlaylistRow(
                 playlists = MockData.playlists,
-                onPlaylistClick = {}
+                onPlaylistClick = {},
+                onDownloadsClick = {}
             )
         }
     }
@@ -86,7 +89,8 @@ fun PlaylistRowPreview() {
         Box(modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(vertical = 20.dp)) {
             PlaylistRow(
                 playlists = MockData.playlists,
-                onPlaylistClick = {}
+                onPlaylistClick = {},
+                onDownloadsClick = {}
             )
         }
     }

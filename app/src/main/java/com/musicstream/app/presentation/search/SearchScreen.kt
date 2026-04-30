@@ -252,11 +252,13 @@ fun SearchContent(
                 )
 
                 state.trendingSearches.forEach { search ->
-                    Surface(
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 4.dp),
-                        color = Color.Transparent,
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.Transparent
+                        ),
                         onClick = { onQueryChange(search) },
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -365,11 +367,12 @@ private fun GenreGrid(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 row.forEach { genre ->
-                    Surface(
+                    Card(
                         modifier = Modifier
                             .weight(1f)
                             .height(100.dp),
                         shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                         onClick = { onGenreClick(genre.name) }
                     ) {
                         Box(

@@ -1,4 +1,4 @@
-package com.musicstream.app.presentation.recently_played
+package com.musicstream.app.presentation.library
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -22,43 +22,45 @@ import com.musicstream.app.domain.model.Song
 import com.musicstream.app.data.MockData
 import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
 import com.musicstream.app.presentation.components.SongListItem
+import com.musicstream.app.presentation.components.SongOptionsBottomSheet
 import com.musicstream.app.ui.theme.*
 
 @Composable
-fun RecentlyPlayedScreen(
-    viewModel: RecentlyPlayedViewModel = hiltViewModel(),
+fun DownloadsScreen(
+    viewModel: DownloadsViewModel = hiltViewModel(),
     onSongClick: (Song) -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    RecentlyPlayedContent(
+    DownloadsContent(
         state = state,
         onSongClick = onSongClick,
         onBackClick = onBackClick,
         onFavoriteClick = { viewModel.toggleFavorite(it) },
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
         onCreatePlaylist = { viewModel.createPlaylist(it) },
-        onDownloadSong = { viewModel.downloadSong(it) },
+        onDeleteDownload = { viewModel.deleteDownload(it) },
         onRefresh = viewModel::refresh
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecentlyPlayedContent(
-    state: RecentlyPlayedUiState,
+fun DownloadsContent(
+    state: DownloadsUiState,
     onSongClick: (Song) -> Unit = {},
     onBackClick: () -> Unit = {},
     onFavoriteClick: (String) -> Unit = {},
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
     onCreatePlaylist: (String) -> Unit = {},
-    onDownloadSong: (Song) -> Unit = {},
+    onDeleteDownload: (String) -> Unit = {},
     onRefresh: () -> Unit = {}
 ) {
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
+    var selectedSongForOptions by remember { mutableStateOf<Song?>(null) }
 
     if (showCreateDialog) {
         AlertDialog(
@@ -106,7 +108,7 @@ fun RecentlyPlayedContent(
     if (selectedSongIdForPlaylist != null) {
         PlaylistSelectionBottomSheet(
             playlists = state.playlists,
-            onPlaylistSelected = { playlist: com.musicstream.app.domain.model.Playlist ->
+            onPlaylistSelected = { playlist ->
                 onAddSongToPlaylist(playlist.id, selectedSongIdForPlaylist!!)
                 selectedSongIdForPlaylist = null
             },
@@ -115,6 +117,23 @@ fun RecentlyPlayedContent(
             },
             onDismissRequest = {
                 selectedSongIdForPlaylist = null
+            }
+        )
+    }
+
+    if (selectedSongForOptions != null) {
+        SongOptionsBottomSheet(
+            song = selectedSongForOptions,
+            onDismissRequest = { selectedSongForOptions = null },
+            onFavoriteClick = { onFavoriteClick(it) },
+            onAddToPlaylistClick = { 
+                selectedSongIdForPlaylist = it
+                selectedSongForOptions = null
+            },
+            onDownloadClick = { /* Already downloaded */ },
+            onDeleteDownloadClick = {
+                onDeleteDownload(it)
+                selectedSongForOptions = null
             }
         )
     }
@@ -134,55 +153,101 @@ fun RecentlyPlayedContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(24.dp)
-                )
+                IconButton(onClick = onBackClick, modifier = Modifier.offset(y = (-10).dp)) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Column(modifier = Modifier.padding(start = 8.dp)) {
+                    Text(
+                        text = "Downloads",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${state.songs.size + state.downloadingSongsList.size} songs",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
-            Text(
-                text = "Recently Played",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 160.dp) // More padding for bottom bars
-        ) {
-            items(state.songs) { song ->
-                SongListItem(
-                    song = song,
-                    onSongClick = onSongClick,
-                    onFavoriteClick = onFavoriteClick,
-                    onMoreClick = { selectedSongIdForPlaylist = it.id },
-                    downloadProgress = state.downloadingSongs[song.id]
-                )
+            if (state.songs.isEmpty() && state.downloadingSongsList.isEmpty() && !state.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No downloads yet",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 16.sp
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 160.dp)
+                ) {
+                    // Active Downloads
+                    if (state.downloadingSongsList.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Active Downloads",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = AccentPurple,
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                            )
+                        }
+                        items(state.downloadingSongsList) { song ->
+                            SongListItem(
+                                song = song,
+                                onSongClick = onSongClick,
+                                onFavoriteClick = { onFavoriteClick(song.id) },
+                                onMoreClick = { selectedSongForOptions = it },
+                                downloadProgress = state.downloadingSongs[song.id]
+                            )
+                        }
+                        item {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                            )
+                        }
+                    }
+
+                    // Completed Downloads
+                    items(state.songs) { song ->
+                        SongListItem(
+                            song = song,
+                            onSongClick = onSongClick,
+                            onFavoriteClick = { onFavoriteClick(song.id) },
+                            onMoreClick = { selectedSongForOptions = it },
+                            downloadProgress = state.downloadingSongs[song.id]
+                        )
+                    }
+                }
             }
         }
     }
 }
-}
 
-@Preview(showBackground = true, backgroundColor = 0xFF0A0A12)
+@Preview(showBackground = true)
 @Composable
-fun RecentlyPlayedScreenPreview() {
+fun DownloadsScreenPreview() {
     MusicStreamTheme {
-        RecentlyPlayedContent(
-            state = RecentlyPlayedUiState(
-                songs = MockData.recentlyPlayed,
+        DownloadsContent(
+            state = DownloadsUiState(
+                songs = MockData.trendingSongs.take(5),
                 playlists = MockData.playlists
-            ),
-            onSongClick = {},
-            onBackClick = {}
+            )
         )
     }
 }

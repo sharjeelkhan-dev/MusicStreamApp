@@ -101,10 +101,21 @@ fun AuthScreenLight(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(Icons.Rounded.MusicNote, null, Modifier.size(80.dp), MaterialTheme.colorScheme.primary)
+            Icon(Icons.Rounded.MusicNote,
+                null,
+                Modifier.size(80.dp), MaterialTheme
+                    .colorScheme.primary)
             Spacer(Modifier.height(16.dp))
-            Text("MusicStream", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = 2.sp), color = Color.Black)
-            Text(if (isLoginMode) "Welcome back, you've been missed!" else "Join the community of music lovers.", style = MaterialTheme.typography.bodyMedium, color = Color.Black)
+            Text("MusicStream", style = MaterialTheme
+                .typography.headlineLarge
+                .copy(fontWeight =
+                    FontWeight.Bold,
+                    letterSpacing = 2.sp),
+                color = Color.Black)
+            Text(if (isLoginMode) "Welcome back, you've been missed!"
+            else "Join the community of music lovers.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Black)
             Spacer(Modifier.height(40.dp))
 
             if (!isLoginMode) {
@@ -218,7 +229,11 @@ fun AuthScreenLight(
             }
             Spacer(Modifier.height(24.dp))
 
-            OutlinedButton(onClick = {}, modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black))
+            OutlinedButton(onClick = {},
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors
+                    (contentColor = Color.Black))
             { Text("Continue with Google", color = Color.Black) }
 
             Spacer(Modifier.height(16.dp))

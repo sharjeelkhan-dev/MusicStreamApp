@@ -6,15 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.LibraryMusic
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,18 +13,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import com.musicstream.app.R
 import com.musicstream.app.ui.theme.AccentPurple
 import com.musicstream.app.ui.theme.MusicStreamTheme
 
 data class BottomNavItem(
     val route: String,
-    val outlinedIcon: ImageVector,
-    val filledIcon: ImageVector,
+    val iconRes: Int,
     val label: String
 )
 
@@ -44,10 +35,10 @@ fun BottomNavBar(
     modifier: Modifier = Modifier
 ) {
     val items = listOf(
-        BottomNavItem("home", Icons.Outlined.Home, Icons.Filled.Home, "Home"),
-        BottomNavItem("search", Icons.Outlined.Search, Icons.Filled.Search, "Search"),
-        BottomNavItem("library", Icons.Outlined.LibraryMusic, Icons.Filled.LibraryMusic, "Library"),
-        BottomNavItem("profile", Icons.Outlined.Person, Icons.Filled.Person, "Profile")
+        BottomNavItem("home", R.drawable.hut_icon, "Home"),
+        BottomNavItem("search", R.drawable.magnifying_glass_icon, "Search"),
+        BottomNavItem("library", R.drawable.music_player_music_info_round_outline_icon, "Library"),
+        BottomNavItem("profile", R.drawable.silhouette_male_icon, "Profile")
     )
 
     Surface(
@@ -104,7 +95,7 @@ fun BottomNavBar(
                             .scale(scale)
                     ) {
                         Icon(
-                            imageVector = if (isSelected) item.filledIcon else item.outlinedIcon,
+                            painter = painterResource(id = item.iconRes),
                             contentDescription = item.label,
                             tint = iconColor,
                             modifier = Modifier.size(26.dp)
@@ -124,12 +115,23 @@ fun BottomNavBar(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Light Mode")
 @Composable
-fun BottomNavBarPreview() {
-    MusicStreamTheme {
+fun BottomNavBarLightPreview() {
+    MusicStreamTheme(darkTheme = false) {
         BottomNavBar(
             currentRoute = "home",
+            onNavigate = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Dark Mode")
+@Composable
+fun BottomNavBarDarkPreview() {
+    MusicStreamTheme(darkTheme = true) {
+        BottomNavBar(
+            currentRoute = "search",
             onNavigate = {}
         )
     }

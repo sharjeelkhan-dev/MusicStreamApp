@@ -39,6 +39,8 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
     var showAudioQualityDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -50,7 +52,10 @@ fun ProfileScreen(
         onSignOut = { viewModel.signOut() },
         onAudioQualityClick = { showAudioQualityDialog = true },
         onThemeClick = { showThemeDialog = true },
-        onNotificationsClick = { viewModel.toggleNotifications() },
+        onNotificationsClick = { 
+            viewModel.toggleNotifications()
+            android.widget.Toast.makeText(context, "Notifications updated", android.widget.Toast.LENGTH_SHORT).show()
+        },
         onLanguageClick = { showLanguageDialog = true },
         onEqualizerClick = { showEqualizerDialog = true },
         onEditProfileClick = { showEditProfileDialog = true }
@@ -63,6 +68,7 @@ fun ProfileScreen(
             onSave = { name, email, avatarUrl, bannerUrl ->
                 viewModel.updateProfile(name, email, avatarUrl, bannerUrl)
                 showEditProfileDialog = false
+                android.widget.Toast.makeText(context, "Profile updated", android.widget.Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -75,6 +81,7 @@ fun ProfileScreen(
             onOptionSelected = {
                 viewModel.setAudioQuality(it)
                 showAudioQualityDialog = false
+                android.widget.Toast.makeText(context, "Audio quality set to $it", android.widget.Toast.LENGTH_SHORT).show()
             },
             onDismiss = { showAudioQualityDialog = false }
         )
@@ -88,6 +95,7 @@ fun ProfileScreen(
             onOptionSelected = {
                 viewModel.setTheme(it)
                 showThemeDialog = false
+                android.widget.Toast.makeText(context, "Theme set to $it", android.widget.Toast.LENGTH_SHORT).show()
             },
             onDismiss = { showThemeDialog = false }
         )
@@ -101,6 +109,7 @@ fun ProfileScreen(
             onOptionSelected = {
                 viewModel.setLanguage(it)
                 showLanguageDialog = false
+                android.widget.Toast.makeText(context, "Language set to $it", android.widget.Toast.LENGTH_SHORT).show()
             },
             onDismiss = { showLanguageDialog = false }
         )
@@ -114,6 +123,7 @@ fun ProfileScreen(
             onOptionSelected = {
                 viewModel.setEqualizerPreset(it)
                 showEqualizerDialog = false
+                android.widget.Toast.makeText(context, "Equalizer set to $it", android.widget.Toast.LENGTH_SHORT).show()
             },
             onDismiss = { showEqualizerDialog = false }
         )
@@ -272,32 +282,52 @@ fun SettingsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = title) },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { 
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            ) 
+        },
         text = {
-            Column {
+            Column(modifier = Modifier.padding(top = 8.dp)) {
                 options.forEach { option ->
+                    val isSelected = option == selectedOption
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent)
                             .clickable { onOptionSelected(option) }
-                            .padding(vertical = 12.dp),
+                            .padding(vertical = 14.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
-                            selected = option == selectedOption,
-                            onClick = { onOptionSelected(option) }
+                            selected = isSelected,
+                            onClick = { onOptionSelected(option) },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colorScheme.primary
+                            )
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = option)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = option,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Close", color = MaterialTheme.colorScheme.primary)
             }
-        }
+        },
+        shape = RoundedCornerShape(28.dp)
     )
 }
 
@@ -317,7 +347,8 @@ fun ProfileContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme
+                .colorScheme.background)
             .verticalScroll(scrollState)
     ) {
         // Gradient Banner (Full Bleed at top)
@@ -524,7 +555,7 @@ private fun SettingsItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { 
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onClick() 
             }
             .padding(horizontal = 20.dp, vertical = 16.dp),
@@ -532,37 +563,37 @@ private fun SettingsItem(
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(iconColor.copy(alpha = 0.15f)),
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(iconColor.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = title,
                 tint = iconColor,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = title,
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
         )
         Text(
             text = value,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 13.sp
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.padding(horizontal = 8.dp)
         )
-        Spacer(modifier = Modifier.width(4.dp))
         Icon(
             imageVector = Icons.Rounded.ChevronRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-            modifier = Modifier.size(18.dp)
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            modifier = Modifier.size(20.dp)
         )
     }
 }

@@ -1,5 +1,4 @@
 package com.musicstream.app.presentation.components
-
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -12,8 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -21,12 +18,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicstream.app.domain.model.Song
 import com.musicstream.app.ui.theme.*
+import com.musicstream.app.R
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -49,12 +48,15 @@ fun SongListItem(
     )
     val gradient = thumbGradients[song.gradientIndex % thumbGradients.size]
 
-    Surface(
+    Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f)
+            .padding(horizontal = 24.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Row(
             modifier = Modifier
@@ -84,7 +86,7 @@ fun SongListItem(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.MusicNote,
+                        painter = painterResource(id = R.drawable.audio_tune_icon),
                         contentDescription = null,
                         tint = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.size(24.dp)
@@ -163,7 +165,7 @@ fun SongListItem(
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Download,
+                        painter = painterResource(id = R.drawable.import_icon),
                         contentDescription = "Download",
                         tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
                         modifier = Modifier.size(20.dp)

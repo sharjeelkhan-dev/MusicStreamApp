@@ -88,6 +88,7 @@ dependencies {
 
     // Coil
     implementation(libs.coil.compose)
+    implementation(libs.androidx.palette.ktx)
 
     // DataStore
     implementation(libs.datastore.preferences)

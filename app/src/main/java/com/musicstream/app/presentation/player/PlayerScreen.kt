@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -35,8 +36,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.ImageLoader
+import androidx.palette.graphics.Palette
+import androidx.core.graphics.drawable.toBitmap
 import com.musicstream.app.domain.model.Song
 import com.musicstream.app.ui.theme.*
+import com.musicstream.app.R
 
 @SuppressLint("QueryPermissionsNeeded")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,9 +57,37 @@ fun PlayerScreen(
     val context = LocalContext.current
     var showQueue by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+    
+    // Dynamic color state
+    var songColor by remember { mutableStateOf(AccentPurple) }
+    
+    LaunchedEffect(state.currentSong?.coverUrl) {
+        state.currentSong?.coverUrl?.let { url ->
+            if (url.isNotEmpty()) {
+                val loader = ImageLoader(context)
+                val request = ImageRequest.Builder(context)
+                    .data(url)
+                    .allowHardware(false) // Required for Palette
+                    .build()
+                
+                val result = loader.execute(request).drawable
+                result?.let { drawable ->
+                    val bitmap = drawable.toBitmap()
+                    Palette.from(bitmap).generate { palette ->
+                        palette?.vibrantSwatch?.rgb?.let { color ->
+                            songColor = Color(color)
+                        } ?: palette?.dominantSwatch?.rgb?.let { color ->
+                            songColor = Color(color)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     PlayerContent(
         state = state,
+        songColor = songColor,
         onBackClick = onBackClick,
         onTogglePlayPause = { viewModel.togglePlayPause() },
         onNextSong = { viewModel.nextSong() },
@@ -148,10 +182,10 @@ fun QueueList(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
+                    Card(
                         modifier = Modifier.size(48.dp),
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         if (song.coverUrl.isNotEmpty()) {
                             AsyncImage(
@@ -200,6 +234,7 @@ fun QueueList(
 @Composable
 fun PlayerContent(
     state: PlayerUiState,
+    songColor: Color,
     onBackClick: () -> Unit,
     onTogglePlayPause: () -> Unit,
     onNextSong: () -> Unit,
@@ -280,10 +315,20 @@ fun PlayerContent(
         )
     }
 
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val dynamicGradient = remember(songColor, backgroundColor) {
+        Brush.verticalGradient(
+            colors = listOf(
+                songColor.copy(alpha = 0.35f),
+                backgroundColor
+            )
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(dynamicGradient)
     ) {
         Column(
             modifier = Modifier
@@ -329,7 +374,8 @@ fun PlayerContent(
                 }
 
                 Box {
-                    IconButton(onClick = { showMoreMenu = true }) {
+                    IconButton(onClick = { showMoreMenu = true })
+                    {
                         Icon(
                             imageVector = Icons.Filled.MoreHoriz,
                             contentDescription = "More",
@@ -347,7 +393,11 @@ fun PlayerContent(
                                 showMoreMenu = false
                                 showPlaylistDialog = true
                             },
-                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) }
+                            leadingIcon =
+                                { Icon(Icons
+                                    .AutoMirrored
+                                    .Filled.PlaylistAdd,
+                                    null) }
                         )
                         DropdownMenuItem(
                             text = { Text("Sleep Timer") },
@@ -355,7 +405,9 @@ fun PlayerContent(
                                 showMoreMenu = false
                                 showSleepTimerDialog = true
                             },
-                            leadingIcon = { Icon(Icons.Default.Timer, null) }
+                            leadingIcon = { Icon(Icons
+                                .Default.Timer,
+                                null) }
                         )
                         DropdownMenuItem(
                             text = { Text("Go to Artist") },
@@ -423,7 +475,7 @@ fun PlayerContent(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.MusicNote,
+                                    painter = painterResource(id = R.drawable.audio_tune_icon),
                                     contentDescription = null,
                                     tint = onBackgroundColor.copy(alpha = 0.2f),
                                     modifier = Modifier.size(120.dp)
@@ -442,9 +494,6 @@ fun PlayerContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        val colors = listOf(AccentPink, AccentOrange, AccentBlue, AccentGreen, AccentPurple)
-                        val songColor = colors[song.gradientIndex % colors.size]
-
                         Text(
                             text = song.title,
                             color = onBackgroundColor,
@@ -479,12 +528,6 @@ fun PlayerContent(
 
             // Seek Bar
             Column(modifier = Modifier.fillMaxWidth()) {
-                val currentSong = state.currentSong
-                val songColor = if (currentSong != null) {
-                    val colors = listOf(AccentPink, AccentOrange, AccentBlue, AccentGreen, AccentPurple)
-                    colors[currentSong.gradientIndex % colors.size]
-                } else Color(0xFF7C4DFF)
-
                 // Seek Bar
                 Box(
                     modifier = Modifier
@@ -577,11 +620,6 @@ fun PlayerContent(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val songColor = state.currentSong?.let { 
-                    val colors = listOf(AccentPink, AccentOrange, AccentBlue, AccentGreen, AccentPurple)
-                    colors[it.gradientIndex % colors.size]
-                } ?: Color(0xFF7C4DFF)
-
                 IconButton(onClick = { onToggleShuffle() }) {
                     Icon(
                         imageVector = Icons.Filled.Shuffle,
@@ -602,15 +640,10 @@ fun PlayerContent(
 
                 // Play Button with Glow
                 Box(contentAlignment = Alignment.Center) {
-                    val currentSongColor = state.currentSong?.let { 
-                        val colors = listOf(AccentPink, AccentOrange, AccentBlue, AccentGreen, AccentPurple)
-                        colors[it.gradientIndex % colors.size]
-                    } ?: Color(0xFFFFD600)
-                    
                     Surface(
                         modifier = Modifier.size(86.dp),
                         shape = CircleShape,
-                        color = currentSongColor.copy(alpha = 0.15f)
+                        color = songColor.copy(alpha = 0.15f)
                     ) {}
                     
                     Surface(
@@ -624,7 +657,7 @@ fun PlayerContent(
                                 .fillMaxSize()
                                 .background(
                                     brush = Brush.verticalGradient(
-                                        colors = listOf(currentSongColor.copy(alpha = 0.9f), currentSongColor)
+                                        colors = listOf(songColor.copy(alpha = 0.9f), songColor)
                                     )
                                 ),
                             contentAlignment = Alignment.Center
@@ -660,8 +693,7 @@ fun PlayerContent(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
+          Spacer(modifier = Modifier.height(32.dp))
 
             // Bottom Actions Row
             Row(
@@ -670,8 +702,8 @@ fun PlayerContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Speed 1x
-                Surface(
-                    color = onBackgroundColor.copy(alpha = 0.05f),
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = onBackgroundColor.copy(alpha = 0.05f)),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.clickable {
                         val speeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
@@ -713,10 +745,7 @@ fun PlayerContent(
             // Bottom Visualizer Bars
             VisualizerBars(
                 isPlaying = state.isPlaying,
-                songColor = state.currentSong?.let { 
-                    val colors = listOf(AccentPink, AccentOrange, AccentBlue, AccentGreen, AccentPurple)
-                    colors[it.gradientIndex % colors.size]
-                } ?: Color(0xFFFFD600)
+                songColor = songColor
             )
             
             Spacer(modifier = Modifier.height(20.dp))
@@ -796,6 +825,7 @@ fun PlayerScreenPreview() {
                 isShuffleOn = true,
                 repeatMode = RepeatMode.ALL
             ),
+            songColor = AccentPurple,
             onBackClick = {},
             onTogglePlayPause = {},
             onNextSong = {},
@@ -811,7 +841,7 @@ fun PlayerScreenPreview() {
             onAddToPlaylist = { _, _ -> },
             onSetSleepTimer = {},
             onGoToArtist = {},
-            onGoToAlbum = {}
+            onGoToAlbum = {},
         )
     }
 }

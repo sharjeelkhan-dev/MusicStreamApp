@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.lerp
 import com.musicstream.app.domain.model.Song
 import com.musicstream.app.ui.theme.*
 
@@ -27,6 +28,7 @@ fun MiniPlayerBar(
     song: Song?,
     isPlaying: Boolean,
     progress: Float,
+    songColor: Color,
     onPlayPauseClick: () -> Unit,
     onNextClick: () -> Unit,
     onClick: () -> Unit,
@@ -42,15 +44,16 @@ fun MiniPlayerBar(
         Gradients.trendingPurple
     )
 
-    Surface(
+    Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 8.dp)
             .height(68.dp),
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp,
-        shadowElevation = 4.dp,
+        colors = CardDefaults.cardColors(
+            containerColor = lerp(MaterialTheme.colorScheme.surface, songColor, 0.08f).copy(alpha = 0.98f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         onClick = onClick
     ) {
         Column {
@@ -61,10 +64,10 @@ fun MiniPlayerBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Thumbnail with high quality look
-                Surface(
+                Card(
                     modifier = Modifier.size(48.dp),
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     if (song.coverUrl.isNotEmpty()) {
                         AsyncImage(
@@ -104,7 +107,7 @@ fun MiniPlayerBar(
                     )
                     Text(
                         text = song.artist,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = songColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
@@ -118,16 +121,25 @@ fun MiniPlayerBar(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     IconButton(onClick = onPlayPauseClick) {
-                        Surface(
+                        Card(
                             modifier = Modifier.size(40.dp),
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary
+                            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                            colors = listOf(songColor.copy(alpha = 0.9f), songColor)
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Icon(
                                     imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                     contentDescription = if (isPlaying) "Pause" else "Play",
-                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    tint = Color.White,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -151,7 +163,7 @@ fun MiniPlayerBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(2.dp),
-                color = AccentPurple,
+                color = songColor,
                 trackColor = Color.Transparent
             )
         }

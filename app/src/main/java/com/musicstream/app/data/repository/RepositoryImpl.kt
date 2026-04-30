@@ -1,5 +1,4 @@
 package com.musicstream.app.data.repository
-
 import com.musicstream.app.data.MockData
 import com.musicstream.app.data.local.dao.FavoriteDao
 import com.musicstream.app.data.local.dao.PlaylistDao
@@ -26,7 +25,6 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.collections.emptyList
-
 @Singleton
 class MusicRepositoryImpl @Inject constructor(
     private val songDao: SongDao,
@@ -35,10 +33,15 @@ class MusicRepositoryImpl @Inject constructor(
     private val musicApi: MusicApi,
     private val okHttpClient: okhttp3.OkHttpClient,
     private val settingsRepository: SettingsRepository,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
+    @dagger.hilt.android.qualifiers.ApplicationContext
+    private val context: android.content.Context
 ) : MusicRepository {
 
-    override fun getFeaturedSong(): Flow<Song> = songDao.getAllSongs().combine(favoriteDao.getAllFavorites()) { songs, favorites ->
+    override fun getFeaturedSong():
+            Flow<Song> = songDao.getAllSongs()
+                .combine(favoriteDao
+                    .getAllFavorites())
+                { songs, favorites ->
         val favIds = favorites.map { it.songId }.toSet()
         val featured = songs.firstOrNull()?.toDomain() ?: MockData.featuredSong
         featured.copy(isFavorite = favIds.contains(featured.id))
@@ -326,7 +329,8 @@ class UserRepositoryImpl @Inject constructor(
     private val playlistDao: PlaylistDao,
     private val favoriteDao: FavoriteDao,
     private val dataStore: DataStore<Preferences>,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context // Context added for file saving
+    @dagger.hilt.android.qualifiers.ApplicationContext
+    private val context: android.content.Context // Context added for file saving
 ) : UserRepository {
 
     private object UserKeys {

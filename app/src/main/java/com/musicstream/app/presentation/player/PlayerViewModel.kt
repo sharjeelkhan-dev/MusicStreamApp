@@ -130,6 +130,60 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun playSongs(songs: List<Song>, startIndex: Int = 0) {
+        if (songs.isEmpty()) return
+        
+        playJob?.cancel()
+        playJob = viewModelScope.launch {
+            _uiState.update { it.copy(
+                queue = songs,
+                currentIndex = startIndex,
+                currentSong = songs[startIndex],
+                currentPosition = 0L,
+                duration = songs[startIndex].duration,
+                isPlaying = true
+            ) }
+            
+            if (!uiState.value.isShuffleOn) {
+                originalQueue = songs
+            }
+
+            val mediaItems = songs.map { song ->
+                val mMetadata = androidx.media3.common.MediaMetadata.Builder()
+                    .setTitle(song.title)
+                    .setArtist(song.artist)
+                    .setDisplayTitle(song.title)
+                    .setArtworkUri(android.net.Uri.parse(song.coverUrl))
+                    .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
+                    .setIsBrowsable(false)
+                    .setIsPlayable(true)
+                    .build()
+                
+                val uri = if (!song.localPath.isNullOrEmpty() && java.io.File(song.localPath!!).exists()) {
+                    android.net.Uri.fromFile(java.io.File(song.localPath!!)).toString()
+                } else {
+                    song.streamUrl
+                }
+
+                MediaItem.Builder()
+                    .setUri(uri)
+                    .setMediaId(song.id)
+                    .setMimeType(if (uri.startsWith("file")) "audio/mpeg" else null)
+                    .setMediaMetadata(mMetadata)
+                    .build()
+            }
+            
+            mediaController?.let { controller ->
+                controller.setMediaItems(mediaItems)
+                controller.seekTo(startIndex, 0L)
+                controller.prepare()
+                controller.play()
+            }
+            
+            musicRepository.addToRecentlyPlayed(songs[startIndex])
+        }
+    }
+
     fun playSong(song: Song) {
         if (_uiState.value.currentSong?.id == song.id) {
             mediaController?.seekTo(0)

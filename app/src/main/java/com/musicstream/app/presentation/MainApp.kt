@@ -13,6 +13,13 @@ import com.musicstream.app.navigation.Screen
 import com.musicstream.app.presentation.components.BottomNavBar
 import com.musicstream.app.presentation.player.MiniPlayerBar
 import com.musicstream.app.presentation.player.PlayerViewModel
+import coil.ImageLoader
+import coil.request.ImageRequest
+import androidx.palette.graphics.Palette
+import androidx.core.graphics.drawable.toBitmap
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import com.musicstream.app.ui.theme.AccentPurple
 
 @Composable
 fun MainApp(
@@ -25,6 +32,34 @@ fun MainApp(
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Home.route
     val playerState by playerViewModel.uiState.collectAsStateWithLifecycle()
     val isLoggedIn by mainViewModel.isLoggedIn.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // Dynamic color for MiniPlayer
+    var songColor by remember { mutableStateOf(AccentPurple) }
+    
+    LaunchedEffect(playerState.currentSong?.coverUrl) {
+        playerState.currentSong?.coverUrl?.let { url ->
+            if (url.isNotEmpty()) {
+                val loader = ImageLoader(context)
+                val request = ImageRequest.Builder(context)
+                    .data(url)
+                    .allowHardware(false)
+                    .build()
+                
+                val result = loader.execute(request).drawable
+                result?.let { drawable ->
+                    val bitmap = drawable.toBitmap()
+                    Palette.from(bitmap).generate { palette ->
+                        palette?.vibrantSwatch?.rgb?.let { color ->
+                            songColor = Color(color)
+                        } ?: palette?.dominantSwatch?.rgb?.let { color ->
+                            songColor = Color(color)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // Global navigation for Sign Out
     LaunchedEffect(isLoggedIn) {
@@ -58,6 +93,9 @@ fun MainApp(
             modifier = Modifier.fillMaxSize(),
             onSongClick = { song ->
                 playerViewModel.playSong(song)
+            },
+            onPlaySongs = { songs, index ->
+                playerViewModel.playSongs(songs, index)
             }
         )
 
@@ -78,6 +116,7 @@ fun MainApp(
                         song = playerState.currentSong,
                         isPlaying = playerState.isPlaying,
                         progress = playerState.progress,
+                        songColor = songColor,
                         onPlayPauseClick = { playerViewModel.togglePlayPause() },
                         onNextClick = { playerViewModel.nextSong() },
                         onClick = {

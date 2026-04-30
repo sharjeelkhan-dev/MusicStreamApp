@@ -1,5 +1,6 @@
 package com.musicstream.app.service
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -50,17 +51,28 @@ class MusicPlaybackService : MediaSessionService() {
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
 
     private val TAG = "MusicPlaybackService"
-    private val CHANNEL_ID = "music_stream_v7"
+    private val CHANNEL_ID = "music_stream_v13"
 
     companion object {
         private const val CUSTOM_COMMAND_TOGGLE_FAVORITE = "ACTION_TOGGLE_FAVORITE"
     }
 
+    private var equalizer: android.media.audiofx.Equalizer? = null
+
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "onCreate: Starting Service")
+        Log.d(TAG, "onCreate: Initializing Service")
         
         createNotificationChannel()
+        
+        // Initialize equalizer with the player's session ID
+        try {
+            equalizer = android.media.audiofx.Equalizer(0, exoPlayer.audioSessionId)
+            equalizer?.enabled = true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to initialize equalizer: ${e.message}")
+        }
+
         observeEqualizerSettings()
 
         val intent = Intent(this, MainActivity::class.java).apply {
@@ -76,56 +88,49 @@ class MusicPlaybackService : MediaSessionService() {
             .setCallback(CustomMediaSessionCallback())
             .build()
             
-        val baseProvider = DefaultMediaNotificationProvider.Builder(this)
+        // Use standard Media3 notification management
+        val notificationProvider = DefaultMediaNotificationProvider.Builder(this)
             .setChannelId(CHANNEL_ID)
             .setChannelName(R.string.app_name)
             .build()
             
-        setMediaNotificationProvider(object : MediaNotification.Provider {
-            override fun createNotification(
-                session: MediaSession,
-                customLayout: com.google.common.collect.ImmutableList<CommandButton>,
-                actionFactory: MediaNotification.ActionFactory,
-                onNotificationChangedCallback: MediaNotification.Provider.Callback
-            ): MediaNotification {
-                val mediaNotification = baseProvider.createNotification(
-                    session, customLayout, actionFactory, onNotificationChangedCallback
-                )
-                
-                // Extra visibility for Lock Screen (Essential for realme/oppo)
-                mediaNotification.notification.visibility = android.app.Notification.VISIBILITY_PUBLIC
-                mediaNotification.notification.category = android.app.Notification.CATEGORY_TRANSPORT
-                
-                return mediaNotification
-            }
-
-            override fun handleCustomCommand(session: MediaSession, action: String, extras: Bundle): Boolean = false
-        })
+        setMediaNotificationProvider(notificationProvider)
 
         exoPlayer.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                 setCustomLayout()
+            }
+            
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                Log.d(TAG, "onPlaybackStateChanged: $playbackState")
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                Log.d(TAG, "onIsPlayingChanged: $isPlaying")
             }
         })
         
         setCustomLayout()
     }
 
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        // Here we can inject the visibility flags into the notification before it's posted
+        super.onUpdateNotification(session, startInForegroundRequired)
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        super.onStartCommand(intent, flags, startId)
-        return START_STICKY
+        Log.d(TAG, "onStartCommand: $intent")
+        return super.onStartCommand(intent, flags, startId)
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Music Stream Playback"
-            val descriptionText = "Music playback controls"
-            // Importance DEFAULT is required for lock screen visibility on many devices
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val name = "Music Stream"
+            val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
+                description = "Music playback controls"
                 setShowBadge(false)
-                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
             val notificationManager: NotificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -136,45 +141,70 @@ class MusicPlaybackService : MediaSessionService() {
     private fun observeEqualizerSettings() {
         settingsRepository.getEqualizerPreset()
             .onEach { preset ->
+                if (equalizer == null) {
+                    try {
+                        equalizer = android.media.audiofx.Equalizer(0, exoPlayer.audioSessionId)
+                        equalizer?.enabled = true
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Late initialize equalizer failed: ${e.message}")
+                    }
+                }
                 applyEqualizerPreset(preset)
             }
             .launchIn(serviceScope)
     }
 
     private fun applyEqualizerPreset(preset: String) {
+        val eq = equalizer ?: return
         try {
-            val equalizer = android.media.audiofx.Equalizer(0, exoPlayer.audioSessionId)
-            if (!equalizer.enabled) equalizer.enabled = true
+            if (!eq.enabled) eq.enabled = true
             
-            val numBands = equalizer.numberOfBands
-            val (minLevel, maxLevel) = equalizer.bandLevelRange
+            val numBands = eq.numberOfBands
+            val (minLevel, maxLevel) = eq.bandLevelRange
             val center = (minLevel + maxLevel) / 2
+            val step = (maxLevel - minLevel) / 2000 // Total levels typically 3000 (-1500 to +1500)
             
+            Log.d(TAG, "Applying equalizer preset: $preset, numBands: $numBands, range: $minLevel to $maxLevel")
+
+            fun setBand(band: Int, levelInMilliBel: Int) {
+                if (band < numBands) {
+                    val targetLevel = (center + levelInMilliBel).toShort().coerceIn(minLevel, maxLevel)
+                    eq.setBandLevel(band.toShort(), targetLevel)
+                }
+            }
+
             when (preset) {
                 "Flat" -> {
-                    for (i in 0 until numBands) equalizer.setBandLevel(i.toShort(), center.toShort())
+                    for (i in 0 until numBands) eq.setBandLevel(i.toShort(), center.toShort())
                 }
                 "Bass Boost" -> {
-                    if (numBands > 0) equalizer.setBandLevel(0.toShort(), maxLevel)
-                    if (numBands > 1) equalizer.setBandLevel(1.toShort(), (center + (maxLevel - center) / 2).toShort())
+                    setBand(0, 1000)
+                    setBand(1, 500)
+                    for (i in 2 until numBands) eq.setBandLevel(i.toShort(), center.toShort())
                 }
                 "Rock" -> {
-                    if (numBands >= 5) {
-                        equalizer.setBandLevel(0.toShort(), (center + 300).toShort())
-                        equalizer.setBandLevel(1.toShort(), (center + 100).toShort())
-                        equalizer.setBandLevel(2.toShort(), (center - 200).toShort())
-                        equalizer.setBandLevel(3.toShort(), (center + 200).toShort())
-                        equalizer.setBandLevel(4.toShort(), (center + 400).toShort())
-                    }
+                    setBand(0, 400)
+                    setBand(1, 200)
+                    setBand(2, -200)
+                    setBand(3, 300)
+                    setBand(4, 500)
                 }
                 "Pop" -> {
-                    if (numBands >= 5) {
-                        equalizer.setBandLevel(0.toShort(), (center - 100).toShort())
-                        equalizer.setBandLevel(1.toShort(), (center + 200).toShort())
-                        equalizer.setBandLevel(2.toShort(), (center + 400).toShort())
-                        equalizer.setBandLevel(3.toShort(), (center + 100).toShort())
-                        equalizer.setBandLevel(4.toShort(), (center - 100).toShort())
-                    }
+                    setBand(0, -200)
+                    setBand(1, 100)
+                    setBand(2, 300)
+                    setBand(3, 100)
+                    setBand(4, -200)
+                }
+                "Electronic" -> {
+                    setBand(0, 400)
+                    setBand(1, 200)
+                    setBand(2, 0)
+                    setBand(3, 200)
+                    setBand(4, 400)
+                }
+                else -> { // Custom or anything else - set to flat
+                    for (i in 0 until numBands) eq.setBandLevel(i.toShort(), center.toShort())
                 }
             }
         } catch (e: Exception) { 
@@ -252,15 +282,17 @@ class MusicPlaybackService : MediaSessionService() {
     override fun onTaskRemoved(rootIntent: Intent?) {
         val player = mediaSession?.player
         if (player != null) {
-            if (!player.playWhenReady || player.mediaItemCount == 0 || player.playbackState == Player.STATE_ENDED) {
-                stopSelf()
-            }
+            player.pause()
+            player.stop()
         }
+        stopSelf()
         super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
         serviceJob.cancel()
+        equalizer?.release()
+        equalizer = null
         mediaSession?.run {
             player.release()
             release()

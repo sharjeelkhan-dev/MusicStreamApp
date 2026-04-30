@@ -6,7 +6,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.pulltorefresh.*
+import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.musicstream.app.data.MockData
@@ -24,6 +24,7 @@ import com.musicstream.app.domain.model.Song
 import androidx.compose.ui.tooling.preview.Preview
 import com.musicstream.app.presentation.components.*
 import com.musicstream.app.ui.theme.*
+import com.musicstream.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +34,8 @@ fun HomeScreen(
     onNotificationClick: () -> Unit = {},
     onTrendingSeeAllClick: () -> Unit = {},
     onRecentlyPlayedSeeAllClick: () -> Unit = {},
-    onYourCollectionsSeeAllClick: () -> Unit = {},
+    onPlaylistClick: (Playlist) -> Unit = {},
+    onDownloadsClick: () -> Unit = {},
     onGoToArtist: (String) -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -47,7 +49,8 @@ fun HomeScreen(
         onNotificationClick = onNotificationClick,
         onTrendingSeeAllClick = onTrendingSeeAllClick,
         onRecentlyPlayedSeeAllClick = onRecentlyPlayedSeeAllClick,
-        onYourCollectionsSeeAllClick = onYourCollectionsSeeAllClick,
+        onPlaylistClick = onPlaylistClick,
+        onDownloadsClick = onDownloadsClick,
         onCreatePlaylist = { viewModel.createPlaylist(it) },
         onDeletePlaylist = { viewModel.deletePlaylist(it) },
         onDeleteAllPlaylists = { viewModel.deleteAllPlaylists() },
@@ -68,7 +71,8 @@ fun HomeContent(
     onNotificationClick: () -> Unit = {},
     onTrendingSeeAllClick: () -> Unit = {},
     onRecentlyPlayedSeeAllClick: () -> Unit = {},
-    onYourCollectionsSeeAllClick: () -> Unit = {},
+    onPlaylistClick: (Playlist) -> Unit = {},
+    onDownloadsClick: () -> Unit = {},
     onCreatePlaylist: (String) -> Unit = {},
     onDeletePlaylist: (String) -> Unit = {},
     onDeleteAllPlaylists: () -> Unit = {},
@@ -84,8 +88,6 @@ fun HomeContent(
     var showDeleteAllDialog by remember { mutableStateOf(false) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
-    
-    val context = androidx.compose.ui.platform.LocalContext.current
 
     if (showDeleteAllDialog) {
         AlertDialog(
@@ -197,34 +199,16 @@ fun HomeContent(
 
     if (selectedSongForOptions != null) {
         SongOptionsBottomSheet(
-            song = selectedSongForOptions!!,
+            song = selectedSongForOptions,
             onDismissRequest = { selectedSongForOptions = null },
-            onFavoriteClick = { onToggleFavorite(selectedSongForOptions!!.id) },
+            onFavoriteClick = { onToggleFavorite(it) },
             onAddToPlaylistClick = { 
-                selectedSongIdForPlaylist = selectedSongForOptions!!.id
+                selectedSongIdForPlaylist = it
                 selectedSongForOptions = null
             },
-            onDownloadClick = { 
-                selectedSongForOptions?.let { onDownloadSong(it) }
-            },
-            onShareClick = { 
-                val shareIntent = android.content.Intent().apply {
-                    action = android.content.Intent.ACTION_SEND
-                    putExtra(android.content.Intent.EXTRA_TEXT,
-                        "Listening to" +
-                                " ${selectedSongForOptions?.title} by " +
-                                "${selectedSongForOptions?.artist} on MusicStream!")
-                    type = "text/plain"
-                }
-                context.startActivity(android.content
-                    .Intent
-                    .createChooser(shareIntent,
-                        "Share song via"))
-            },
-            onGoToArtistClick = { 
-                selectedSongForOptions?.artist?.let { onGoToArtist(it) }
-                selectedSongForOptions = null
-            }
+            onDownloadClick = { onDownloadSong(it) },
+            onShareClick = { /* Shared component already handles basic intent or could pass custom one */ },
+            onGoToArtistClick = { onGoToArtist(it) }
         )
     }
 
@@ -252,7 +236,10 @@ fun HomeContent(
                 Column {
                     Text(
                         text = state.greeting,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        color = MaterialTheme
+                            .colorScheme
+                            .onBackground
+                            .copy(alpha = 0.7f),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -266,16 +253,18 @@ fun HomeContent(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
+                    Card(
                         modifier = Modifier.size(44.dp),
                         shape = CircleShape,
-                        color = MaterialTheme
-                            .colorScheme
-                            .onBackground
-                            .copy(alpha = 0.05f),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme
+                                .colorScheme
+                                .onBackground
+                                .copy(alpha = 0.05f)
+                        ),
                         onClick = { onNotificationClick() }
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Filled.Notifications,
                                 contentDescription = "Notifications",
@@ -286,17 +275,19 @@ fun HomeContent(
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
-                    Surface(
+                    Card(
                         modifier = Modifier.size(44.dp),
                         shape = CircleShape,
-                        color = MaterialTheme
-                            .colorScheme
-                            .onBackground
-                            .copy(alpha = 0.05f)
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme
+                                .colorScheme
+                                .onBackground
+                                .copy(alpha = 0.05f)
+                        )
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = Icons.Filled.Person,
+                                painter = painterResource(id = R.drawable.silhouette_male_icon),
                                 contentDescription = "Profile",
                                 tint = Color(0xFFCE93D8),
                                 modifier = Modifier.size(24.dp)
@@ -321,8 +312,9 @@ fun HomeContent(
             // Trending Section
             SectionHeader(
                 title = "Trending",
-                emoji = "🔥",
-                onSeeAllClick = { onTrendingSeeAllClick() }
+                iconRes = R.drawable.fire_alarm_icon,
+                onSeeAllClick =
+                    { onTrendingSeeAllClick() }
             )
             TrendingRow(
                 songs = state.trendingSongs,
@@ -337,7 +329,7 @@ fun HomeContent(
             SectionHeader(
                 title = "Recently Played",
                 modifier = Modifier.offset(y = (-10).dp),
-                emoji = "🕐",
+                iconRes = R.drawable.clock_line_icon,
                 onSeeAllClick = { onRecentlyPlayedSeeAllClick() }
             )
             state.recentlyPlayed.take(5).forEach { song ->
@@ -362,13 +354,15 @@ fun HomeContent(
                 title = "Your Collections",
                 modifier = Modifier.offset(y = (-15).dp),
                 emoji = "🎵",
-                onSeeAllClick = { onYourCollectionsSeeAllClick() }
+                onSeeAllClick = null
             )
             PlaylistRow(
                 playlists = state.playlists,
                 modifier = Modifier.offset(y = (-20).dp),
-                onPlaylistClick = { /* Navigate to Playlist */ },
-                onPlaylistLongClick = { playlistToDelete = it }
+                onPlaylistClick = onPlaylistClick,
+                onDownloadsClick = onDownloadsClick,
+                onPlaylistLongClick = { playlistToDelete = it },
+                downloadCount = state.downloads.size
             )
 
             // Bottom spacer for edge-to-edge scrolling behind navigation bars

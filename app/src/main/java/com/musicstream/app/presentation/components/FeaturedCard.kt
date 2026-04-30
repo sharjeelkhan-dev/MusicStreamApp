@@ -34,14 +34,14 @@ fun FeaturedCard(
     onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    Card(
         modifier = modifier
             .fillMaxWidth()
             .offset(y = (-10).dp)
             .padding(horizontal = 20.dp)
             .height(220.dp),
         shape = RoundedCornerShape(32.dp),
-        color = MaterialTheme.colorScheme.primaryContainer
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Box(
             modifier = Modifier
@@ -76,9 +76,9 @@ fun FeaturedCard(
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Surface(
+                    Card(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color.White.copy(alpha = 0.2f)
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.2f))
                     ) {
                         Text(
                             text = "FEATURED",
@@ -115,9 +115,9 @@ fun FeaturedCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom
                 ) {
-                    Surface(
+                    Card(
                         shape = CircleShape,
-                        color = Color.White,
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
                         onClick = onClick
                     ) {
                         Icon(

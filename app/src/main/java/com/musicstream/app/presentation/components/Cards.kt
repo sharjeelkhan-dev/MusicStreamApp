@@ -13,11 +13,15 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -26,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import com.musicstream.app.ui.theme.MusicStreamTheme
 import com.musicstream.app.ui.theme.Gradients
+import com.musicstream.app.R
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -63,33 +68,42 @@ fun PlaylistCard(
         modifier = modifier.width(155.dp),
         horizontalAlignment = Alignment.Start
     ) {
-        Box(
+        Card(
             modifier = Modifier
                 .aspectRatio(1f)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(gradient)
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick
-                ),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            onClick = onClick
         ) {
-            // Glassmorphism effect for the icon container
             Box(
                 modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.2f))
-                    .padding(14.dp),
+                    .fillMaxSize()
+                    .background(gradient)
+                    .combinedClickable(
+                        onClick = onClick,
+                        onLongClick = onLongClick,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = LocalIndication.current
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Filled.MusicNote,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
+                // Glassmorphism effect for the icon container
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.2f))
+                        .padding(14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.audio_tune_icon),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(10.dp))
@@ -138,71 +152,80 @@ fun TrendingCard(
         modifier = modifier.width(165.dp),
         horizontalAlignment = Alignment.Start
     ) {
-        Box(
+        Card(
             modifier = Modifier
                 .aspectRatio(1f)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(28.dp))
-                .background(gradient)
-                .combinedClickable(
-                    onClick = { onClick() },
-                    onLongClick = { onLongClick() }
-                ),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+            onClick = onClick
         ) {
-            if (coverUrl.isNotEmpty()) {
-                AsyncImage(
-                    model = coverUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Filled.MusicNote,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.4f),
-                    modifier = Modifier.size(56.dp)
-                )
-            }
-
-            if (downloadProgress != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.4f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        progress = { downloadProgress / 100f },
-                        modifier = Modifier.size(40.dp),
-                        color = Color.White,
-                        strokeWidth = 3.dp,
-                        trackColor = Color.White.copy(alpha = 0.2f)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(gradient)
+                    .combinedClickable(
+                        onClick = { onClick() },
+                        onLongClick = { onLongClick() },
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = LocalIndication.current
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (coverUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = coverUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
                     )
-                    Text(
-                        text = "$downloadProgress%",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.audio_tune_icon),
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.4f),
+                        modifier = Modifier.size(56.dp)
                     )
                 }
-            } else if (isDownloaded) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(12.dp)
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.5f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.DownloadDone,
-                        contentDescription = "Downloaded",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
+
+                if (downloadProgress != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.4f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            progress = { downloadProgress / 100f },
+                            modifier = Modifier.size(40.dp),
+                            color = Color.White,
+                            strokeWidth = 3.dp,
+                            trackColor = Color.White.copy(alpha = 0.2f)
+                        )
+                        Text(
+                            text = "$downloadProgress%",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else if (isDownloaded) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp)
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.DownloadDone,
+                            contentDescription = "Downloaded",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }

@@ -15,13 +15,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import com.musicstream.app.R
 import com.musicstream.app.ui.theme.AccentPurple
-import com.musicstream.app.ui.theme.DarkCardSurface
 
 @Composable
 fun SectionHeader(
     title: String,
     emoji: String = "",
+    iconRes: Int? = null,
     onSeeAllClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -34,7 +36,14 @@ fun SectionHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (emoji.isNotEmpty()) {
+            if (iconRes != null) {
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = if (title == "Trending") Color(0xFFFF5722) else AccentPurple,
+                    modifier = Modifier.padding(end = 10.dp).size(22.dp)
+                )
+            } else if (emoji.isNotEmpty()) {
                 Text(
                     text = emoji,
                     fontSize = 20.sp,
@@ -51,12 +60,15 @@ fun SectionHeader(
         }
 
         if (onSeeAllClick != null) {
-            Surface(
+            Card(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { onSeeAllClick() },
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                shape = RoundedCornerShape(12.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                onClick = onSeeAllClick
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp,

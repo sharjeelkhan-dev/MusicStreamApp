@@ -432,21 +432,6 @@ fun LibraryContent(
                         }
                     }
 
-                    LibraryTab.Favorites -> {
-                        if (state.favorites.isEmpty()) {
-                            EmptyState("No favorites yet", "Songs you love will appear here")
-                        } else {
-                            state.favorites.forEach { song ->
-                                SongListItem(
-                                    song = song,
-                                    onSongClick = onSongClick,
-                                    onFavoriteClick = { onToggleFavorite(song.id) },
-                                    onMoreClick = { selectedSongForOptions = it },
-                                    downloadProgress = state.downloadingSongs[song.id]
-                                )
-                            }
-                        }
-                    }
 
                     LibraryTab.Downloads -> {
                         val allDownloads = (state.downloadingSongsList + state.downloads).distinctBy { it.id }
@@ -476,7 +461,7 @@ fun LibraryContent(
             
             // Bottom spacer for edge-to-edge
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-            Spacer(Modifier.height(140.dp))
+            Spacer(Modifier.height(70.dp))
         }
     }
 }
@@ -735,27 +720,3 @@ fun LibraryScreenDownloadsPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF0A0A12)
-@Composable
-fun LibraryScreenFavoritesPreview() {
-    MusicStreamTheme {
-        LibraryContent(
-            state = LibraryUiState(
-                selectedTab = LibraryTab.Favorites,
-                favorites = MockData.trendingSongs.filter { it.isFavorite },
-                isLoading = false
-            ),
-            onTabSelect = {},
-            onPlaylistSelect = {},
-            onCreatePlaylist = {},
-            onDeletePlaylist = {},
-            onRemoveSongFromPlaylist = { _, _ -> },
-            onToggleFavorite = {},
-            onDownloadSong = {},
-            addSongToPlaylist = { _, _ -> },
-            onDeleteDownload = {},
-            onSongClick = {},
-            onRefresh = {}
-        )
-    }
-}

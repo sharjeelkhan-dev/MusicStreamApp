@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class LibraryTab { Downloads, Playlists, Favorites, Songs }
+enum class LibraryTab { Downloads, Playlists, Songs }
 
 data class LibraryUiState(
     val selectedTab: LibraryTab = LibraryTab.Playlists,

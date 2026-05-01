@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -22,6 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
+import com.musicstream.app.data.MockData
+import com.musicstream.app.ui.theme.MusicStreamTheme
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.musicstream.app.R
@@ -37,9 +39,28 @@ fun PlaylistScreen(
     viewModel: PlaylistViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
     onSongClick: (Song) -> Unit,
-    onPlaySongs: (List<Song>, Int) -> Unit
+    onPlaySongs: (List<Song>, Int) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    PlaylistScreenContent(
+        state = state,
+        onBackClick = onBackClick,
+        onSongClick = onSongClick,
+        onPlaySongs = onPlaySongs,
+        onToggleFavorite = { viewModel.toggleFavorite(it) },
+    ) { viewModel.downloadSong(it) }
+}
+
+@Composable
+fun PlaylistScreenContent(
+    state: PlaylistUiState,
+    onBackClick: () -> Unit,
+    onSongClick: (Song) -> Unit,
+    onPlaySongs: (List<Song>, Int) -> Unit,
+    onToggleFavorite: (String) -> Unit,
+    onDownloadSong: (Song) -> Unit
+) {
     var selectedSongForOptions by remember { mutableStateOf<Song?>(null) }
 
     if (state.isLoading) {
@@ -63,7 +84,7 @@ fun PlaylistScreen(
                         onPlaySongs(state.songs.shuffled(), 0)
                     }
                 },
-                onFavoriteClick = { viewModel.toggleFavorite(it) },
+                onFavoriteClick = onToggleFavorite,
                 onMoreClick = { selectedSongForOptions = it },
                 downloadingSongs = state.downloadingSongs
             )
@@ -77,10 +98,12 @@ fun PlaylistScreen(
     if (selectedSongForOptions != null) {
         SongOptionsBottomSheet(
             song = selectedSongForOptions,
-            onDismissRequest = { selectedSongForOptions = null },
-            onFavoriteClick = { viewModel.toggleFavorite(it) },
+            onDismissRequest = { 
+                selectedSongForOptions = null 
+            },
+            onFavoriteClick = onToggleFavorite,
             onAddToPlaylistClick = { /* Already in a playlist, but could add to others */ },
-            onDownloadClick = { viewModel.downloadSong(it) },
+            onDownloadClick = onDownloadSong,
             onDeleteDownloadClick = { /* Handle delete if needed */ },
             onShareClick = { /* Handle share */ },
             onGoToArtistClick = { /* Handle artist click */ }
@@ -217,13 +240,18 @@ private fun PlaylistDetailView(
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+            modifier = Modifier
+                .padding(
+                    horizontal = 24.dp,
+                    vertical = 8.dp,
+                )
+                .offset(y = (-13).dp),
         )
 
         // Songs List
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth().offset(y = (-13).dp)
                 .padding(bottom = 30.dp)
         ) {
             if (songs.isEmpty()) {
@@ -236,11 +264,30 @@ private fun PlaylistDetailView(
                         song = song,
                         onSongClick = onSongClick,
                         onFavoriteClick = onFavoriteClick,
-                        onMoreClick = { /* Handle more click */ },
+                        onMoreClick = { onMoreClick(song) },
                         downloadProgress = downloadingSongs[song.id]
                     )
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PlaylistScreenPreview() {
+    MusicStreamTheme {
+        PlaylistScreenContent(
+            state = PlaylistUiState(
+                playlist = MockData.playlists[0],
+                songs = MockData.recentlyPlayed,
+                isLoading = false
+            ),
+            onBackClick = {},
+            onSongClick = {},
+            onPlaySongs = { _, _ -> },
+            onToggleFavorite = {},
+            onDownloadSong = {}
+        )
     }
 }

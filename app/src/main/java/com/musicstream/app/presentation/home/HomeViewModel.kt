@@ -2,16 +2,20 @@ package com.musicstream.app.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.musicstream.app.domain.model.User
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
 import com.musicstream.app.domain.repository.DownloadProgress
 import com.musicstream.app.domain.repository.MusicRepository
+import com.musicstream.app.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class HomeUiState(
+    val user: User? = null,
     val greeting: String = "",
     val featuredSong: Song? = null,
     val trendingSongs: List<Song> = emptyList(),
@@ -25,7 +29,8 @@ data class HomeUiState(
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val musicRepository: MusicRepository
+    private val musicRepository: MusicRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -48,8 +53,11 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private var dataJob: Job? = null
+
     private fun loadData() {
-        viewModelScope.launch {
+        dataJob?.cancel()
+        dataJob = viewModelScope.launch {
             // Set greeting based on time of day
             val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
             val greeting = when {
@@ -59,6 +67,7 @@ class HomeViewModel @Inject constructor(
             }
             
             combine(
+                userRepository.getCurrentUser(),
                 musicRepository.getFeaturedSong(),
                 musicRepository.getTrendingSongs(),
                 musicRepository.searchSongs("new releases").map { songs -> 
@@ -69,13 +78,14 @@ class HomeViewModel @Inject constructor(
                 musicRepository.getDownloads()
             ) { args: Array<*> ->
                 HomeUiState(
+                    user = args[0] as? User,
                     greeting = greeting,
-                    featuredSong = args[0] as? Song,
-                    trendingSongs = args[1] as List<Song>,
-                    newSongs = args[2] as List<Song>,
-                    recentlyPlayed = args[3] as List<Song>,
-                    playlists = args[4] as List<Playlist>,
-                    downloads = args[5] as List<Song>,
+                    featuredSong = args[1] as? Song,
+                    trendingSongs = args[2] as List<Song>,
+                    newSongs = args[3] as List<Song>,
+                    recentlyPlayed = args[4] as List<Song>,
+                    playlists = args[5] as List<Playlist>,
+                    downloads = args[6] as List<Song>,
                     isLoading = false
                 )
             }.collect { state ->

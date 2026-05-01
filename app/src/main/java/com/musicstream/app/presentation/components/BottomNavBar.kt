@@ -38,7 +38,7 @@ fun BottomNavBar(
         BottomNavItem("home", R.drawable.hut_icon, "Home"),
         BottomNavItem("search", R.drawable.magnifying_glass_icon, "Search"),
         BottomNavItem("library", R.drawable.music_player_music_info_round_outline_icon, "Library"),
-        BottomNavItem("profile", R.drawable.silhouette_male_icon, "Profile")
+        BottomNavItem("artists", R.drawable.silhouette_male_icon, "Artists")
     )
 
     Surface(

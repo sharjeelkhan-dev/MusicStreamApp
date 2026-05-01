@@ -49,6 +49,7 @@ import com.musicstream.app.R
 @Composable
 fun PlayerScreen(
     viewModel: PlayerViewModel = hiltViewModel(),
+    songColor: Color,
     onBackClick: () -> Unit = {},
     onGoToArtist: (String) -> Unit = {},
     onGoToAlbum: (String) -> Unit = {}
@@ -58,33 +59,6 @@ fun PlayerScreen(
     var showQueue by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
     
-    // Dynamic color state
-    var songColor by remember { mutableStateOf(AccentPurple) }
-    
-    LaunchedEffect(state.currentSong?.coverUrl) {
-        state.currentSong?.coverUrl?.let { url ->
-            if (url.isNotEmpty()) {
-                val loader = ImageLoader(context)
-                val request = ImageRequest.Builder(context)
-                    .data(url)
-                    .allowHardware(false) // Required for Palette
-                    .build()
-                
-                val result = loader.execute(request).drawable
-                result?.let { drawable ->
-                    val bitmap = drawable.toBitmap()
-                    Palette.from(bitmap).generate { palette ->
-                        palette?.vibrantSwatch?.rgb?.let { color ->
-                            songColor = Color(color)
-                        } ?: palette?.dominantSwatch?.rgb?.let { color ->
-                            songColor = Color(color)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     PlayerContent(
         state = state,
         songColor = songColor,
@@ -167,6 +141,7 @@ fun QueueList(
             text = "Up Next",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(16.dp)
         )
         LazyColumn(
@@ -259,33 +234,35 @@ fun PlayerContent(
     if (showPlaylistDialog) {
         AlertDialog(
             onDismissRequest = { showPlaylistDialog = false },
-            title = { Text("Add to Playlist") },
+            title = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 LazyColumn {
                     itemsIndexed(state.playlists) { _, playlist ->
                         ListItem(
-                            headlineContent = { Text(playlist.name) },
+                            headlineContent = { Text(playlist.name, color = MaterialTheme.colorScheme.onSurface) },
                             modifier = Modifier.clickable {
                                 state.currentSong?.id?.let { onAddToPlaylist(playlist.id, it) }
                                 showPlaylistDialog = false
                             },
-                            leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) }
+                            leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, tint = MaterialTheme.colorScheme.onSurface) },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                         )
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showPlaylistDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
     if (showSleepTimerDialog) {
         AlertDialog(
             onDismissRequest = { showSleepTimerDialog = false },
-            title = { Text("Sleep Timer") },
+            title = { Text("Sleep Timer", color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Column {
                     val timers = listOf(
@@ -298,20 +275,22 @@ fun PlayerContent(
                     )
                     timers.forEach { (label, minutes) ->
                         ListItem(
-                            headlineContent = { Text(label) },
+                            headlineContent = { Text(label, color = MaterialTheme.colorScheme.onSurface) },
                             modifier = Modifier.clickable {
                                 onSetSleepTimer(minutes)
                                 showSleepTimerDialog = false
-                            }
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                         )
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showSleepTimerDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -319,7 +298,7 @@ fun PlayerContent(
     val dynamicGradient = remember(songColor, backgroundColor) {
         Brush.verticalGradient(
             colors = listOf(
-                songColor.copy(alpha = 0.35f),
+                songColor.copy(alpha = 0.65f),
                 backgroundColor
             )
         )
@@ -385,10 +364,16 @@ fun PlayerContent(
                     }
                     DropdownMenu(
                         expanded = showMoreMenu,
-                        onDismissRequest = { showMoreMenu = false }
+                        onDismissRequest = { showMoreMenu = false },
+                        containerColor = MaterialTheme.colorScheme.surface
                     ) {
+                        val menuItemColors = MenuDefaults.itemColors(
+                            textColor = MaterialTheme.colorScheme.onSurface,
+                            leadingIconColor = MaterialTheme.colorScheme.onSurface
+                        )
                         DropdownMenuItem(
-                            text = { Text("Add to Playlist") },
+                            text = { Text("Add to Playlist",
+                                color = MaterialTheme.colorScheme.onSurface) },
                             onClick = { 
                                 showMoreMenu = false
                                 showPlaylistDialog = true
@@ -397,33 +382,39 @@ fun PlayerContent(
                                 { Icon(Icons
                                     .AutoMirrored
                                     .Filled.PlaylistAdd,
-                                    null) }
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurface) },
+                            colors = menuItemColors
                         )
                         DropdownMenuItem(
-                            text = { Text("Sleep Timer") },
+                            text = { Text("Sleep Timer", color = MaterialTheme.colorScheme.onSurface) },
                             onClick = { 
                                 showMoreMenu = false
                                 showSleepTimerDialog = true
                             },
                             leadingIcon = { Icon(Icons
                                 .Default.Timer,
-                                null) }
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurface) },
+                            colors = menuItemColors
                         )
                         DropdownMenuItem(
-                            text = { Text("Go to Artist") },
+                            text = { Text("Go to Artist", color = MaterialTheme.colorScheme.onSurface) },
                             onClick = { 
                                 showMoreMenu = false
                                 state.currentSong?.artist?.let { onGoToArtist(it) }
                             },
-                            leadingIcon = { Icon(Icons.Default.Person, null) }
+                            leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onSurface) },
+                            colors = menuItemColors
                         )
                         DropdownMenuItem(
-                            text = { Text("Go to Album") },
+                            text = { Text("Go to Album", color = MaterialTheme.colorScheme.onSurface) },
                             onClick = { 
                                 showMoreMenu = false
                                 state.currentSong?.album?.let { onGoToAlbum(it) }
                             },
-                            leadingIcon = { Icon(Icons.Default.Album, null) }
+                            leadingIcon = { Icon(Icons.Default.Album, null, tint = MaterialTheme.colorScheme.onSurface) },
+                            colors = menuItemColors
                         )
                     }
                 }

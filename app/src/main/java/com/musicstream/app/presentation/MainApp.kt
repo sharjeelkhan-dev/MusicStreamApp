@@ -20,6 +20,8 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.musicstream.app.ui.theme.AccentPurple
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 
 @Composable
 fun MainApp(
@@ -34,29 +36,66 @@ fun MainApp(
     val isLoggedIn by mainViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // Dynamic color for MiniPlayer
-    var songColor by remember { mutableStateOf(AccentPurple) }
+    // Persistent color cache to avoid re-extraction
+    val colorCache = remember { mutableStateMapOf<String, Color>() }
     
-    LaunchedEffect(playerState.currentSong?.coverUrl) {
-        playerState.currentSong?.coverUrl?.let { url ->
-            if (url.isNotEmpty()) {
-                val loader = ImageLoader(context)
-                val request = ImageRequest.Builder(context)
-                    .data(url)
-                    .allowHardware(false)
-                    .build()
-                
+    // Initial fallback color based on gradient index
+    val initialColor = remember(playerState.currentSong?.id) {
+        playerState.currentSong?.let { song ->
+            colorCache[song.id] ?: Color.Transparent
+        } ?: Color.Transparent
+    }
+    
+    // Dynamic color state
+    var extractedColor by remember { mutableStateOf<Color?>(null) }
+    
+    // Update extractedColor from cache if available
+    LaunchedEffect(playerState.currentSong?.id) {
+        val currentId = playerState.currentSong?.id
+        if (currentId != null) {
+            extractedColor = colorCache[currentId]
+        } else {
+            extractedColor = null
+        }
+    }
+    
+    // Smooth color transition
+    val songColor by animateColorAsState(
+        targetValue = extractedColor ?: initialColor,
+        animationSpec = tween(400),
+        label = "miniPlayerColor"
+    )
+    
+    LaunchedEffect(playerState.currentSong?.id) {
+        val song = playerState.currentSong ?: return@LaunchedEffect
+        
+        // Only extract if not in cache
+        if (!colorCache.containsKey(song.id) && song.coverUrl.isNotEmpty()) {
+            val loader = ImageLoader(context)
+            val request = ImageRequest.Builder(context)
+                .data(song.coverUrl)
+                .allowHardware(false)
+                .build()
+            
+            try {
                 val result = loader.execute(request).drawable
                 result?.let { drawable ->
-                    val bitmap = drawable.toBitmap()
+                    val bitmap = drawable.toBitmap(width = 128, height = 128)
                     Palette.from(bitmap).generate { palette ->
-                        palette?.vibrantSwatch?.rgb?.let { color ->
-                            songColor = Color(color)
-                        } ?: palette?.dominantSwatch?.rgb?.let { color ->
-                            songColor = Color(color)
+                        val color = palette?.vibrantSwatch?.rgb 
+                            ?: palette?.lightVibrantSwatch?.rgb
+                            ?: palette?.darkVibrantSwatch?.rgb
+                            ?: palette?.dominantSwatch?.rgb
+                        
+                        if (color != null) {
+                            val extracted = Color(color)
+                            colorCache[song.id] = extracted
+                            extractedColor = extracted
                         }
                     }
                 }
+            } catch (e: Exception) {
+                // Fail gracefully
             }
         }
     }
@@ -75,7 +114,7 @@ fun MainApp(
         Screen.Home.route,
         Screen.Search.route,
         Screen.Library.route,
-        Screen.Profile.route
+        Screen.Artists.route
     )
 
     // FIX: Added check for Screen.Player.route to prevent double player
@@ -90,6 +129,7 @@ fun MainApp(
             navController = navController,
             playerViewModel = playerViewModel,
             mainViewModel = mainViewModel,
+            songColor = songColor,
             modifier = Modifier.fillMaxSize(),
             onSongClick = { song ->
                 playerViewModel.playSong(song)

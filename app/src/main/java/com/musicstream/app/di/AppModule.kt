@@ -12,6 +12,7 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import com.musicstream.app.data.local.dao.PlaylistDao
 import com.musicstream.app.data.local.dao.SongDao
 import com.musicstream.app.data.remote.api.MusicApi
+import com.musicstream.app.data.remote.api.YouTubeApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -46,6 +47,17 @@ object AppModule {
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
             .create(MusicApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideYouTubeApi(okHttpClient: OkHttpClient): YouTubeApi {
+        return Retrofit.Builder()
+            .baseUrl(YouTubeApi.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(MoshiConverterFactory.create())
+            .build()
+            .create(YouTubeApi::class.java)
     }
 
     @Provides

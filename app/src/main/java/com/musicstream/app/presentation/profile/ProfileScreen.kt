@@ -537,7 +537,7 @@ fun ProfileContent(
         
         // Bottom spacer for edge-to-edge
         Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-        Spacer(modifier = Modifier.height(140.dp))
+        Spacer(modifier = Modifier.height(70.dp))
     }
 }
 

@@ -19,13 +19,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.musicstream.app.data.MockData
 import com.musicstream.app.domain.model.Song
 import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
-import com.musicstream.app.presentation.components.SongListItem
+import com.musicstream.app.presentation.components.WideSongListItem
 import com.musicstream.app.ui.theme.*
 
 @Composable
 fun FavoritesScreen(
     viewModel: FavoritesViewModel = hiltViewModel(),
     onSongClick: (Song) -> Unit = {},
+    onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -33,6 +34,7 @@ fun FavoritesScreen(
     FavoritesContent(
         state = state,
         onSongClick = onSongClick,
+        onPlaySongs = onPlaySongs,
         onBackClick = onBackClick,
         onFavoriteClick = { viewModel.toggleFavorite(it) },
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
@@ -47,6 +49,7 @@ fun FavoritesScreen(
 fun FavoritesContent(
     state: FavoritesUiState,
     onSongClick: (Song) -> Unit = {},
+    onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {},
     onFavoriteClick: (String) -> Unit = {},
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
@@ -165,12 +168,14 @@ fun FavoritesContent(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 160.dp) // Space for bottom nav bleed
+                contentPadding = PaddingValues(top = 8.dp, bottom = 160.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 items(state.songs) { song ->
-                    SongListItem(
+                    val index = state.songs.indexOf(song)
+                    WideSongListItem(
                         song = song,
-                        onSongClick = onSongClick,
+                        onSongClick = { onPlaySongs(state.songs, index) },
                         onFavoriteClick = onFavoriteClick,
                         onDownloadClick = onDownloadSong,
                         onMoreClick = { selectedSongIdForPlaylist = it.id },

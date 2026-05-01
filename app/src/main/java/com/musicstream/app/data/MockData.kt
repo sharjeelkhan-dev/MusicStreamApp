@@ -1,5 +1,6 @@
 package com.musicstream.app.data
 
+import com.musicstream.app.domain.model.Artist
 import com.musicstream.app.domain.model.Genre
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
@@ -58,6 +59,15 @@ object MockData {
         "Drake",
         "Taylor Swift",
         "Top 50 Global"
+    )
+
+    val artists = listOf(
+        Artist("1", "Hasan Raheem", "https://i.scdn.co/image/ab6761610000e5eb259d648b2d49e1a8e1b69766"),
+        Artist("2", "Jassie Gill", "https://i.scdn.co/image/ab6761610000e5eb9d7008779b69e4f5093a677e"),
+        Artist("3", "Dhanju", "https://i.scdn.co/image/ab6761610000e5eb7c8a49339e7c5d79907f1f0a"),
+        Artist("4", "Parmish Verma", "https://i.scdn.co/image/ab6761610000e5eb66750059e0a0a1a8e1b69766"),
+        Artist("5", "Karan Aujla", "https://i.scdn.co/image/ab6761610000e5eb6d8bd04e4a9d62e6e1b69766"),
+        Artist("6", "Diljit Dosanjh", "https://i.scdn.co/image/ab6761610000e5eb8a63158b0c3d238ce1b69766")
     )
 
     val currentUser = User(

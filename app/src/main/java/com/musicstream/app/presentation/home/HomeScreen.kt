@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.pulltorefresh.*
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.draw.clip
+import coil.compose.AsyncImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.musicstream.app.data.MockData
@@ -32,6 +34,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onSongClick: (Song) -> Unit = {},
     onNotificationClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
     onTrendingSeeAllClick: () -> Unit = {},
     onRecentlyPlayedSeeAllClick: () -> Unit = {},
     onPlaylistClick: (Playlist) -> Unit = {},
@@ -47,6 +50,7 @@ fun HomeScreen(
         onRefresh = { viewModel.refresh() },
         onSongClick = onSongClick,
         onNotificationClick = onNotificationClick,
+        onProfileClick = onProfileClick,
         onTrendingSeeAllClick = onTrendingSeeAllClick,
         onRecentlyPlayedSeeAllClick = onRecentlyPlayedSeeAllClick,
         onPlaylistClick = onPlaylistClick,
@@ -69,6 +73,7 @@ fun HomeContent(
     onRefresh: () -> Unit,
     onSongClick: (Song) -> Unit = {},
     onNotificationClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
     onTrendingSeeAllClick: () -> Unit = {},
     onRecentlyPlayedSeeAllClick: () -> Unit = {},
     onPlaylistClick: (Playlist) -> Unit = {},
@@ -91,7 +96,9 @@ fun HomeContent(
 
     if (showDeleteAllDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteAllDialog = false },
+            onDismissRequest = { 
+                showDeleteAllDialog = false 
+            },
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -283,15 +290,25 @@ fun HomeContent(
                                 .colorScheme
                                 .onBackground
                                 .copy(alpha = 0.05f)
-                        )
+                        ),
+                        onClick = onProfileClick
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.silhouette_male_icon),
-                                contentDescription = "Profile",
-                                tint = Color(0xFFCE93D8),
-                                modifier = Modifier.size(24.dp)
-                            )
+                            if (state.user?.avatarUrl?.isNotEmpty() == true) {
+                                AsyncImage(
+                                    model = state.user.avatarUrl,
+                                    contentDescription = "Profile",
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.silhouette_male_icon),
+                                    contentDescription = "Profile",
+                                    tint = Color(0xFFCE93D8),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -312,12 +329,14 @@ fun HomeContent(
             // Trending Section
             SectionHeader(
                 title = "Trending",
+                modifier = Modifier.offset(y = (-5).dp),
                 iconRes = R.drawable.fire_alarm_icon,
                 onSeeAllClick =
                     { onTrendingSeeAllClick() }
             )
             TrendingRow(
                 songs = state.trendingSongs,
+                modifier = Modifier.offset(y = (-20).dp),
                 onSongClick = onSongClick,
                 onLongClick = { song -> selectedSongForOptions = song },
                 downloadingSongs = state.downloadingSongs
@@ -328,7 +347,7 @@ fun HomeContent(
             // Recently Played
             SectionHeader(
                 title = "Recently Played",
-                modifier = Modifier.offset(y = (-10).dp),
+                modifier = Modifier.offset(y = (-20).dp),
                 iconRes = R.drawable.clock_line_icon,
                 onSeeAllClick = { onRecentlyPlayedSeeAllClick() }
             )
@@ -336,7 +355,7 @@ fun HomeContent(
                 SongListItem(
                     song = song,
                     onSongClick = onSongClick,
-                    modifier = Modifier.offset(y = (-25).dp),
+                    modifier = Modifier.offset(y = (-45).dp),
                     onFavoriteClick = { onToggleFavorite(it) },
                     onDownloadClick = { onDownloadSong(it) },
                     onMoreClick = { selectedSongForOptions = it },
@@ -352,13 +371,13 @@ fun HomeContent(
             // Your Collections
             SectionHeader(
                 title = "Your Collections",
-                modifier = Modifier.offset(y = (-15).dp),
+                modifier = Modifier.offset(y = (-30).dp),
                 emoji = "🎵",
                 onSeeAllClick = null
             )
             PlaylistRow(
                 playlists = state.playlists,
-                modifier = Modifier.offset(y = (-20).dp),
+                modifier = Modifier.offset(y = (-30).dp),
                 onPlaylistClick = onPlaylistClick,
                 onDownloadsClick = onDownloadsClick,
                 onPlaylistLongClick = { playlistToDelete = it },
@@ -367,7 +386,35 @@ fun HomeContent(
 
             // Bottom spacer for edge-to-edge scrolling behind navigation bars
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-            Spacer(Modifier.height(100.dp)) // Extra space for mini player and bottom nav
+            Spacer(Modifier.height(70.dp)) // Extra space for mini player and bottom nav
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun YourCollectionsPreview() {
+    MusicStreamTheme {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(vertical = 20.dp)
+        ) {
+            SectionHeader(
+                title = "Your Collections",
+                modifier = Modifier.offset(y = (-40).dp),
+                emoji = "🎵",
+                onSeeAllClick = null
+            )
+            PlaylistRow(
+                playlists = MockData.playlists,
+                modifier = Modifier.offset(y = (-40).dp),
+                onPlaylistClick = {},
+                onDownloadsClick = {},
+                onPlaylistLongClick = {},
+                downloadCount = 5
+            )
         }
     }
 }

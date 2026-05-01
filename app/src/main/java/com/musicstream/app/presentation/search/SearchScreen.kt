@@ -178,6 +178,7 @@ fun SearchContent(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .offset(y = (-10).dp)
                     .padding(horizontal = 24.dp)
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp),
@@ -230,7 +231,8 @@ fun SearchContent(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp,
+                        vertical = 12.dp).offset(y = (-25).dp)
                 )
 
                 // Genre Grid
@@ -248,14 +250,16 @@ fun SearchContent(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp,
+                        vertical = 16.dp).offset(y = (-40).dp)
                 )
 
                 state.trendingSearches.forEach { search ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                            .offset(y = (-55).dp)
+                            .padding(horizontal = 16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = Color.Transparent
                         ),
@@ -330,7 +334,7 @@ fun SearchContent(
             
             // Bottom spacer for edge-to-edge
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-            Spacer(Modifier.height(140.dp))
+            Spacer(Modifier.height(70.dp))
         }
     }
 }
@@ -370,6 +374,7 @@ private fun GenreGrid(
                     Card(
                         modifier = Modifier
                             .weight(1f)
+                            .offset(y = (-25).dp)
                             .height(100.dp),
                         shape = RoundedCornerShape(12.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),

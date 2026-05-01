@@ -8,7 +8,9 @@ import com.musicstream.app.data.local.entity.PlaylistEntity
 import com.musicstream.app.data.local.entity.PlaylistSongCrossRef
 import com.musicstream.app.data.local.entity.RecentlyPlayedEntity
 import com.musicstream.app.data.remote.api.MusicApi
+import com.musicstream.app.data.remote.api.YouTubeApi
 import com.musicstream.app.data.remote.dto.SaavnSongDto
+import com.musicstream.app.data.remote.dto.YouTubeSearchItemDto
 import com.musicstream.app.domain.model.Genre
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
@@ -31,6 +33,7 @@ class MusicRepositoryImpl @Inject constructor(
     private val playlistDao: PlaylistDao,
     private val favoriteDao: FavoriteDao,
     private val musicApi: MusicApi,
+    private val youTubeApi: YouTubeApi,
     private val okHttpClient: okhttp3.OkHttpClient,
     private val settingsRepository: SettingsRepository,
     @dagger.hilt.android.qualifiers.ApplicationContext
@@ -58,21 +61,33 @@ class MusicRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getTrendingSongs(): Flow<List<Song>> = songDao.getAllSongs().combine(favoriteDao.getAllFavorites()) { songs, favorites ->
-        val favIds = favorites.map { it.songId }.toSet()
-        if (songs.isEmpty()) MockData.trendingSongs else songs.map { it.toDomain().copy(isFavorite = favIds.contains(it.id)) }
-    }.onStart {
-        CoroutineScope(Dispatchers.IO).launch {
+    override fun getTrendingSongs(): Flow<List<Song>> = flow {
+        try {
+            // First try YouTube for REAL-TIME global trending music
+            val youtubeTrending = youTubeApi.getTrending()
+            val remoteResults = youtubeTrending.filter { it.type == "stream" }.map { it.toDomain() }
+            
+            if (remoteResults.isNotEmpty()) {
+                val favIds = favoriteDao.getAllFavorites().first().map { it.songId }.toSet()
+                emit(remoteResults.map { it.copy(isFavorite = favIds.contains(it.id)) })
+            } else {
+                throw Exception("YouTube trending empty")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Fallback to Saavn Trending (NOT all local songs)
             try {
                 val response = musicApi.getTrendingSongs()
-                response.data?.results?.let { results ->
-                    results.forEach { saavnSong ->
-                        val remote = saavnSong.toDomain()
-                        val local = songDao.getSongById(remote.id)
-                        songDao.insertSong(remote.toEntity().copy(localPath = local?.localPath))
-                    }
+                val saavnResults = response.data?.results?.map { it.toDomain() } ?: emptyList()
+                if (saavnResults.isNotEmpty()) {
+                    val favIds = favoriteDao.getAllFavorites().first().map { it.songId }.toSet()
+                    emit(saavnResults.map { it.copy(isFavorite = favIds.contains(it.id)) })
+                } else {
+                    emit(MockData.trendingSongs)
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e2: Exception) {
+                emit(MockData.trendingSongs)
+            }
         }
     }
 
@@ -100,26 +115,45 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override fun searchSongs(query: String): Flow<List<Song>> = flow {
+        if (query.isBlank()) {
+            emit(emptyList())
+            return@flow
+        }
+        
         try {
-            val response = musicApi.searchSongs(query)
-            val remoteResults = response.data?.results?.map { it.toDomain() } ?: emptyList()
+            // First try YouTube catalog via Piped API
+            val response = youTubeApi.search(query)
+            val remoteResults = response.items?.filter { it.type == "stream" }?.map { it.toDomain() } ?: emptyList()
             
-            // Merge with local data
-            val allLocal = songDao.getAllSongs().first()
-            val allFavs = favoriteDao.getAllFavorites().first().map { it.songId }.toSet()
-            
-            val mergedResults = remoteResults.map { remote ->
-                val local = allLocal.find { it.id == remote.id }
-                remote.copy(
-                    localPath = local?.localPath,
-                    isFavorite = allFavs.contains(remote.id)
-                )
+            if (remoteResults.isNotEmpty()) {
+                // Merge with local data
+                val allLocal = songDao.getAllSongs().first()
+                val allFavs = favoriteDao.getAllFavorites().first().map { it.songId }.toSet()
+                
+                val mergedResults = remoteResults.map { remote ->
+                    val local = allLocal.find { it.id == remote.id }
+                    remote.copy(
+                        localPath = local?.localPath,
+                        isFavorite = allFavs.contains(remote.id)
+                    )
+                }
+                emit(mergedResults)
+            } else {
+                // Fallback to Saavn if YouTube returns no results
+                val saavnResponse = musicApi.searchSongs(query)
+                val saavnResults = saavnResponse.data?.results?.map { it.toDomain() } ?: emptyList()
+                emit(saavnResults)
             }
-            emit(mergedResults)
         } catch (e: Exception) {
             e.printStackTrace()
-            emitAll(songDao.searchSongs(query).map
-            { entities -> entities.map { it.toDomain() } })
+            // Fallback to Saavn if YouTube fails
+            try {
+                val saavnResponse = musicApi.searchSongs(query)
+                val saavnResults = saavnResponse.data?.results?.map { it.toDomain() } ?: emptyList()
+                emit(saavnResults)
+            } catch (e2: Exception) {
+                emitAll(songDao.searchSongs(query).map { entities -> entities.map { it.toDomain() } })
+            }
         }
     }
 
@@ -137,8 +171,30 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override fun getSongById(songId: String): Flow<Song?> = flow {
-        val localSong = songDao.getSongById(songId)
-        emit(localSong?.toDomain())
+        // First check local DB
+        val localSong = songDao.getSongById(songId)?.toDomain()
+        
+        // If it's a YouTube placeholder, resolve it
+        if (localSong?.streamUrl?.startsWith("youtube://") == true || songId.length == 11) {
+            try {
+                val videoId = if (localSong?.streamUrl?.startsWith("youtube://") == true) {
+                    localSong.streamUrl.substringAfter("youtube://")
+                } else songId
+                
+                val streamInfo = youTubeApi.getStreamInfo(videoId)
+                val audioUrl = streamInfo.audioStreams?.maxByOrNull { it.bitrate ?: 0 }?.url
+                
+                if (audioUrl != null) {
+                    emit((localSong ?: Song(id = videoId, title = "YouTube Song", artist = "YouTube")).copy(streamUrl = audioUrl))
+                } else {
+                    emit(localSong)
+                }
+            } catch (e: Exception) {
+                emit(localSong)
+            }
+        } else {
+            emit(localSong)
+        }
     }
 
     override fun getSongsForPlaylist(playlistId: String): Flow<List<Song>> =
@@ -263,6 +319,21 @@ class MusicRepositoryImpl @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     // --- Mappers ---
+
+    private fun YouTubeSearchItemDto.toDomain(): Song {
+        val id = videoId ?: ""
+        val songName = title ?: "Unknown"
+        return Song(
+            id = id,
+            title = songName,
+            artist = uploaderName ?: "Unknown Artist",
+            coverUrl = thumbnail ?: "",
+            // Use a specific pattern for YouTube streams that we can resolve later
+            streamUrl = "youtube://$id",
+            duration = (duration ?: 0) * 1000L,
+            gradientIndex = (songName.hashCode() and Integer.MAX_VALUE) % 5
+        )
+    }
 
     private fun SaavnSongDto.toDomain(): Song {
         val highQualImage = image?.find { it.quality == "500x500" }?.link 

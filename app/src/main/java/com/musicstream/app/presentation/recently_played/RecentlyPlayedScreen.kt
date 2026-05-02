@@ -1,10 +1,8 @@
 package com.musicstream.app.presentation.recently_played
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -27,19 +25,18 @@ import com.musicstream.app.ui.theme.*
 @Composable
 fun RecentlyPlayedScreen(
     viewModel: RecentlyPlayedViewModel = hiltViewModel(),
-    onSongClick: (Song) -> Unit = {},
+    onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     RecentlyPlayedContent(
         state = state,
-        onSongClick = onSongClick,
+        onPlaySongs = onPlaySongs,
         onBackClick = onBackClick,
         onFavoriteClick = { viewModel.toggleFavorite(it) },
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
         onCreatePlaylist = { viewModel.createPlaylist(it) },
-        onDownloadSong = { viewModel.downloadSong(it) },
         onRefresh = viewModel::refresh
     )
 }
@@ -48,12 +45,11 @@ fun RecentlyPlayedScreen(
 @Composable
 fun RecentlyPlayedContent(
     state: RecentlyPlayedUiState,
-    onSongClick: (Song) -> Unit = {},
+    onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {},
     onFavoriteClick: (String) -> Unit = {},
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
     onCreatePlaylist: (String) -> Unit = {},
-    onDownloadSong: (Song) -> Unit = {},
     onRefresh: () -> Unit = {}
 ) {
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
@@ -62,7 +58,7 @@ fun RecentlyPlayedContent(
 
     if (showCreateDialog) {
         AlertDialog(
-            onDismissRequest = { showCreateDialog = false },
+            onDismissRequest = { },
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -88,7 +84,6 @@ fun RecentlyPlayedContent(
                         if (newPlaylistName.isNotBlank()) {
                             onCreatePlaylist(newPlaylistName)
                             newPlaylistName = ""
-                            showCreateDialog = false
                         }
                     }
                 ) {
@@ -96,7 +91,7 @@ fun RecentlyPlayedContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateDialog = false }) {
+                TextButton(onClick = { }) {
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -111,10 +106,8 @@ fun RecentlyPlayedContent(
                 selectedSongIdForPlaylist = null
             },
             onCreatePlaylistClick = {
-                showCreateDialog = true
             },
             onDismissRequest = {
-                selectedSongIdForPlaylist = null
             }
         )
     }
@@ -159,9 +152,10 @@ fun RecentlyPlayedContent(
             contentPadding = PaddingValues(bottom = 160.dp) // More padding for bottom bars
         ) {
             items(state.songs) { song ->
+                val index = state.songs.indexOf(song)
                 SongListItem(
                     song = song,
-                    onSongClick = onSongClick,
+                    onSongClick = { onPlaySongs(state.songs, index) },
                     onFavoriteClick = onFavoriteClick,
                     onMoreClick = { selectedSongIdForPlaylist = it.id },
                     downloadProgress = state.downloadingSongs[song.id]
@@ -181,7 +175,6 @@ fun RecentlyPlayedScreenPreview() {
                 songs = MockData.recentlyPlayed,
                 playlists = MockData.playlists
             ),
-            onSongClick = {},
             onBackClick = {}
         )
     }

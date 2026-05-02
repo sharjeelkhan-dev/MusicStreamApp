@@ -55,7 +55,7 @@ fun NavGraph(
         }
         composable(Screen.Home.route) {
             HomeScreen(
-                onSongClick = onSongClick,
+                onPlaySongs = onPlaySongs,
                 onNotificationClick = { navController.navigate(Screen.Notifications.route) },
                 onProfileClick = { navController.navigate(Screen.Profile.route) },
                 onTrendingSeeAllClick = { navController.navigate(Screen.Trending.route) },
@@ -68,12 +68,16 @@ fun NavGraph(
                 },
                 onGoToArtist = { artistName ->
                     navController.navigate(Screen.Search.route) // Reuse search for now
+                },
+                onGoToPlayer = {
+                    navController.navigate(Screen.Player.route)
                 }
             )
         }
         composable(Screen.Trending.route) {
             TrendingScreen(
                 onSongClick = onSongClick,
+                onPlaySongs = onPlaySongs,
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -84,33 +88,31 @@ fun NavGraph(
         }
         composable(Screen.RecentlyPlayed.route) {
             RecentlyPlayedScreen(
-                onSongClick = onSongClick,
+                onPlaySongs = onPlaySongs,
                 onBackClick = { navController.popBackStack() }
             )
         }
         composable(Screen.Favorites.route) {
             FavoritesScreen(
-                onSongClick = onSongClick,
                 onPlaySongs = onPlaySongs,
                 onBackClick = { navController.popBackStack() }
             )
         }
         composable(Screen.Downloads.route) {
             DownloadsScreen(
-                onSongClick = onSongClick,
+                onPlaySongs = onPlaySongs,
                 onBackClick = { navController.popBackStack() }
             )
         }
         composable(Screen.Playlist.route) {
             PlaylistScreen(
                 onBackClick = { navController.popBackStack() },
-                onSongClick = onSongClick,
                 onPlaySongs = onPlaySongs
             )
         }
         composable(Screen.Search.route) {
             SearchScreen(
-                onSongClick = onSongClick,
+                onPlaySongs = onPlaySongs,
                 onGoToArtist = { artistName ->
                     navController.navigate(Screen.Search.route) // Reuse search for now
                 }
@@ -118,7 +120,6 @@ fun NavGraph(
         }
         composable(Screen.Library.route) {
             LibraryScreen(
-                onSongClick = onSongClick,
                 onPlaySongs = onPlaySongs,
                 onPlaylistClick = { playlist ->
                     navController.navigate(Screen.Playlist.createRoute(playlist.id))

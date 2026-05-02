@@ -1,7 +1,6 @@
 package com.musicstream.app.presentation.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.background
@@ -11,10 +10,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.graphicsLayer
+import coil.compose.AsyncImage
+import androidx.compose.foundation.border
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -30,43 +35,84 @@ import com.musicstream.app.ui.theme.MusicStreamTheme
 @Composable
 fun FeaturedCard(
     song: Song,
-    onClick: () -> Unit,
+    onPlayClick: () -> Unit,
+    onCardClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPlaying: Boolean = false
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
             .offset(y = (-10).dp)
             .padding(horizontal = 20.dp)
-            .height(220.dp),
+            .height(240.dp),
         shape = RoundedCornerShape(32.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+        onClick = onCardClick // Clicking card background usually opens player
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null // Indication is handled by Surface or parent if needed
+        ) {
+            // Background Album Art (Blurred)
+            if (song.coverUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = song.coverUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(25.dp)
+                        .graphicsLayer { alpha = 0.6f }
                 )
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f)
+            } else {
+                // Fallback Gradient if no image
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f)
+                                )
+                            )
+                        )
+                )
+            }
+
+            // Glassmorphism Overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.15f),
+                                Color.White.copy(alpha = 0.05f)
+                            )
                         )
                     )
-                )
-        ) {
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.3f),
+                                Color.Transparent
+                            )
+                        ),
+                        shape = RoundedCornerShape(32.dp)
+                    )
+            )
+
+            // Decorative Circle
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .offset(x = 30.dp, y = (-30).dp)
                     .size(160.dp)
-                    .background(Color.White.copy(alpha = 0.12f), CircleShape)
+                    .background(Color.White.copy(alpha = 0.1f), CircleShape)
             )
             
             Column(
@@ -81,7 +127,7 @@ fun FeaturedCard(
                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.2f))
                     ) {
                         Text(
-                            text = "FEATURED",
+                            text = if (isPlaying) "NOW PLAYING" else "LAST PLAYED",
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -115,17 +161,22 @@ fun FeaturedCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom
                 ) {
-                    Card(
+                    // Play Button - THE ONLY THING THAT TRIGGERS onPlayClick
+                    Surface(
+                        onClick = onPlayClick,
                         shape = CircleShape,
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        onClick = onClick
+                        color = Color.White,
+                        modifier = Modifier.size(48.dp),
+                        shadowElevation = 4.dp
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.PlayArrow,
-                            contentDescription = "Play",
-                            tint = Color.Black,
-                            modifier = Modifier.padding(8.dp).size(24.dp)
-                        )
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                contentDescription = if (isPlaying) "Pause" else "Play",
+                                tint = Color.Black,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
 
                     IconButton(
@@ -149,7 +200,11 @@ fun FeaturedCard(
 fun FeaturedCardPreview() {
     MusicStreamTheme(darkTheme = true) {
         Box(modifier = Modifier.padding(20.dp)) {
-            FeaturedCard(song = MockData.featuredSong, onClick = {})
+            FeaturedCard(
+                song = MockData.featuredSong,
+                onPlayClick = {},
+                isPlaying = true
+            )
         }
     }
 }

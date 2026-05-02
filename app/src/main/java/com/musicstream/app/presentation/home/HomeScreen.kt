@@ -32,23 +32,26 @@ import com.musicstream.app.R
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    onSongClick: (Song) -> Unit = {},
+    playerViewModel: com.musicstream.app.presentation.player.PlayerViewModel = hiltViewModel(),
+    onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onTrendingSeeAllClick: () -> Unit = {},
     onRecentlyPlayedSeeAllClick: () -> Unit = {},
     onPlaylistClick: (Playlist) -> Unit = {},
     onDownloadsClick: () -> Unit = {},
-    onGoToArtist: (String) -> Unit = {}
+    onGoToArtist: (String) -> Unit = {},
+    onGoToPlayer: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val playerState by playerViewModel.uiState.collectAsStateWithLifecycle()
 
     HomeContent(
         state = state,
         isRefreshing = isRefreshing,
         onRefresh = { viewModel.refresh() },
-        onSongClick = onSongClick,
+        onPlaySongs = onPlaySongs,
         onNotificationClick = onNotificationClick,
         onProfileClick = onProfileClick,
         onTrendingSeeAllClick = onTrendingSeeAllClick,
@@ -61,7 +64,11 @@ fun HomeScreen(
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
         onToggleFavorite = { viewModel.toggleFavorite(it) },
         onDownloadSong = { viewModel.downloadSong(it) },
-        onGoToArtist = onGoToArtist
+        onGoToArtist = onGoToArtist,
+        currentPlayingSong = playerState.currentSong,
+        isPlaying = playerState.isPlaying,
+        onTogglePlayPause = { playerViewModel.togglePlayPause() },
+        onGoToPlayer = onGoToPlayer
     )
 }
 
@@ -71,7 +78,7 @@ fun HomeContent(
     state: HomeUiState,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
-    onSongClick: (Song) -> Unit = {},
+    onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onTrendingSeeAllClick: () -> Unit = {},
@@ -84,7 +91,11 @@ fun HomeContent(
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
     onToggleFavorite: (String) -> Unit = {},
     onDownloadSong: (Song) -> Unit = {},
-    onGoToArtist: (String) -> Unit = {}
+    onGoToArtist: (String) -> Unit = {},
+    currentPlayingSong: Song? = null,
+    isPlaying: Boolean = false,
+    onTogglePlayPause: () -> Unit = {},
+    onGoToPlayer: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
@@ -96,8 +107,7 @@ fun HomeContent(
 
     if (showDeleteAllDialog) {
         AlertDialog(
-            onDismissRequest = { 
-                showDeleteAllDialog = false 
+            onDismissRequest = {
             },
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
@@ -108,14 +118,13 @@ fun HomeContent(
                 TextButton(
                     onClick = {
                         onDeleteAllPlaylists()
-                        showDeleteAllDialog = false
                     }
                 ) {
                     Text("Delete All", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteAllDialog = false }) {
+                TextButton(onClick = { }) {
                     Text("Cancel")
                 }
             }
@@ -124,7 +133,7 @@ fun HomeContent(
 
     if (playlistToDelete != null) {
         AlertDialog(
-            onDismissRequest = { playlistToDelete = null },
+            onDismissRequest = { },
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -141,7 +150,7 @@ fun HomeContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { playlistToDelete = null }) {
+                TextButton(onClick = { }) {
                     Text("Cancel")
                 }
             }
@@ -150,7 +159,7 @@ fun HomeContent(
 
     if (showCreateDialog) {
         AlertDialog(
-            onDismissRequest = { showCreateDialog = false },
+            onDismissRequest = { },
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -173,7 +182,6 @@ fun HomeContent(
                         if (newPlaylistName.isNotBlank()) {
                             onCreatePlaylist(newPlaylistName)
                             newPlaylistName = ""
-                            showCreateDialog = false
                         }
                     }
                 ) {
@@ -181,7 +189,7 @@ fun HomeContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateDialog = false }) {
+                TextButton(onClick = { }) {
                     Text("Cancel")
                 }
             }
@@ -196,10 +204,8 @@ fun HomeContent(
                 selectedSongIdForPlaylist = null
             },
             onCreatePlaylistClick = {
-                showCreateDialog = true
             },
             onDismissRequest = {
-                selectedSongIdForPlaylist = null
             }
         )
     }
@@ -207,11 +213,10 @@ fun HomeContent(
     if (selectedSongForOptions != null) {
         SongOptionsBottomSheet(
             song = selectedSongForOptions,
-            onDismissRequest = { selectedSongForOptions = null },
+            onDismissRequest = { },
             onFavoriteClick = { onToggleFavorite(it) },
             onAddToPlaylistClick = { 
                 selectedSongIdForPlaylist = it
-                selectedSongForOptions = null
             },
             onDownloadClick = { onDownloadSong(it) },
             onShareClick = { /* Shared component already handles basic intent or could pass custom one */ },
@@ -316,11 +321,14 @@ fun HomeContent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            state.featuredSong?.let { featured ->
+            val displaySong = currentPlayingSong ?: state.featuredSong
+            displaySong?.let { song ->
                 FeaturedCard(
-                    song = featured,
-                    onClick = { onSongClick(featured) },
-                    onLongClick = { selectedSongForOptions = featured }
+                    song = song,
+                    onPlayClick = onTogglePlayPause,
+                    onCardClick = onGoToPlayer,
+                    onLongClick = { },
+                    isPlaying = isPlaying && (currentPlayingSong?.id == song.id)
                 )
             }
 
@@ -336,9 +344,12 @@ fun HomeContent(
             )
             TrendingRow(
                 songs = state.trendingSongs,
-                modifier = Modifier.offset(y = (-20).dp),
-                onSongClick = onSongClick,
-                onLongClick = { song -> selectedSongForOptions = song },
+                modifier = Modifier.offset(y = (-25).dp),
+                onSongClick = { song -> 
+                    val index = state.trendingSongs.indexOf(song)
+                    onPlaySongs(state.trendingSongs, index)
+                },
+                onLongClick = { _ -> },
                 downloadingSongs = state.downloadingSongs
             )
 
@@ -347,18 +358,19 @@ fun HomeContent(
             // Recently Played
             SectionHeader(
                 title = "Recently Played",
-                modifier = Modifier.offset(y = (-20).dp),
+                modifier = Modifier.offset(y = (-25).dp),
                 iconRes = R.drawable.clock_line_icon,
                 onSeeAllClick = { onRecentlyPlayedSeeAllClick() }
             )
             state.recentlyPlayed.take(5).forEach { song ->
+                val index = state.recentlyPlayed.indexOf(song)
                 SongListItem(
                     song = song,
-                    onSongClick = onSongClick,
+                    onSongClick = { onPlaySongs(state.recentlyPlayed, index) },
                     modifier = Modifier.offset(y = (-45).dp),
                     onFavoriteClick = { onToggleFavorite(it) },
                     onDownloadClick = { onDownloadSong(it) },
-                    onMoreClick = { selectedSongForOptions = it },
+                    onMoreClick = { },
                     onLongClick = { 
                         selectedSongIdForPlaylist = it.id
                     },

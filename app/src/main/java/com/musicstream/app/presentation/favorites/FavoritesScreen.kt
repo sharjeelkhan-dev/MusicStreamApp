@@ -25,7 +25,6 @@ import com.musicstream.app.ui.theme.*
 @Composable
 fun FavoritesScreen(
     viewModel: FavoritesViewModel = hiltViewModel(),
-    onSongClick: (Song) -> Unit = {},
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {}
 ) {
@@ -33,7 +32,6 @@ fun FavoritesScreen(
 
     FavoritesContent(
         state = state,
-        onSongClick = onSongClick,
         onPlaySongs = onPlaySongs,
         onBackClick = onBackClick,
         onFavoriteClick = { viewModel.toggleFavorite(it) },
@@ -48,7 +46,6 @@ fun FavoritesScreen(
 @Composable
 fun FavoritesContent(
     state: FavoritesUiState,
-    onSongClick: (Song) -> Unit = {},
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {},
     onFavoriteClick: (String) -> Unit = {},
@@ -63,7 +60,7 @@ fun FavoritesContent(
 
     if (showCreateDialog) {
         AlertDialog(
-            onDismissRequest = { showCreateDialog = false },
+            onDismissRequest = { },
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -89,7 +86,6 @@ fun FavoritesContent(
                         if (newPlaylistName.isNotBlank()) {
                             onCreatePlaylist(newPlaylistName)
                             newPlaylistName = ""
-                            showCreateDialog = false
                         }
                     }
                 ) {
@@ -97,7 +93,7 @@ fun FavoritesContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateDialog = false }) {
+                TextButton(onClick = { }) {
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -112,10 +108,8 @@ fun FavoritesContent(
                 selectedSongIdForPlaylist = null
             },
             onCreatePlaylistClick = {
-                showCreateDialog = true
             },
             onDismissRequest = {
-                selectedSongIdForPlaylist = null
             }
         )
     }

@@ -25,7 +25,7 @@ import androidx.compose.animation.core.tween
 
 @Composable
 fun MainApp(
-    isLoggedInParam: Boolean, // Name changed to avoid conflict
+    // Name changed to avoid conflict
     playerViewModel: PlayerViewModel = hiltViewModel(),
     mainViewModel: MainViewModel = hiltViewModel()
 ) {
@@ -39,30 +39,21 @@ fun MainApp(
     // Persistent color cache to avoid re-extraction
     val colorCache = remember { mutableStateMapOf<String, Color>() }
     
-    // Initial fallback color based on gradient index
-    val initialColor = remember(playerState.currentSong?.id) {
-        playerState.currentSong?.let { song ->
-            colorCache[song.id] ?: Color.Transparent
-        } ?: Color.Transparent
-    }
-    
-    // Dynamic color state
-    var extractedColor by remember { mutableStateOf<Color?>(null) }
-    
-    // Update extractedColor from cache if available
+    // The color we are currently displaying (and animating towards)
+    var activeColor by remember { mutableStateOf(AccentPurple) }
+
+    // Update activeColor from cache immediately when song changes
     LaunchedEffect(playerState.currentSong?.id) {
         val currentId = playerState.currentSong?.id
         if (currentId != null) {
-            extractedColor = colorCache[currentId]
-        } else {
-            extractedColor = null
+            colorCache[currentId]?.let { activeColor = it }
         }
     }
-    
+
     // Smooth color transition
     val songColor by animateColorAsState(
-        targetValue = extractedColor ?: initialColor,
-        animationSpec = tween(400),
+        targetValue = activeColor,
+        animationSpec = tween(500),
         label = "miniPlayerColor"
     )
     
@@ -90,11 +81,10 @@ fun MainApp(
                         if (color != null) {
                             val extracted = Color(color)
                             colorCache[song.id] = extracted
-                            extractedColor = extracted
                         }
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Fail gracefully
             }
         }

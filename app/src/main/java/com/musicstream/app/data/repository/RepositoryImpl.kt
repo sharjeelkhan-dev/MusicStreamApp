@@ -40,56 +40,55 @@ class MusicRepositoryImpl @Inject constructor(
     private val context: android.content.Context
 ) : MusicRepository {
 
-    override fun getFeaturedSong():
-            Flow<Song> = songDao.getAllSongs()
-                .combine(favoriteDao
-                    .getAllFavorites())
-                { songs, favorites ->
-        val favIds = favorites.map { it.songId }.toSet()
-        val featured = songs.firstOrNull()?.toDomain() ?: MockData.featuredSong
-        featured.copy(isFavorite = favIds.contains(featured.id))
-    }.onStart {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val response = musicApi.getTrendingSongs(limit = 1)
-                response.data?.results?.firstOrNull()?.let { saavnSong ->
-                    val remote = saavnSong.toDomain()
-                    val local = songDao.getSongById(remote.id)
-                    songDao.insertSong(remote.toEntity().copy(localPath = local?.localPath))
-                }
-            } catch (e: Exception) { e.printStackTrace() }
-        }
-    }
+    override fun getFeaturedSong(): Flow<Song> = 
+        songDao.getRecentlyPlayed()
+            .combine(favoriteDao.getAllFavorites()) { recentlyPlayed, favorites ->
+                val favIds = favorites.map { it.songId }.toSet()
+                val latest = recentlyPlayed.firstOrNull()?.toDomain() ?: MockData.featuredSong
+                latest.copy(isFavorite = favIds.contains(latest.id))
+            }
 
     override fun getTrendingSongs(): Flow<List<Song>> = flow {
+        val allFavs = favoriteDao.getAllFavorites().first().map { it.songId }.toSet()
+        val allLocal = songDao.getAllSongs().first()
+        val results = mutableListOf<Song>()
+
+        // 1. Try Saavn Trending (Global/Region specific charts)
         try {
-            // First try YouTube for REAL-TIME global trending music
-            val youtubeTrending = youTubeApi.getTrending()
-            val remoteResults = youtubeTrending.filter { it.type == "stream" }.map { it.toDomain() }
-            
-            if (remoteResults.isNotEmpty()) {
-                val favIds = favoriteDao.getAllFavorites().first().map { it.songId }.toSet()
-                emit(remoteResults.map { it.copy(isFavorite = favIds.contains(it.id)) })
-            } else {
-                throw Exception("YouTube trending empty")
-            }
+            val saavnResponse = musicApi.getTrendingSongs()
+            val saavnResults = saavnResponse.data?.results?.map { it.toDomain() } ?: emptyList()
+            results.addAll(saavnResults)
         } catch (e: Exception) {
             e.printStackTrace()
-            // Fallback to Saavn Trending (NOT all local songs)
-            try {
-                val response = musicApi.getTrendingSongs()
-                val saavnResults = response.data?.results?.map { it.toDomain() } ?: emptyList()
-                if (saavnResults.isNotEmpty()) {
-                    val favIds = favoriteDao.getAllFavorites().first().map { it.songId }.toSet()
-                    emit(saavnResults.map { it.copy(isFavorite = favIds.contains(it.id)) })
-                } else {
-                    emit(MockData.trendingSongs)
-                }
-            } catch (e2: Exception) {
-                emit(MockData.trendingSongs)
-            }
         }
-    }
+
+        // 2. Try YouTube Trending (Real-time viral hits)
+        try {
+            val ytTrending = youTubeApi.getTrending()
+            val ytResults = ytTrending.filter { it.type == "stream" }.map { it.toDomain() }
+            
+            val existingNames = results.map { "${it.title.lowercase()}${it.artist.lowercase()}" }.toSet()
+            val uniqueYtResults = ytResults.filter { 
+                "${it.title.lowercase()}${it.artist.lowercase()}" !in existingNames
+            }
+            results.addAll(uniqueYtResults)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        if (results.isNotEmpty()) {
+            val merged = results.map { remote ->
+                val local = allLocal.find { it.id == remote.id }
+                remote.copy(
+                    localPath = local?.localPath,
+                    isFavorite = allFavs.contains(remote.id)
+                )
+            }
+            emit(merged)
+        } else {
+            emit(MockData.trendingSongs)
+        }
+    }.flowOn(Dispatchers.IO)
 
     override fun getRecentlyPlayed(): Flow<List<Song>> = songDao.getRecentlyPlayed().combine(favoriteDao.getAllFavorites()) { entities, favorites ->
         val favIds = favorites.map { it.songId }.toSet()
@@ -120,42 +119,52 @@ class MusicRepositoryImpl @Inject constructor(
             return@flow
         }
         
+        val allFavs = favoriteDao.getAllFavorites().first().map { it.songId }.toSet()
+        val allLocal = songDao.getAllSongs().first()
+
+        val results = mutableListOf<Song>()
+        
+        // 1. Try Saavn first for high-quality official studio tracks
         try {
-            // First try YouTube catalog via Piped API
-            val response = youTubeApi.search(query)
-            val remoteResults = response.items?.filter { it.type == "stream" }?.map { it.toDomain() } ?: emptyList()
-            
-            if (remoteResults.isNotEmpty()) {
-                // Merge with local data
-                val allLocal = songDao.getAllSongs().first()
-                val allFavs = favoriteDao.getAllFavorites().first().map { it.songId }.toSet()
-                
-                val mergedResults = remoteResults.map { remote ->
-                    val local = allLocal.find { it.id == remote.id }
-                    remote.copy(
-                        localPath = local?.localPath,
-                        isFavorite = allFavs.contains(remote.id)
-                    )
-                }
-                emit(mergedResults)
-            } else {
-                // Fallback to Saavn if YouTube returns no results
-                val saavnResponse = musicApi.searchSongs(query)
-                val saavnResults = saavnResponse.data?.results?.map { it.toDomain() } ?: emptyList()
-                emit(saavnResults)
-            }
+            val saavnResponse = musicApi.searchSongs(query, limit = 15)
+            val saavnResults = saavnResponse.data?.results?.map { it.toDomain() } ?: emptyList()
+            results.addAll(saavnResults)
         } catch (e: Exception) {
             e.printStackTrace()
-            // Fallback to Saavn if YouTube fails
-            try {
-                val saavnResponse = musicApi.searchSongs(query)
-                val saavnResults = saavnResponse.data?.results?.map { it.toDomain() } ?: emptyList()
-                emit(saavnResults)
-            } catch (e2: Exception) {
-                emitAll(songDao.searchSongs(query).map { entities -> entities.map { it.toDomain() } })
-            }
         }
-    }
+
+        // 2. Try YouTube for everything else (covers, remixes, rare songs)
+        try {
+            val ytResponse = youTubeApi.search(query)
+            val ytResults = ytResponse.items?.filter { it.type == "stream" }?.map { it.toDomain() } ?: emptyList()
+            
+            // Avoid duplicates (simplified check by title + artist)
+            val existingNames = results.map { "${it.title.lowercase()}${it.artist.lowercase()}" }.toSet()
+            val uniqueYtResults = ytResults.filter { 
+                "${it.title.lowercase()}${it.artist.lowercase()}" !in existingNames
+            }
+            results.addAll(uniqueYtResults)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        if (results.isNotEmpty()) {
+            // Merge with local download status and favorites
+            val mergedResults = results.map { remote ->
+                val local = allLocal.find { it.id == remote.id }
+                remote.copy(
+                    localPath = local?.localPath,
+                    isFavorite = allFavs.contains(remote.id)
+                )
+            }
+            emit(mergedResults)
+        } else {
+            // Last resort: search local DB
+            emitAll(songDao.searchSongs(query).map { entities -> 
+                entities.map { it.toDomain().copy(isFavorite = allFavs.contains(it.id)) } 
+            })
+        }
+    }.flowOn(Dispatchers.IO)
 
     override fun getFavorites(): Flow<List<Song>> =
         favoriteDao.getAllFavorites()

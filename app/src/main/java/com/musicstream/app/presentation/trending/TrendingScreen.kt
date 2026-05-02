@@ -30,6 +30,7 @@ import com.musicstream.app.ui.theme.*
 fun TrendingScreen(
     viewModel: TrendingViewModel = hiltViewModel(),
     onSongClick: (Song) -> Unit = {},
+    onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -38,6 +39,7 @@ fun TrendingScreen(
         state = state,
         onRefresh = { viewModel.refresh() },
         onSongClick = onSongClick,
+        onPlaySongs = onPlaySongs,
         onBackClick = onBackClick,
         onFavoriteClick = { viewModel.toggleFavorite(it) },
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
@@ -52,6 +54,7 @@ fun TrendingContent(
     state: TrendingUiState,
     onRefresh: () -> Unit,
     onSongClick: (Song) -> Unit = {},
+    onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {},
     onFavoriteClick: (String) -> Unit = {},
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
@@ -172,9 +175,10 @@ fun TrendingContent(
                 contentPadding = PaddingValues(bottom = 160.dp) // Space for bottom nav bleed
             ) {
                 items(state.songs) { song ->
+                    val index = state.songs.indexOf(song)
                     SongListItem(
                         song = song,
-                        onSongClick = onSongClick,
+                        onSongClick = { onPlaySongs(state.songs, index) },
                         onFavoriteClick = onFavoriteClick,
                         onMoreClick = { selectedSongIdForPlaylist = it.id },
                         downloadProgress = state.downloadingSongs[song.id]

@@ -2,7 +2,7 @@ package com.musicstream.app.presentation.library
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -26,14 +26,14 @@ import com.musicstream.app.ui.theme.*
 @Composable
 fun DownloadsScreen(
     viewModel: DownloadsViewModel = hiltViewModel(),
-    onSongClick: (Song) -> Unit = {},
+    onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     DownloadsContent(
         state = state,
-        onSongClick = onSongClick,
+        onPlaySongs = onPlaySongs,
         onBackClick = onBackClick,
         onFavoriteClick = { viewModel.toggleFavorite(it) },
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
@@ -47,7 +47,7 @@ fun DownloadsScreen(
 @Composable
 fun DownloadsContent(
     state: DownloadsUiState,
-    onSongClick: (Song) -> Unit = {},
+    onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {},
     onFavoriteClick: (String) -> Unit = {},
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
@@ -62,7 +62,7 @@ fun DownloadsContent(
 
     if (showCreateDialog) {
         AlertDialog(
-            onDismissRequest = { showCreateDialog = false },
+            onDismissRequest = { },
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -88,7 +88,6 @@ fun DownloadsContent(
                         if (newPlaylistName.isNotBlank()) {
                             onCreatePlaylist(newPlaylistName)
                             newPlaylistName = ""
-                            showCreateDialog = false
                         }
                     }
                 ) {
@@ -96,7 +95,7 @@ fun DownloadsContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateDialog = false }) {
+                TextButton(onClick = { }) {
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -111,10 +110,8 @@ fun DownloadsContent(
                 selectedSongIdForPlaylist = null
             },
             onCreatePlaylistClick = {
-                showCreateDialog = true
             },
             onDismissRequest = {
-                selectedSongIdForPlaylist = null
             }
         )
     }
@@ -122,16 +119,14 @@ fun DownloadsContent(
     if (selectedSongForOptions != null) {
         SongOptionsBottomSheet(
             song = selectedSongForOptions,
-            onDismissRequest = { selectedSongForOptions = null },
+            onDismissRequest = { },
             onFavoriteClick = { onFavoriteClick(it) },
             onAddToPlaylistClick = { 
                 selectedSongIdForPlaylist = it
-                selectedSongForOptions = null
             },
             onDownloadClick = { /* Already downloaded */ },
             onDeleteDownloadClick = {
                 onDeleteDownload(it)
-                selectedSongForOptions = null
             }
         )
     }
@@ -194,6 +189,8 @@ fun DownloadsContent(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 160.dp)
                 ) {
+                    val allSongs = state.downloadingSongsList + state.songs
+
                     // Active Downloads
                     if (state.downloadingSongsList.isNotEmpty()) {
                         item {
@@ -204,12 +201,12 @@ fun DownloadsContent(
                                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
                             )
                         }
-                        items(state.downloadingSongsList) { song ->
+                        itemsIndexed(state.downloadingSongsList) { index, song ->
                             SongListItem(
                                 song = song,
-                                onSongClick = onSongClick,
+                                onSongClick = { onPlaySongs(allSongs, index) },
                                 onFavoriteClick = { onFavoriteClick(song.id) },
-                                onMoreClick = { selectedSongForOptions = it },
+                                onMoreClick = { },
                                 downloadProgress = state.downloadingSongs[song.id]
                             )
                         }
@@ -222,12 +219,13 @@ fun DownloadsContent(
                     }
 
                     // Completed Downloads
-                    items(state.songs) { song ->
+                    itemsIndexed(state.songs) { index, song ->
+                        val actualIndex = state.downloadingSongsList.size + index
                         SongListItem(
                             song = song,
-                            onSongClick = onSongClick,
+                            onSongClick = { onPlaySongs(allSongs, actualIndex) },
                             onFavoriteClick = { onFavoriteClick(song.id) },
-                            onMoreClick = { selectedSongForOptions = it },
+                            onMoreClick = { },
                             downloadProgress = state.downloadingSongs[song.id]
                         )
                     }

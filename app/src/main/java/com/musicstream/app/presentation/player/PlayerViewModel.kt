@@ -71,7 +71,41 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun setupPlayerListener() {
+        // Sync initial state if already playing
+        mediaController?.let { controller ->
+            val currentIndex = controller.currentMediaItemIndex
+            val queue = _uiState.value.queue
+            if (currentIndex >= 0 && currentIndex < queue.size) {
+                val currentSong = queue[currentIndex]
+                _uiState.update { it.copy(
+                    currentSong = currentSong,
+                    currentIndex = currentIndex,
+                    isPlaying = controller.isPlaying,
+                    duration = if (controller.duration > 0) controller.duration else currentSong.duration,
+                    currentPosition = controller.currentPosition
+                ) }
+            }
+        }
+
         mediaController?.addListener(object : Player.Listener {
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                val newIndex = mediaController?.currentMediaItemIndex ?: return
+                val queue = _uiState.value.queue
+                if (newIndex in queue.indices) {
+                    val nextSong = queue[newIndex]
+                    _uiState.update { it.copy(
+                        currentSong = nextSong,
+                        currentIndex = newIndex,
+                        duration = if (nextSong.duration > 0) nextSong.duration else it.duration,
+                        currentPosition = 0L,
+                        progress = 0f
+                    ) }
+                    viewModelScope.launch {
+                        musicRepository.addToRecentlyPlayed(nextSong)
+                    }
+                }
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _uiState.update { it.copy(isPlaying = isPlaying) }
                 if (isPlaying) {

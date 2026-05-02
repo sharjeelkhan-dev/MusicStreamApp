@@ -64,10 +64,9 @@ fun ProfileScreen(
     if (showEditProfileDialog && state.user != null) {
         EditProfileDialog(
             user = state.user!!,
-            onDismiss = { showEditProfileDialog = false },
+            onDismiss = { },
             onSave = { name, email, avatarUrl, bannerUrl ->
                 viewModel.updateProfile(name, email, avatarUrl, bannerUrl)
-                showEditProfileDialog = false
                 android.widget.Toast.makeText(context, "Profile updated", android.widget.Toast.LENGTH_SHORT).show()
             }
         )
@@ -80,10 +79,9 @@ fun ProfileScreen(
             selectedOption = state.audioQuality,
             onOptionSelected = {
                 viewModel.setAudioQuality(it)
-                showAudioQualityDialog = false
                 android.widget.Toast.makeText(context, "Audio quality set to $it", android.widget.Toast.LENGTH_SHORT).show()
             },
-            onDismiss = { showAudioQualityDialog = false }
+            onDismiss = { }
         )
     }
 
@@ -94,10 +92,9 @@ fun ProfileScreen(
             selectedOption = state.theme,
             onOptionSelected = {
                 viewModel.setTheme(it)
-                showThemeDialog = false
                 android.widget.Toast.makeText(context, "Theme set to $it", android.widget.Toast.LENGTH_SHORT).show()
             },
-            onDismiss = { showThemeDialog = false }
+            onDismiss = { }
         )
     }
 
@@ -108,10 +105,9 @@ fun ProfileScreen(
             selectedOption = state.language,
             onOptionSelected = {
                 viewModel.setLanguage(it)
-                showLanguageDialog = false
                 android.widget.Toast.makeText(context, "Language set to $it", android.widget.Toast.LENGTH_SHORT).show()
             },
-            onDismiss = { showLanguageDialog = false }
+            onDismiss = { }
         )
     }
 
@@ -122,10 +118,9 @@ fun ProfileScreen(
             selectedOption = state.equalizer,
             onOptionSelected = {
                 viewModel.setEqualizerPreset(it)
-                showEqualizerDialog = false
                 android.widget.Toast.makeText(context, "Equalizer set to $it", android.widget.Toast.LENGTH_SHORT).show()
             },
-            onDismiss = { showEqualizerDialog = false }
+            onDismiss = { }
         )
     }
 }

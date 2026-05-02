@@ -1,6 +1,6 @@
 package com.musicstream.app.presentation.components
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,7 +16,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
-import com.musicstream.app.R
 import com.musicstream.app.ui.theme.AccentPurple
 
 @Composable
@@ -25,7 +24,7 @@ fun SectionHeader(
     emoji: String = "",
     iconRes: Int? = null,
     onSeeAllClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier.offset(y = (-23).dp)

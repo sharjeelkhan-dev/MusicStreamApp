@@ -36,10 +36,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import coil.ImageLoader
-import androidx.palette.graphics.Palette
-import androidx.core.graphics.drawable.toBitmap
 import com.musicstream.app.domain.model.Song
 import com.musicstream.app.ui.theme.*
 import com.musicstream.app.R
@@ -206,6 +202,7 @@ fun QueueList(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerContent(
     state: PlayerUiState,
@@ -233,7 +230,7 @@ fun PlayerContent(
 
     if (showPlaylistDialog) {
         AlertDialog(
-            onDismissRequest = { showPlaylistDialog = false },
+            onDismissRequest = { },
             title = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 LazyColumn {
@@ -242,7 +239,6 @@ fun PlayerContent(
                             headlineContent = { Text(playlist.name, color = MaterialTheme.colorScheme.onSurface) },
                             modifier = Modifier.clickable {
                                 state.currentSong?.id?.let { onAddToPlaylist(playlist.id, it) }
-                                showPlaylistDialog = false
                             },
                             leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, tint = MaterialTheme.colorScheme.onSurface) },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
@@ -251,7 +247,7 @@ fun PlayerContent(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showPlaylistDialog = false }) {
+                TextButton(onClick = { }) {
                     Text("Cancel", color = MaterialTheme.colorScheme.primary)
                 }
             },
@@ -261,7 +257,7 @@ fun PlayerContent(
 
     if (showSleepTimerDialog) {
         AlertDialog(
-            onDismissRequest = { showSleepTimerDialog = false },
+            onDismissRequest = { },
             title = { Text("Sleep Timer", color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Column {
@@ -278,7 +274,6 @@ fun PlayerContent(
                             headlineContent = { Text(label, color = MaterialTheme.colorScheme.onSurface) },
                             modifier = Modifier.clickable {
                                 onSetSleepTimer(minutes)
-                                showSleepTimerDialog = false
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                         )
@@ -286,7 +281,7 @@ fun PlayerContent(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSleepTimerDialog = false }) {
+                TextButton(onClick = { }) {
                     Text("Cancel", color = MaterialTheme.colorScheme.primary)
                 }
             },
@@ -376,7 +371,6 @@ fun PlayerContent(
                                 color = MaterialTheme.colorScheme.onSurface) },
                             onClick = { 
                                 showMoreMenu = false
-                                showPlaylistDialog = true
                             },
                             leadingIcon =
                                 { Icon(Icons
@@ -390,7 +384,6 @@ fun PlayerContent(
                             text = { Text("Sleep Timer", color = MaterialTheme.colorScheme.onSurface) },
                             onClick = { 
                                 showMoreMenu = false
-                                showSleepTimerDialog = true
                             },
                             leadingIcon = { Icon(Icons
                                 .Default.Timer,
@@ -519,70 +512,54 @@ fun PlayerContent(
 
             // Seek Bar
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Seek Bar
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    // Custom track background
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(CircleShape)
-                            .background(onBackgroundColor.copy(alpha = 0.1f))
-                    )
-                    
-                    // Custom active track
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(state.progress)
-                            .height(6.dp)
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(songColor.copy(alpha = 0.7f), songColor)
-                                )
-                            )
-                    )
-
-                    Slider(
-                        value = state.progress,
-                        onValueChange = { onSeekTo(it) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color.Transparent,
-                            activeTrackColor = Color.Transparent,
-                            inactiveTrackColor = Color.Transparent
-                        )
-                    )
-
-                    // Custom Stylish Thumb
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(state.progress)
-                            .height(48.dp),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
+                Slider(
+                    value = state.progress,
+                    onValueChange = { onSeekTo(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    thumb = {
                         Box(
                             modifier = Modifier
-                                .offset(x = 10.dp) // Center the thumb on the progress point
-                                .size(20.dp, 20.dp)
-                                .clip(CircleShape)
-                                .background(if (isSystemInDarkTheme()) Color.White else Color.Black)
+                                .size(20.dp)
+                                .background(if (isSystemInDarkTheme()) Color.White else Color.Black, CircleShape)
                                 .padding(4.dp)
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clip(CircleShape)
-                                    .background(songColor)
+                                    .background(songColor, CircleShape)
+                            )
+                        }
+                    },
+                    track = { _ ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            // Inactive track background
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .background(onBackgroundColor.copy(alpha = 0.1f), CircleShape)
+                            )
+                            
+                            // Active track with gradient
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(state.progress)
+                                    .height(6.dp)
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(songColor.copy(alpha = 0.7f), songColor)
+                                        ),
+                                        shape = CircleShape
+                                    )
                             )
                         }
                     }
-                }
+                )
                 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

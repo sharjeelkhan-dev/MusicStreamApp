@@ -38,7 +38,6 @@ import com.musicstream.app.ui.theme.Gradients
 fun PlaylistScreen(
     viewModel: PlaylistViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
-    onSongClick: (Song) -> Unit,
     onPlaySongs: (List<Song>, Int) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -46,7 +45,6 @@ fun PlaylistScreen(
     PlaylistScreenContent(
         state = state,
         onBackClick = onBackClick,
-        onSongClick = onSongClick,
         onPlaySongs = onPlaySongs,
         onToggleFavorite = { viewModel.toggleFavorite(it) },
     ) { viewModel.downloadSong(it) }
@@ -56,7 +54,6 @@ fun PlaylistScreen(
 fun PlaylistScreenContent(
     state: PlaylistUiState,
     onBackClick: () -> Unit,
-    onSongClick: (Song) -> Unit,
     onPlaySongs: (List<Song>, Int) -> Unit,
     onToggleFavorite: (String) -> Unit,
     onDownloadSong: (Song) -> Unit
@@ -73,7 +70,7 @@ fun PlaylistScreenContent(
                 playlist = playlist,
                 songs = state.songs,
                 onBackClick = onBackClick,
-                onSongClick = onSongClick,
+                onPlaySongs = onPlaySongs,
                 onPlayAllClick = {
                     if (state.songs.isNotEmpty()) {
                         onPlaySongs(state.songs, 0)
@@ -98,8 +95,7 @@ fun PlaylistScreenContent(
     if (selectedSongForOptions != null) {
         SongOptionsBottomSheet(
             song = selectedSongForOptions,
-            onDismissRequest = { 
-                selectedSongForOptions = null 
+            onDismissRequest = {
             },
             onFavoriteClick = onToggleFavorite,
             onAddToPlaylistClick = { /* Already in a playlist, but could add to others */ },
@@ -116,7 +112,7 @@ private fun PlaylistDetailView(
     playlist: Playlist,
     songs: List<Song>,
     onBackClick: () -> Unit,
-    onSongClick: (Song) -> Unit,
+    onPlaySongs: (List<Song>, Int) -> Unit,
     onPlayAllClick: () -> Unit,
     onShuffleClick: () -> Unit,
     onFavoriteClick: (String) -> Unit,
@@ -259,10 +255,10 @@ private fun PlaylistDetailView(
                     Text(text = "No songs in this playlist", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
-                songs.forEach { song ->
+                songs.forEachIndexed { index, song ->
                     SongListItem(
                         song = song,
-                        onSongClick = onSongClick,
+                        onSongClick = { onPlaySongs(songs, index) },
                         onFavoriteClick = onFavoriteClick,
                         onMoreClick = { onMoreClick(song) },
                         downloadProgress = downloadingSongs[song.id]
@@ -284,7 +280,6 @@ fun PlaylistScreenPreview() {
                 isLoading = false
             ),
             onBackClick = {},
-            onSongClick = {},
             onPlaySongs = { _, _ -> },
             onToggleFavorite = {},
             onDownloadSong = {}

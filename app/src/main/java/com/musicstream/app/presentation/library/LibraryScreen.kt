@@ -1,21 +1,55 @@
 package com.musicstream.app.presentation.library
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.RemoveCircleOutline
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,25 +57,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.tooling.preview.Preview
-import coil.compose.AsyncImage
+import com.musicstream.app.R
+import com.musicstream.app.data.MockData
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
-import com.musicstream.app.data.MockData
 import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
 import com.musicstream.app.presentation.components.SongListItem
 import com.musicstream.app.presentation.components.SongOptionsBottomSheet
-import com.musicstream.app.ui.theme.*
-import com.musicstream.app.R
+import com.musicstream.app.ui.theme.AccentPurple
+import com.musicstream.app.ui.theme.FavoriteRed
+import com.musicstream.app.ui.theme.Gradients
+import com.musicstream.app.ui.theme.MusicStreamTheme
 
 @Composable
 fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
-    onSongClick: (Song) -> Unit = {},
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onPlaylistClick: (Playlist) -> Unit = {},
     onGoToArtist: (String) -> Unit = {}
@@ -59,7 +94,6 @@ fun LibraryScreen(
         onDownloadSong = viewModel::downloadSong,
         onDeleteDownload = viewModel::deleteDownload,
         addSongToPlaylist = viewModel::addSongToPlaylist,
-        onSongClick = onSongClick,
         onPlaySongs = onPlaySongs,
         onGoToArtist = onGoToArtist,
         onRefresh = viewModel::refresh
@@ -79,7 +113,6 @@ fun LibraryContent(
     onDownloadSong: (Song) -> Unit,
     onDeleteDownload: (String) -> Unit,
     addSongToPlaylist: (String, String) -> Unit,
-    onSongClick: (Song) -> Unit,
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onGoToArtist: (String) -> Unit = {},
     onRefresh: () -> Unit = {}
@@ -94,7 +127,7 @@ fun LibraryContent(
 
     if (playlistToDelete != null) {
         AlertDialog(
-            onDismissRequest = { playlistToDelete = null },
+            onDismissRequest = { },
             containerColor = MaterialTheme.colorScheme.surface,
             icon = {
                 Icon(
@@ -135,7 +168,7 @@ fun LibraryContent(
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = { playlistToDelete = null },
+                    onClick = { },
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                 ) {
@@ -148,7 +181,7 @@ fun LibraryContent(
 
     if (songToRemoveFromPlaylist != null) {
         AlertDialog(
-            onDismissRequest = { songToRemoveFromPlaylist = null },
+            onDismissRequest = { },
             containerColor = MaterialTheme.colorScheme.surface,
             icon = {
                 Icon(
@@ -189,7 +222,7 @@ fun LibraryContent(
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = { songToRemoveFromPlaylist = null },
+                    onClick = { },
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                 ) {
@@ -211,7 +244,6 @@ fun LibraryContent(
                 showCreateDialog = true
             },
             onDismissRequest = {
-                selectedSongIdForPlaylist = null
             }
         )
     }
@@ -219,7 +251,7 @@ fun LibraryContent(
     if (selectedSongForOptions != null) {
         SongOptionsBottomSheet(
             song = selectedSongForOptions,
-            onDismissRequest = { selectedSongForOptions = null },
+            onDismissRequest = { },
             onFavoriteClick = { onToggleFavorite(selectedSongForOptions!!.id) },
             onAddToPlaylistClick = { 
                 selectedSongIdForPlaylist = selectedSongForOptions!!.id
@@ -228,7 +260,6 @@ fun LibraryContent(
             onDownloadClick = { onDownloadSong(selectedSongForOptions!!) },
             onDeleteDownloadClick = {
                 onDeleteDownload(it)
-                selectedSongForOptions = null
             },
             onRemoveFromPlaylistClick = if (state.selectedPlaylist != null) {
                 { song ->
@@ -243,7 +274,7 @@ fun LibraryContent(
 
     if (showCreateDialog) {
         AlertDialog(
-            onDismissRequest = { showCreateDialog = false },
+            onDismissRequest = { },
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -271,7 +302,6 @@ fun LibraryContent(
                         if (newPlaylistName.isNotBlank()) {
                             onCreatePlaylist(newPlaylistName)
                             newPlaylistName = ""
-                            showCreateDialog = false
                         }
                     }
                 ) {
@@ -279,7 +309,7 @@ fun LibraryContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateDialog = false }) {
+                TextButton(onClick = { }) {
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -371,9 +401,10 @@ fun LibraryContent(
                         )
                         
                         downloadingSongsList.forEach { song ->
+                            val index = downloadingSongsList.indexOf(song)
                             SongListItem(
                                 song = song,
-                                onSongClick = onSongClick,
+                                onSongClick = { onPlaySongs(downloadingSongsList, index) },
                                 onFavoriteClick = { onToggleFavorite(song.id) },
                                 onDownloadClick = { onDownloadSong(it) },
                                 onMoreClick = { selectedSongForOptions = it },
@@ -392,7 +423,7 @@ fun LibraryContent(
                 when (state.selectedTab) {
                     LibraryTab.Playlists -> {
                         // Create Playlist Card
-                        CreatePlaylistCard(onClick = { showCreateDialog = true })
+                        CreatePlaylistCard(onClick = { })
 
                         Spacer(modifier = Modifier.height(12.dp))
                         
@@ -420,9 +451,10 @@ fun LibraryContent(
                             EmptyState("No songs found", "Try searching for some music")
                         } else {
                             state.songs.forEach { song ->
+                                val index = state.songs.indexOf(song)
                                 SongListItem(
                                     song = song,
-                                    onSongClick = onSongClick,
+                                    onSongClick = { onPlaySongs(state.songs, index) },
                                     onFavoriteClick = { onToggleFavorite(song.id) },
                                     onDownloadClick = { onDownloadSong(it) },
                                     onMoreClick = { selectedSongForOptions = it },
@@ -446,9 +478,10 @@ fun LibraryContent(
                                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
                             )
                             allDownloads.forEach { song ->
+                                val index = allDownloads.indexOf(song)
                                 SongListItem(
                                     song = song,
-                                    onSongClick = onSongClick,
+                                    onSongClick = { onPlaySongs(allDownloads, index) },
                                     onFavoriteClick = { onToggleFavorite(song.id) },
                                     onMoreClick = { selectedSongForOptions = it },
                                     downloadProgress = state.downloadingSongs[song.id]
@@ -663,7 +696,6 @@ fun LibraryScreenPlaylistsPreview() {
             onDownloadSong = {},
             addSongToPlaylist = { _, _ -> },
             onDeleteDownload = {},
-            onSongClick = {},
             onRefresh = {}
         )
     }
@@ -688,7 +720,6 @@ fun LibraryScreenSongsPreview() {
             onDownloadSong = {},
             addSongToPlaylist = { _, _ -> },
             onDeleteDownload = {},
-            onSongClick = {},
             onRefresh = {}
         )
     }
@@ -714,7 +745,6 @@ fun LibraryScreenDownloadsPreview() {
             onDownloadSong = {},
             addSongToPlaylist = { _, _ -> },
             onDeleteDownload = {},
-            onSongClick = {},
             onRefresh = {}
         )
     }

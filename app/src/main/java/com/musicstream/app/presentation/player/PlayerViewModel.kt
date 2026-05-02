@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import androidx.core.net.toUri
 
 data class PlayerUiState(
     val currentSong: Song? = null,
@@ -43,7 +44,7 @@ enum class RepeatMode { OFF, ONE, ALL }
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val musicRepository: MusicRepository,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -187,14 +188,14 @@ class PlayerViewModel @Inject constructor(
                     .setTitle(song.title)
                     .setArtist(song.artist)
                     .setDisplayTitle(song.title)
-                    .setArtworkUri(android.net.Uri.parse(song.coverUrl))
+                    .setArtworkUri(song.coverUrl.toUri())
                     .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
                     .setIsBrowsable(false)
                     .setIsPlayable(true)
                     .build()
                 
-                val uri = if (!song.localPath.isNullOrEmpty() && java.io.File(song.localPath!!).exists()) {
-                    android.net.Uri.fromFile(java.io.File(song.localPath!!)).toString()
+                val uri = if (!song.localPath.isNullOrEmpty() && java.io.File(song.localPath).exists()) {
+                    android.net.Uri.fromFile(java.io.File(song.localPath)).toString()
                 } else {
                     song.streamUrl
                 }
@@ -235,10 +236,10 @@ class PlayerViewModel @Inject constructor(
                 isFavorite = song.isFavorite
             ) ?: song
 
-            val localFileExists = !latestSong.localPath.isNullOrEmpty() && java.io.File(latestSong.localPath!!).exists()
+            val localFileExists = !latestSong.localPath.isNullOrEmpty() && java.io.File(latestSong.localPath).exists()
             
             val mediaUri = if (localFileExists) {
-                android.net.Uri.fromFile(java.io.File(latestSong.localPath!!)).toString()
+                android.net.Uri.fromFile(java.io.File(latestSong.localPath)).toString()
             } else {
                 latestSong.streamUrl
             }
@@ -284,14 +285,14 @@ class PlayerViewModel @Inject constructor(
                         .setTitle(qSong.title)
                         .setArtist(qSong.artist)
                         .setDisplayTitle(qSong.title)
-                        .setArtworkUri(android.net.Uri.parse(qSong.coverUrl))
+                        .setArtworkUri(qSong.coverUrl.toUri())
                         .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
                         .setIsBrowsable(false)
                         .setIsPlayable(true)
                         .build()
                     
-                    val qUri = if (!qSong.localPath.isNullOrEmpty() && java.io.File(qSong.localPath!!).exists()) {
-                        android.net.Uri.fromFile(java.io.File(qSong.localPath!!)).toString()
+                    val qUri = if (!qSong.localPath.isNullOrEmpty() && java.io.File(qSong.localPath).exists()) {
+                        android.net.Uri.fromFile(java.io.File(qSong.localPath)).toString()
                     } else {
                         qSong.streamUrl
                     }
@@ -320,7 +321,7 @@ class PlayerViewModel @Inject constructor(
         val metadata = androidx.media3.common.MediaMetadata.Builder()
             .setTitle(song.title)
             .setArtist(song.artist)
-            .setArtworkUri(android.net.Uri.parse(song.coverUrl))
+            .setArtworkUri(song.coverUrl.toUri())
             .build()
 
         val mediaItem = MediaItem.Builder()
@@ -333,30 +334,6 @@ class PlayerViewModel @Inject constructor(
         mediaController?.setMediaItem(mediaItem)
         mediaController?.prepare()
         mediaController?.play()
-    }
-
-    fun playSongById(songId: String) {
-        if (_uiState.value.currentSong?.id == songId) {
-            mediaController?.seekTo(0)
-            if (mediaController?.playbackState == Player.STATE_ENDED) {
-                mediaController?.prepare()
-            }
-            mediaController?.play()
-            _uiState.update { it.copy(isPlaying = true, currentPosition = 0) }
-            return
-        }
-        viewModelScope.launch {
-            val queue = _uiState.value.queue
-            val index = queue.indexOfFirst { it.id == songId }
-            
-            val songToPlay = if (index >= 0) {
-                queue[index]
-            } else {
-                musicRepository.getSongById(songId).firstOrNull()
-            }
-
-            songToPlay?.let { playSong(it) }
-        }
     }
 
     fun togglePlayPause() {

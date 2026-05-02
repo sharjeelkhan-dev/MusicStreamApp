@@ -29,7 +29,6 @@ import com.musicstream.app.ui.theme.*
 @Composable
 fun TrendingScreen(
     viewModel: TrendingViewModel = hiltViewModel(),
-    onSongClick: (Song) -> Unit = {},
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {}
 ) {
@@ -38,13 +37,11 @@ fun TrendingScreen(
     TrendingContent(
         state = state,
         onRefresh = { viewModel.refresh() },
-        onSongClick = onSongClick,
         onPlaySongs = onPlaySongs,
         onBackClick = onBackClick,
         onFavoriteClick = { viewModel.toggleFavorite(it) },
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
-        onCreatePlaylist = { viewModel.createPlaylist(it) },
-        onDownloadSong = { viewModel.downloadSong(it) }
+        onCreatePlaylist = { viewModel.createPlaylist(it) }
     )
 }
 
@@ -53,13 +50,11 @@ fun TrendingScreen(
 fun TrendingContent(
     state: TrendingUiState,
     onRefresh: () -> Unit,
-    onSongClick: (Song) -> Unit = {},
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {},
     onFavoriteClick: (String) -> Unit = {},
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
-    onCreatePlaylist: (String) -> Unit = {},
-    onDownloadSong: (Song) -> Unit = {}
+    onCreatePlaylist: (String) -> Unit = {}
 ) {
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -67,7 +62,7 @@ fun TrendingContent(
 
     if (showCreateDialog) {
         AlertDialog(
-            onDismissRequest = { showCreateDialog = false },
+            onDismissRequest = { },
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -93,7 +88,6 @@ fun TrendingContent(
                         if (newPlaylistName.isNotBlank()) {
                             onCreatePlaylist(newPlaylistName)
                             newPlaylistName = ""
-                            showCreateDialog = false
                         }
                     }
                 ) {
@@ -101,7 +95,7 @@ fun TrendingContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateDialog = false }) {
+                TextButton(onClick = { }) {
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -116,10 +110,8 @@ fun TrendingContent(
                 selectedSongIdForPlaylist = null
             },
             onCreatePlaylistClick = {
-                showCreateDialog = true
             },
             onDismissRequest = {
-                selectedSongIdForPlaylist = null
             }
         )
     }
@@ -199,7 +191,6 @@ fun TrendingScreenPreview() {
                 playlists = MockData.playlists
             ),
             onRefresh = {},
-            onSongClick = {},
             onBackClick = {}
         )
     }

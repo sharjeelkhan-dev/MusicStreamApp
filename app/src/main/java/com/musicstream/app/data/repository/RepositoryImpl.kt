@@ -27,6 +27,8 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.collections.emptyList
+import androidx.core.net.toUri
+
 @Singleton
 class MusicRepositoryImpl @Inject constructor(
     private val songDao: SongDao,
@@ -35,8 +37,7 @@ class MusicRepositoryImpl @Inject constructor(
     private val musicApi: MusicApi,
     private val youTubeApi: YouTubeApi,
     private val okHttpClient: okhttp3.OkHttpClient,
-    private val settingsRepository: SettingsRepository,
-    @dagger.hilt.android.qualifiers.ApplicationContext
+    @param:dagger.hilt.android.qualifiers.ApplicationContext
     private val context: android.content.Context
 ) : MusicRepository {
 
@@ -198,7 +199,7 @@ class MusicRepositoryImpl @Inject constructor(
                 } else {
                     emit(localSong)
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 emit(localSong)
             }
         } else {
@@ -275,15 +276,7 @@ class MusicRepositoryImpl @Inject constructor(
             emit(DownloadProgress.Progress(0))
             
             // Get user's preferred audio quality
-            val quality = settingsRepository.getAudioQuality().first()
-            val qualityBitrate = when (quality) {
-                "Low" -> "12kbps"
-                "Normal" -> "48kbps"
-                "High (320kbps)" -> "320kbps"
-                "Ultra (Hi-Fi)" -> "320kbps" // Saavn API usually maxes at 320kbps
-                else -> "320kbps"
-            }
-            
+
             // Try to find the URL for the selected quality if available in the DTO or meta
             // For now we use streamUrl which is already set to 320kbps in mapping if available
             // In a real app we might need to re-fetch or use a different property
@@ -382,7 +375,7 @@ class MusicRepositoryImpl @Inject constructor(
         playCount = playCount
     )
 
-    private fun com.musicstream.app.data.local.entity.PlaylistEntity.toDomain() = Playlist(
+    private fun PlaylistEntity.toDomain() = Playlist(
         id = id,
         name = name,
         songCount = songCount,
@@ -405,11 +398,10 @@ class MusicRepositoryImpl @Inject constructor(
 
 @Singleton
 class UserRepositoryImpl @Inject constructor(
-    private val songDao: SongDao,
     private val playlistDao: PlaylistDao,
     private val favoriteDao: FavoriteDao,
     private val dataStore: DataStore<Preferences>,
-    @dagger.hilt.android.qualifiers.ApplicationContext
+    @param:dagger.hilt.android.qualifiers.ApplicationContext
     private val context: android.content.Context // Context added for file saving
 ) : UserRepository {
 
@@ -495,7 +487,7 @@ class UserRepositoryImpl @Inject constructor(
     // Helper function to save image permanently
     private fun saveImageToInternal(uriString: String, fileName: String): String {
         return try {
-            val uri = android.net.Uri.parse(uriString)
+            val uri = uriString.toUri()
             val inputStream = context.contentResolver.openInputStream(uri)
             val file = java.io.File(context.filesDir, fileName)
 

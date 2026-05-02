@@ -73,7 +73,6 @@ fun NavGraph(
         }
         composable(Screen.Trending.route) {
             TrendingScreen(
-                onSongClick = onSongClick,
                 onPlaySongs = onPlaySongs,
                 onBackClick = { navController.popBackStack() }
             )

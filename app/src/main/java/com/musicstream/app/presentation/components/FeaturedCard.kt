@@ -1,4 +1,5 @@
 package com.musicstream.app.presentation.components
+import android.annotation.SuppressLint
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -35,7 +36,7 @@ fun FeaturedCard(
     onPlayClick: () -> Unit,
     onCardClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
-    modifier: Modifier = Modifier,
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
     isPlaying: Boolean = false
 ) {
     Card(

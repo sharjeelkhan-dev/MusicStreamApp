@@ -53,7 +53,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel: MainViewModel = hiltViewModel()
             val themeSetting by viewModel.theme.collectAsState()
-            val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
             val isDarkTheme = when (themeSetting) {
                 "Dark Mode" -> true

@@ -24,13 +24,17 @@ fun SectionHeader(
     emoji: String = "",
     iconRes: Int? = null,
     onSeeAllClick: (() -> Unit)? = null,
-    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier.offset(y = (-23).dp)
             .fillMaxWidth()
-            .padding(start = 24.dp, end = 12.dp,
-                top = 5.dp, bottom = 5.dp),
+            .padding(
+                start = 24.dp,
+                end = 12.dp,
+                top = 5.dp,
+                bottom = 5.dp,
+            ),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -39,7 +43,11 @@ fun SectionHeader(
                 Icon(
                     painter = painterResource(id = iconRes),
                     contentDescription = null,
-                    tint = if (title == "Trending") Color(0xFFFF5722) else AccentPurple,
+                    tint = when (title) {
+                        "Trending" -> Color(0xFFFF5722)
+                        "Recently Played" -> MaterialTheme.colorScheme.onBackground
+                        else -> AccentPurple
+                    },
                     modifier = Modifier.padding(end = 10.dp).size(22.dp)
                 )
             } else if (emoji.isNotEmpty()) {

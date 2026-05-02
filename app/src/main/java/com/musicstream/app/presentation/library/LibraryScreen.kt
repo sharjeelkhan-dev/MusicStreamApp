@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -345,7 +346,7 @@ fun LibraryContent(
 
             // Tab Chips
             LazyRow(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().offset(y = (-13).dp),
                 contentPadding = PaddingValues(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -381,7 +382,7 @@ fun LibraryContent(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Content Area
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().offset(y = (-15).dp)) {
                 // Global Downloads Status (Visible across all tabs)
                 val downloadingSongsList = state.downloadingSongsList
                 val progressMap = state.downloadingSongs
@@ -395,9 +396,10 @@ fun LibraryContent(
                         Text(
                             text = "Active Downloads",
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 20.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                            modifier = Modifier.padding(horizontal = 24.dp,
+                                vertical = 8.dp)
                         )
                         
                         downloadingSongsList.forEach { song ->
@@ -475,7 +477,7 @@ fun LibraryContent(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                                modifier = Modifier.padding(horizontal = 24.dp)
                             )
                             allDownloads.forEach { song ->
                                 val index = allDownloads.indexOf(song)
@@ -732,8 +734,9 @@ fun LibraryScreenDownloadsPreview() {
         LibraryContent(
             state = LibraryUiState(
                 selectedTab = LibraryTab.Downloads,
-                downloads = MockData.trendingSongs.take(3),
-                downloadingSongs = mapOf(MockData.trendingSongs[3].id to 45),
+                downloads = MockData.trendingSongs,
+                downloadingSongsList = listOf(MockData.featuredSong),
+                downloadingSongs = mapOf(MockData.featuredSong.id to 65),
                 isLoading = false
             ),
             onTabSelect = {},
@@ -745,6 +748,36 @@ fun LibraryScreenDownloadsPreview() {
             onDownloadSong = {},
             addSongToPlaylist = { _, _ -> },
             onDeleteDownload = {},
+            onPlaySongs = { _, _ -> },
+            onGoToArtist = {},
+            onRefresh = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0A12)
+@Composable
+fun LibraryScreenCompletedDownloadsPreview() {
+    MusicStreamTheme {
+        LibraryContent(
+            state = LibraryUiState(
+                selectedTab = LibraryTab.Downloads,
+                downloads = MockData.trendingSongs,
+                downloadingSongsList = emptyList(),
+                downloadingSongs = emptyMap(),
+                isLoading = false
+            ),
+            onTabSelect = {},
+            onPlaylistSelect = {},
+            onCreatePlaylist = {},
+            onDeletePlaylist = {},
+            onRemoveSongFromPlaylist = { _, _ -> },
+            onToggleFavorite = {},
+            onDownloadSong = {},
+            addSongToPlaylist = { _, _ -> },
+            onDeleteDownload = {},
+            onPlaySongs = { _, _ -> },
+            onGoToArtist = {},
             onRefresh = {}
         )
     }

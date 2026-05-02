@@ -29,10 +29,15 @@ data class LibraryUiState(
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
-    private val musicRepository: MusicRepository
+    private val musicRepository: MusicRepository,
+    savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LibraryUiState())
+    private val initialTab = savedStateHandle.get<String>("tab")?.let { tabName ->
+        LibraryTab.entries.find { it.name.lowercase() == tabName.lowercase() }
+    } ?: LibraryTab.Playlists
+
+    private val _uiState = MutableStateFlow(LibraryUiState(selectedTab = initialTab))
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
 
     init {

@@ -4,7 +4,9 @@ sealed class Screen(val route: String) {
     data object Splash : Screen("splash")
     data object Home : Screen("home")
     data object Search : Screen("search")
-    data object Library : Screen("library")
+    data object Library : Screen("library?tab={tab}") {
+        fun createRoute(tab: String? = null) = if (tab != null) "library?tab=$tab" else "library"
+    }
     data object Artists : Screen("artists")
     data object Profile : Screen("profile")
     data object Player : Screen("player")

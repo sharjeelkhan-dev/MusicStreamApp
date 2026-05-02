@@ -60,7 +60,7 @@ fun NavGraph(
                     navController.navigate(Screen.Playlist.createRoute(playlist.id))
                 },
                 onDownloadsClick = { 
-                    navController.navigate(Screen.Downloads.route)
+                    navController.navigate(Screen.Library.createRoute(tab = "downloads"))
                 },
                 onGoToArtist = { _ ->
                     navController.navigate(Screen.Search.route) // Reuse search for now
@@ -113,7 +113,16 @@ fun NavGraph(
                 }
             )
         }
-        composable(Screen.Library.route) {
+        composable(
+            route = Screen.Library.route,
+            arguments = listOf(
+                androidx.navigation.navArgument("tab") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) {
             LibraryScreen(
                 onPlaySongs = onPlaySongs,
                 onPlaylistClick = { playlist ->

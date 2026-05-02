@@ -119,6 +119,15 @@ object Gradients {
         colors = listOf(Color(0xFF34D399), Color(0xFF10B981))
     )
 
+    // Fallback colors for instant dynamic UI
+    val songThumbColors = listOf(
+        Color(0xFFEC4899), // Pink
+        Color(0xFFF59E0B), // Orange
+        Color(0xFF3B82F6), // Blue
+        Color(0xFF10B981), // Green
+        Color(0xFF9F7AEA)  // Purple
+    )
+
     // Mini player gradient
     val miniPlayer = Brush.horizontalGradient(
         colors = listOf(Color(0xFF1A1730), Color(0xFF252240))

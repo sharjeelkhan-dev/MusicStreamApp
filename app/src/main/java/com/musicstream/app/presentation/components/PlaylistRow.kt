@@ -21,7 +21,8 @@ fun PlaylistRow(
     onDownloadsClick: () -> Unit,
     modifier: Modifier = Modifier,
     onPlaylistLongClick: (Playlist) -> Unit = {},
-    downloadCount: Int = 0
+    downloadCount: Int = 0,
+    showDownloads: Boolean = true
 ) {
     val gradients = listOf(
         Gradients.playlistBlue,
@@ -36,13 +37,15 @@ fun PlaylistRow(
         contentPadding = PaddingValues(start = 24.dp, end = 48.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        item {
-            PlaylistCard(
-                name = "Downloads",
-                songCount = downloadCount,
-                gradient = Gradients.featured,
-                onClick = onDownloadsClick
-            )
+        if (showDownloads) {
+            item {
+                PlaylistCard(
+                    name = "Downloads",
+                    songCount = downloadCount,
+                    gradient = Gradients.featured,
+                    onClick = onDownloadsClick
+                )
+            }
         }
 
         items(playlists) { playlist ->

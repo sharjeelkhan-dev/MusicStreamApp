@@ -70,7 +70,7 @@ fun BottomNavBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items.forEach { item ->
-                    val isSelected = currentRoute == item.route
+                    val isSelected = currentRoute.startsWith(item.route)
                     
                     val iconColor by animateColorAsState(
                         targetValue = if (isSelected) AccentPurple else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),

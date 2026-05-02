@@ -125,7 +125,8 @@ fun SongListItem(
                                 .height(3.dp)
                                 .clip(CircleShape),
                             color = AccentPurple,
-                            trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                            drawStopIndicator = {}
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
@@ -299,7 +300,8 @@ fun WideSongListItem(
                                 .height(3.dp)
                                 .clip(CircleShape),
                             color = AccentPurple,
-                            trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                            drawStopIndicator = {}
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(

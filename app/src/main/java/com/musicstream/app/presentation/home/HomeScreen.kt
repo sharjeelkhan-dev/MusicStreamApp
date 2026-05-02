@@ -393,7 +393,8 @@ fun HomeContent(
                 onPlaylistClick = onPlaylistClick,
                 onDownloadsClick = onDownloadsClick,
                 onPlaylistLongClick = { playlistToDelete = it },
-                downloadCount = state.downloads.size
+                downloadCount = state.downloads.size,
+                showDownloads = false
             )
 
             // Bottom spacer for edge-to-edge scrolling behind navigation bars

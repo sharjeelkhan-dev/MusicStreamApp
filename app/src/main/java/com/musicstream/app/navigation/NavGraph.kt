@@ -32,7 +32,6 @@ fun NavGraph(
     mainViewModel: MainViewModel,
     songColor: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
-    onSongClick: (Song) -> Unit = {},
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> }
 ) {
     NavHost(

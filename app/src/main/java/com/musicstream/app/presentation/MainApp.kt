@@ -121,9 +121,6 @@ fun MainApp(
             mainViewModel = mainViewModel,
             songColor = songColor,
             modifier = Modifier.fillMaxSize(),
-            onSongClick = { song ->
-                playerViewModel.playSong(song)
-            },
             onPlaySongs = { songs, index ->
                 playerViewModel.playSongs(songs, index)
             }

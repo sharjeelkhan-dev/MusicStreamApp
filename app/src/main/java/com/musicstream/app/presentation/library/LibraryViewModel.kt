@@ -91,26 +91,10 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
-    fun selectPlaylist(playlist: Playlist?) {
-        _uiState.update { it.copy(selectedPlaylist = playlist) }
-        if (playlist != null) {
-            viewModelScope.launch {
-                musicRepository.getSongsForPlaylist(playlist.id).collect { songs ->
-                    _uiState.update { it.copy(playlistSongs = songs) }
-                }
-            }
-        }
-    }
-
     fun createPlaylist(name: String) {
         viewModelScope.launch {
             musicRepository.createPlaylist(name)
         }
-    }
-
-    fun togglePlaylist(playlistId: String) {
-        // This could open a detail screen or do something else
-        // For now, let's just log it or update some state if needed
     }
 
     fun toggleFavorite(songId: String) {

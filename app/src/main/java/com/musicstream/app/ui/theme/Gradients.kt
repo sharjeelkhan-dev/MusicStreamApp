@@ -128,11 +128,6 @@ object Gradients {
         Color(0xFF9F7AEA)  // Purple
     )
 
-    // Mini player gradient
-    val miniPlayer = Brush.horizontalGradient(
-        colors = listOf(Color(0xFF1A1730), Color(0xFF252240))
-    )
-
     fun getGenreGradient(genre: String): Brush {
         return when (genre.lowercase()) {
             "pop" -> pop

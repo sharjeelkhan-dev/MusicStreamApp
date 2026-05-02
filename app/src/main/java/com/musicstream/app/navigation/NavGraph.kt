@@ -1,9 +1,7 @@
 package com.musicstream.app.navigation
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -34,7 +32,6 @@ fun NavGraph(
     mainViewModel: MainViewModel,
     songColor: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(0.dp),
     onSongClick: (Song) -> Unit = {},
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> }
 ) {
@@ -66,7 +63,7 @@ fun NavGraph(
                 onDownloadsClick = { 
                     navController.navigate(Screen.Downloads.route)
                 },
-                onGoToArtist = { artistName ->
+                onGoToArtist = { _ ->
                     navController.navigate(Screen.Search.route) // Reuse search for now
                 },
                 onGoToPlayer = {
@@ -113,7 +110,7 @@ fun NavGraph(
         composable(Screen.Search.route) {
             SearchScreen(
                 onPlaySongs = onPlaySongs,
-                onGoToArtist = { artistName ->
+                onGoToArtist = { _ ->
                     navController.navigate(Screen.Search.route) // Reuse search for now
                 }
             )
@@ -124,14 +121,14 @@ fun NavGraph(
                 onPlaylistClick = { playlist ->
                     navController.navigate(Screen.Playlist.createRoute(playlist.id))
                 },
-                onGoToArtist = { artistName ->
+                onGoToArtist = { _ ->
                     navController.navigate(Screen.Search.route) // Reuse search for now
                 }
             )
         }
         composable(Screen.Artists.route) {
             ArtistsScreen(
-                onArtistClick = { artistName ->
+                onArtistClick = { _ ->
                     navController.navigate(Screen.Search.route) // Search for artist
                 },
                 onPlaySongs = onPlaySongs
@@ -142,16 +139,16 @@ fun NavGraph(
         }
         composable(Screen.Login.route) {
             AuthScreen(
-                onLoginClick = { email, password ->
+                onLoginClick = { email, _ ->
                     // Save user info and handle login
                     mainViewModel.updateUser(User(id = java.util.UUID.randomUUID().toString(), name = email.substringBefore("@"), email = email))
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
-                onSignUpClick = { name, email, password ->
+                onSignUpClick = { name, email, _ ->
                     // Just save user info but DO NOT navigate to Home.
-                    // The AuthScreen will handle switching to Login mode.
+                    // The AuthScreen will handle switching to Log in mode.
                     mainViewModel.updateUser(User(id = java.util.UUID.randomUUID().toString(), name = name, email = email))
                 },
                 isEmailRegistered = { email ->
@@ -164,10 +161,10 @@ fun NavGraph(
                 viewModel = playerViewModel,
                 songColor = songColor,
                 onBackClick = { navController.popBackStack() },
-                onGoToArtist = { artistName ->
+                onGoToArtist = { _ ->
                     navController.navigate(Screen.Search.route) // Reuse search for now
                 },
-                onGoToAlbum = { albumId ->
+                onGoToAlbum = { _ ->
                     // For now, navigate to search with album name or a placeholder
                     navController.navigate(Screen.Search.route)
                 }

@@ -18,7 +18,11 @@ data class YouTubeSearchItemDto(
     @Json(name = "type") val type: String? = null
 ) {
     val videoId: String?
-        get() = url?.substringAfter("watch?v=", "")?.takeIf { it.isNotEmpty() }
+        get() {
+            if (url == null) return null
+            val pattern = "(?:v=|/v/|/vi/|youtu\\.be/|/embed/|/watch\\?v=)([a-zA-Z0-9_-]{11})".toRegex()
+            return pattern.find(url)?.groupValues?.get(1)
+        }
 }
 
 @JsonClass(generateAdapter = true)

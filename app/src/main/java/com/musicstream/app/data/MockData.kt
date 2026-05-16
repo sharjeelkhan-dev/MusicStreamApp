@@ -16,38 +16,52 @@ object MockData {
         duration = 200000,
         playCount = 4200_000_000,
         gradientIndex = 0,
+        coverUrl = "https://i.scdn.co/image/ab67616d0000b273881297eaa7d7e30a4ff9aa2f",
         streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
     )
 
     val trendingSongs = listOf(
-        Song(id = "trend_1", title = "Starboy", artist = "The Weeknd", duration = 230000, playCount = 3100_000_000, gradientIndex = 0, streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"),
-        Song(id = "trend_2", title = "Shape of You", artist = "Ed Sheeran", duration = 233000, playCount = 3800_000_000, gradientIndex = 1, streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"),
-        Song(id = "trend_3", title = "Stay", artist = "The Kid LAROI & Justin Bieber", duration = 141000, playCount = 2900_000_000, gradientIndex = 2, streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"),
-        Song(id = "trend_4", title = "As It Was", artist = "Harry Styles", duration = 167000, playCount = 2700_000_000, gradientIndex = 3, streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"),
-        Song(id = "trend_5", title = "Flowers", artist = "Miley Cyrus", duration = 200000, playCount = 2100_000_000, gradientIndex = 4, streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3")
+        // English Hits
+        Song(id = "trend_1", title = "Die With A Smile", artist = "Lady Gaga & Bruno Mars", duration = 251000, coverUrl = "https://i.scdn.co/image/ab67616d0000b2736780962657e0081d5854b79b", streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"),
+        Song(id = "trend_2", title = "Birds of a Feather", artist = "Billie Eilish", duration = 210000, coverUrl = "https://i.scdn.co/image/ab67616d0000b27371d2d58edc10de4164ae96cd", streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"),
+        
+        // Punjabi Hits
+        Song(id = "trend_3", title = "Winning Speech", artist = "Karan Aujla", duration = 184000, coverUrl = "https://i.scdn.co/image/ab67616d0000b273f5509d739818835824c000e3", streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"),
+        Song(id = "trend_4", title = "Softly", artist = "Karan Aujla", duration = 156000, coverUrl = "https://i.scdn.co/image/ab67616d0000b273398930438f4d96030c6a3861", streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"),
+        
+        // Hindi / Bollywood Hits
+        Song(id = "trend_5", title = "Tauba Tauba", artist = "Karan Aujla", duration = 207000, coverUrl = "https://i.scdn.co/image/ab67616d0000b27357488009230553655df00411", streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"),
+        Song(id = "trend_6", title = "O Sajni Re", artist = "Arijit Singh", duration = 170000, coverUrl = "https://i.scdn.co/image/ab67616d0000b2734139965f7c320d93f7737c35", streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"),
+        
+        // More Global
+        Song(id = "trend_7", title = "Apt.", artist = "ROSÉ & Bruno Mars", duration = 169000, coverUrl = "https://i.scdn.co/image/ab67616d0000b27337424683569a91340a6b7d27", streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3")
     )
 
     val recentlyPlayed = listOf(
-        Song(id = "recent_1", title = "Levitating", artist = "Dua Lipa", duration = 203000, isFavorite = false, gradientIndex = 0, streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3"),
-        Song(id = "recent_2", title = "Peaches", artist = "Justin Bieber", duration = 198000, isFavorite = true, gradientIndex = 1, streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"),
-        Song(id = "recent_3", title = "Save Your Tears", artist = "The Weeknd", duration = 215000, isFavorite = false, gradientIndex = 2, streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3"),
-        Song(id = "recent_4", title = "Heat Waves", artist = "Glass Animals", duration = 238000, isFavorite = false, gradientIndex = 3, streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3"),
-        Song(id = "recent_5", title = "Bad Guy", artist = "Billie Eilish", duration = 194000, isFavorite = true, gradientIndex = 4, streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3")
+        Song(id = "recent_1", title = "Millionaire", artist = "Yo Yo Honey Singh", duration = 198000, coverUrl = "https://i.scdn.co/image/ab67616d0000b2732952467d3e69f3796d885906", streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"),
+        Song(id = "recent_2", title = "Espresso", artist = "Sabrina Carpenter", duration = 175000, coverUrl = "https://i.scdn.co/image/ab67616d0000b2734f6645398d89e472f8832a8a", streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3"),
+        Song(id = "recent_3", title = "Husn", artist = "Anuv Jain", duration = 217000, coverUrl = "https://i.scdn.co/image/ab67616d0000b27303f88f1107297e6823528b14", streamUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3")
+    )
+
+    val featuredSongs = listOf(
+        Song(id = "feat_1", title = "Heartbreak Avenue", artist = "Sophie Lane", coverUrl = "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=800&q=80", duration = 240000),
+        Song(id = "feat_2", title = "Midnight Drive", artist = "Mason Mount", coverUrl = "https://images.unsplash.com/photo-1459749411177-042180ce673c?w=800&q=80", duration = 180000),
+        Song(id = "feat_3", title = "Soft Vibes", artist = "Emily Bloom", coverUrl = "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80", duration = 210000)
     )
 
     val playlists = listOf(
         Playlist(id = "pl_1", name = "Today's Top Hits", songCount = 50, gradientIndex = 0),
-        Playlist(id = "pl_2", name = "RapCaviar", songCount = 45, gradientIndex = 1),
-        Playlist(id = "pl_3", name = "All Out 2010s", songCount = 100, gradientIndex = 2),
-        Playlist(id = "pl_4", name = "Rock Classics", songCount = 75, gradientIndex = 3),
+        Playlist(id = "pl_2", name = "Punjabi 101", songCount = 45, gradientIndex = 1),
+        Playlist(id = "pl_3", name = "Bollywood Butter", songCount = 100, gradientIndex = 2),
+        Playlist(id = "pl_4", name = "Global Viral", songCount = 75, gradientIndex = 3),
         Playlist(id = "pl_5", name = "Deep Focus", songCount = 60, gradientIndex = 4)
     )
 
     val genres = listOf(
         Genre(id = "genre_1", name = "Pop", gradientKey = "pop"),
         Genre(id = "genre_2", name = "Hip-Hop", gradientKey = "hip-hop"),
-        Genre(id = "genre_3", name = "Electronic", gradientKey = "electronic"),
-        Genre(id = "genre_4", name = "R&B", gradientKey = "r&b"),
+        Genre(id = "genre_3", name = "Punjabi", gradientKey = "punjabi"),
+        Genre(id = "genre_4", name = "Hindi", gradientKey = "hindi"),
         Genre(id = "genre_5", name = "Rock", gradientKey = "rock"),
         Genre(id = "genre_6", name = "Classical", gradientKey = "classical"),
         Genre(id = "genre_7", name = "Jazz", gradientKey = "jazz"),
@@ -55,19 +69,20 @@ object MockData {
     )
 
     val trendingSearches = listOf(
-        "The Weeknd",
-        "Drake",
+        "Karan Aujla",
+        "Arijit Singh",
+        "Lady Gaga",
         "Taylor Swift",
-        "Top 50 Global"
+        "Diljit Dosanjh"
     )
 
     val artists = listOf(
-        Artist("1", "Hasan Raheem", "https://i.scdn.co/image/ab6761610000e5eb259d648b2d49e1a8e1b69766"),
-        Artist("2", "Jassie Gill", "https://i.scdn.co/image/ab6761610000e5eb9d7008779b69e4f5093a677e"),
-        Artist("3", "Dhanju", "https://i.scdn.co/image/ab6761610000e5eb7c8a49339e7c5d79907f1f0a"),
-        Artist("4", "Parmish Verma", "https://i.scdn.co/image/ab6761610000e5eb66750059e0a0a1a8e1b69766"),
-        Artist("5", "Karan Aujla", "https://i.scdn.co/image/ab6761610000e5eb6d8bd04e4a9d62e6e1b69766"),
-        Artist("6", "Diljit Dosanjh", "https://i.scdn.co/image/ab6761610000e5eb8a63158b0c3d238ce1b69766")
+        Artist("1", "Karan Aujla", "https://i.scdn.co/image/ab6761610000e5eb6d8bd04e4a9d62e6e1b69766"),
+        Artist("2", "Arijit Singh", "https://i.scdn.co/image/ab6761610000e5eb12816999386c9e01340156d9"),
+        Artist("3", "Diljit Dosanjh", "https://i.scdn.co/image/ab6761610000e5eb8a63158b0c3d238ce1b69766"),
+        Artist("4", "Lady Gaga", "https://i.scdn.co/image/ab6761610000e5eb05946c10e6a88b56f8f553a1"),
+        Artist("5", "Billie Eilish", "https://i.scdn.co/image/ab6761610000e5eb71d2d58edc10de4164ae96cd"),
+        Artist("6", "Hasan Raheem", "https://i.scdn.co/image/ab6761610000e5eb259d648b2d49e1a8e1b69766")
     )
 
     val currentUser = User(
@@ -84,15 +99,15 @@ object MockData {
     val notifications = listOf(
         com.musicstream.app.domain.model.Notification(
             id = "1",
-            title = "New Release",
-            message = "The Weeknd just dropped a new single 'Dancing in the Flames'!",
+            title = "New Punjabi Release",
+            message = "Karan Aujla just dropped a new single!",
             time = "2h ago",
             type = com.musicstream.app.domain.model.NotificationType.NEW_RELEASE
         ),
         com.musicstream.app.domain.model.Notification(
             id = "2",
             title = "Playlist Updated",
-            message = "Your 'Today's Top Hits' playlist has 15 new tracks.",
+            message = "Your 'Punjabi 101' playlist has 15 new tracks.",
             time = "5h ago",
             type = com.musicstream.app.domain.model.NotificationType.PLAYLIST_UPDATE
         ),

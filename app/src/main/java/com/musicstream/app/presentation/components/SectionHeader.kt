@@ -1,22 +1,31 @@
 package com.musicstream.app.presentation.components
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.painterResource
-import com.musicstream.app.ui.theme.AccentPurple
+import com.musicstream.app.ui.theme.MusicStreamTheme
 
 @Composable
 fun SectionHeader(
@@ -46,7 +55,7 @@ fun SectionHeader(
                     tint = when (title) {
                         "Trending" -> Color(0xFFFF5722)
                         "Recently Played" -> MaterialTheme.colorScheme.onBackground
-                        else -> AccentPurple
+                        else -> MaterialTheme.colorScheme.primary
                     },
                     modifier = Modifier.padding(end = 10.dp).size(22.dp)
                 )
@@ -60,7 +69,7 @@ fun SectionHeader(
             Text(
                 text = title,
                 color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 22.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.5).sp
             )
@@ -68,8 +77,7 @@ fun SectionHeader(
 
         if (onSeeAllClick != null) {
             Card(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp)),
+                modifier = Modifier.offset(x = (-15).dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
@@ -100,7 +108,7 @@ fun SectionHeader(
                             .Filled
                             .ArrowForward,
                         contentDescription = null,
-                        tint = AccentPurple,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier =
                             Modifier
                                 .size(14.dp)
@@ -114,7 +122,7 @@ fun SectionHeader(
 @Preview(showBackground = true)
 @Composable
 fun SectionHeaderPreview() {
-    com.musicstream.app.ui.theme.MusicStreamTheme {
+    MusicStreamTheme {
         Box(modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)

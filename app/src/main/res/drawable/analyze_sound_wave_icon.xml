@@ -1,0 +1,24 @@
+<!--
+  ~ Copyright (C) 2026 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="122.88dp"
+    android:height="95.13dp"
+    android:viewportWidth="122.88"
+    android:viewportHeight="95.13">
+  <path
+      android:fillColor="#FF000000"
+      android:pathData="M100.95,23.32c0,-2.09 1.69,-3.78 3.78,-3.78c2.09,0 3.78,1.69 3.78,3.78v48.5c0,2.09 -1.69,3.78 -3.78,3.78c-2.09,0 -3.78,-1.69 -3.78,-3.78V23.32L100.95,23.32zM0,31.82c0,-2.09 1.69,-3.78 3.78,-3.78c2.09,0 3.78,1.69 3.78,3.78v31.49c0,2.09 -1.69,3.78 -3.78,3.78C1.69,67.09 0,65.4 0,63.31V31.82L0,31.82zM14.42,23.32c0,-2.09 1.69,-3.78 3.78,-3.78c2.09,0 3.78,1.69 3.78,3.78v48.5c0,2.09 -1.69,3.78 -3.78,3.78c-2.09,0 -3.78,-1.69 -3.78,-3.78V23.32L14.42,23.32zM28.9,13.9c0,-2.08 1.67,-3.76 3.72,-3.76c2.06,0 3.72,1.68 3.72,3.76v67.34c0,2.08 -1.67,3.76 -3.72,3.76c-2.06,0 -3.72,-1.68 -3.72,-3.76V13.9L28.9,13.9zM43.26,3.78c0,-2.09 1.69,-3.78 3.78,-3.78c2.09,0 3.78,1.69 3.78,3.78v87.57c0,2.09 -1.69,3.78 -3.78,3.78c-2.09,0 -3.78,-1.69 -3.78,-3.78V3.78L43.26,3.78zM86.53,31.82c0,-2.09 1.69,-3.78 3.78,-3.78c2.09,0 3.78,1.69 3.78,3.78v31.49c0,2.09 -1.69,3.78 -3.78,3.78c-2.09,0 -3.78,-1.69 -3.78,-3.78V31.82L86.53,31.82zM72.11,23.32c0,-2.09 1.69,-3.78 3.78,-3.78c2.09,0 3.78,1.69 3.78,3.78v48.5c0,2.09 -1.69,3.78 -3.78,3.78c-2.09,0 -3.78,-1.69 -3.78,-3.78V23.32L72.11,23.32zM57.74,13.9c0,-2.08 1.67,-3.76 3.72,-3.76c2.06,0 3.72,1.68 3.72,3.76v67.34c0,2.08 -1.67,3.76 -3.72,3.76c-2.06,0 -3.72,-1.68 -3.72,-3.76V13.9L57.74,13.9zM115.43,13.9c0,-2.08 1.67,-3.76 3.72,-3.76c2.06,0 3.72,1.68 3.72,3.76v67.34c0,2.08 -1.67,3.76 -3.72,3.76c-2.06,0 -3.72,-1.68 -3.72,-3.76V13.9L115.43,13.9z"/>
+</vector>

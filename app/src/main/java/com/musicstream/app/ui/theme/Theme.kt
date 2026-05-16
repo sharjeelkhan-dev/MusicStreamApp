@@ -2,10 +2,9 @@ package com.musicstream.app.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -13,9 +12,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = AccentOrange,
-    onPrimary = Color.White,
-    secondary = AccentPurple,
+    primary = Color.White,
+    onPrimary = Color.Black,
+    secondary = AccentOrange,
     onSecondary = Color.White,
     tertiary = AccentPink,
     background = DarkBackground,
@@ -30,9 +29,9 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = AccentOrange,
+    primary = Color.Black,
     onPrimary = Color.White,
-    secondary = AccentPurple,
+    secondary = AccentOrange,
     onSecondary = Color.White,
     tertiary = AccentPink,
     background = Color(0xFFF8F8FC),
@@ -46,12 +45,17 @@ private val LightColorScheme = lightColorScheme(
     onError = Color.White
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MusicStreamTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+
+    val rippleConfiguration = RippleConfiguration(
+        color = Color.Gray
+    )
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -66,9 +70,13 @@ fun MusicStreamTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalRippleConfiguration provides rippleConfiguration
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

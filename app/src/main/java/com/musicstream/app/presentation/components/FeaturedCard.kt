@@ -56,7 +56,10 @@ fun FeaturedCard(
             // Background Album Art (Blurred)
             if (song.coverUrl.isNotEmpty()) {
                 AsyncImage(
-                    model = song.coverUrl,
+                    model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                        .data(song.coverUrl)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

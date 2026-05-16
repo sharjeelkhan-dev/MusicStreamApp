@@ -7,7 +7,7 @@ import com.squareup.moshi.JsonClass
 data class SaavnSearchResponseDto(
     @Json(name = "status") val status: String?,
     @Json(name = "success") val success: Boolean?,
-    @Json(name = "data") val data: SaavnSearchDataDto?
+    @Json(name = "data") val data: Any? // Can be List<SaavnSongDto> or SaavnSearchDataDto
 )
 
 @JsonClass(generateAdapter = true)
@@ -22,7 +22,8 @@ data class SaavnSongDto(
     @Json(name = "primaryArtists") val primaryArtists: String?,
     @Json(name = "image") val image: List<SaavnImageDto>?,
     @Json(name = "downloadUrl") val downloadUrl: List<SaavnDownloadUrlDto>?,
-    @Json(name = "duration") val duration: Int?
+    @Json(name = "duration") val duration: Int?,
+    @Json(name = "isExplicit") val isExplicit: Boolean = false
 )
 
 @JsonClass(generateAdapter = true)

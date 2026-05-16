@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.*
@@ -15,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -24,6 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.musicstream.app.domain.model.Notification
 import com.musicstream.app.domain.model.NotificationType
+import com.musicstream.app.presentation.components.PremiumHeader
 import com.musicstream.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,46 +36,26 @@ fun NotificationScreen(
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
         onRefresh = { viewModel.refresh() },
-        modifier = Modifier.fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-        ) {
-            // Header
+        Column(modifier = Modifier.fillMaxSize()) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth().statusBarsPadding(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                    Text(
-                        text = "Notifications",
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
+                PremiumHeader(
+                    title = "Notifications",
+                    onBackClick = onBackClick,
+                    modifier = Modifier.weight(1f)
+                )
 
                 if (state.notifications.isNotEmpty()) {
-                    TextButton(onClick = { viewModel.clearAll() }) {
-                        Text(
-                            text = "Clear all",
-                            color = AccentPurple,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                    TextButton(
+                        onClick = { viewModel.clearAll() },
+                        modifier = Modifier.padding(end = 24.dp)
+                    ) {
+                        Text("Clear All", fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -88,7 +67,7 @@ fun NotificationScreen(
                             imageVector = Icons.Default.NotificationsNone,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                            modifier = Modifier.size(64.dp)
+                            modifier = Modifier.size(80.dp)
                         )
                         Spacer(Modifier.height(16.dp))
                         Text(
@@ -101,12 +80,7 @@ fun NotificationScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 16.dp,
-                        bottom = 140.dp
-                    ),
+                    contentPadding = PaddingValues(bottom = 120.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(state.notifications) { notification ->
@@ -136,27 +110,25 @@ fun NotificationItem(
     val iconColor = when (notification.type) {
         NotificationType.NEW_RELEASE -> AccentOrange
         NotificationType.PLAYLIST_UPDATE -> AccentCyan
-        NotificationType.PROMOTION -> AccentPurple
+        NotificationType.PROMOTION -> MaterialTheme.colorScheme.primary
         NotificationType.GENERAL -> AccentAmber
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.Top
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(52.dp)
                     .clip(CircleShape)
                     .background(iconColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
@@ -165,7 +137,7 @@ fun NotificationItem(
                     imageVector = icon,
                     contentDescription = null,
                     tint = iconColor,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(26.dp)
                 )
             }
 

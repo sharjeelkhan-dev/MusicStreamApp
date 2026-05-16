@@ -20,6 +20,8 @@ coroutines = "1.9.0"
 accompanist = "0.36.0"
 material3 = "1.3.1"
 palette = "1.0.0"
+newpipe = "v0.26.1"
+ffmpeg-kit = "6.1.1"
 
 [libraries]
 # Core
@@ -78,6 +80,8 @@ kotlinx-coroutines-guava = { group = "org.jetbrains.kotlinx", name = "kotlinx-co
 
 # Accompanist
 accompanist-systemuicontroller = { group = "com.google.accompanist", name = "accompanist-systemuicontroller", version.ref = "accompanist" }
+newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipe" }
+ffmpeg-kit-full = { group = "com.moizhassan.ffmpeg", name = "ffmpeg-kit-16kb", version.ref = "ffmpeg-kit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

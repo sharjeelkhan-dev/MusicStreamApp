@@ -72,6 +72,8 @@ import com.musicstream.app.presentation.components.SongListItem
 import com.musicstream.app.presentation.components.SongOptionsBottomSheet
 import com.musicstream.app.ui.theme.AccentPurple
 import com.musicstream.app.ui.theme.FavoriteRed
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import com.musicstream.app.ui.theme.Gradients
 import com.musicstream.app.ui.theme.MusicStreamTheme
 
@@ -242,25 +244,37 @@ fun LibraryContent(
                 selectedSongIdForPlaylist = null
             },
             onCreatePlaylistClick = {
+                selectedSongIdForPlaylist = null
                 showCreateDialog = true
             },
             onDismissRequest = {
+                selectedSongIdForPlaylist = null
             }
         )
     }
 
     if (selectedSongForOptions != null) {
+        val context = androidx.compose.ui.platform.LocalContext.current
         SongOptionsBottomSheet(
             song = selectedSongForOptions,
-            onDismissRequest = { },
-            onFavoriteClick = { onToggleFavorite(selectedSongForOptions!!.id) },
-            onAddToPlaylistClick = { 
-                selectedSongIdForPlaylist = selectedSongForOptions!!.id
+            onDismissRequest = { 
+                selectedSongForOptions = null 
+            },
+            onFavoriteClick = { songId ->
+                onToggleFavorite(songId)
                 selectedSongForOptions = null
             },
-            onDownloadClick = { onDownloadSong(selectedSongForOptions!!) },
-            onDeleteDownloadClick = {
-                onDeleteDownload(it)
+            onAddToPlaylistClick = { songId ->
+                selectedSongIdForPlaylist = songId
+                selectedSongForOptions = null
+            },
+            onDownloadClick = { song ->
+                onDownloadSong(song) 
+                selectedSongForOptions = null
+            },
+            onDeleteDownloadClick = { songId ->
+                onDeleteDownload(songId)
+                selectedSongForOptions = null
             },
             onRemoveFromPlaylistClick = if (state.selectedPlaylist != null) {
                 { song ->
@@ -268,49 +282,108 @@ fun LibraryContent(
                     selectedSongForOptions = null
                 }
             } else null,
-            onShareClick = { /* TODO: Implement Share */ },
-            onGoToArtistClick = { onGoToArtist(it) }
+            onShareClick = { _ ->
+                val songToShare = selectedSongForOptions
+                if (songToShare != null) {
+                    val sendIntent: android.content.Intent = android.content.Intent().apply {
+                        action = android.content.Intent.ACTION_SEND
+                        putExtra(android.content.Intent.EXTRA_TEXT, "Check out this song '${songToShare.title}' by ${songToShare.artist} on Music Stream!")
+                        type = "text/plain"
+                    }
+                    val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+                    context.startActivity(shareIntent)
+                }
+                selectedSongForOptions = null
+            },
+            onGoToArtistClick = { artistName ->
+                onGoToArtist(artistName) 
+                selectedSongForOptions = null
+            }
         )
     }
 
     if (showCreateDialog) {
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = { showCreateDialog = false },
             containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            title = { Text("New Playlist") },
-            text = {
-                OutlinedTextField(
-                    value = newPlaylistName,
-                    onValueChange = { newPlaylistName = it },
-                    label = { Text("Playlist Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        cursorColor = MaterialTheme.colorScheme.primary,
-                        focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+            shape = RoundedCornerShape(28.dp),
+            tonalElevation = 6.dp,
+            title = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Create New Playlist",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                )
+                }
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        "Give your playlist a name to get started.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    OutlinedTextField(
+                        value = newPlaylistName,
+                        onValueChange = { newPlaylistName = it },
+                        placeholder = { Text("Playlist Name", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            cursorColor = MaterialTheme.colorScheme.primary,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+                }
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         if (newPlaylistName.isNotBlank()) {
                             onCreatePlaylist(newPlaylistName)
                             newPlaylistName = ""
+                            showCreateDialog = false
                         }
-                    }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Create", color = MaterialTheme.colorScheme.primary)
+                    Text("Create Playlist", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { }) {
+                TextButton(
+                    onClick = { showCreateDialog = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -328,61 +401,67 @@ fun LibraryContent(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
+            // Title and Subtitle (Premium Style)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    text = "Your Library",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = (-1).sp
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Title
-            Text(
-                text = "Your Library",
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = (-1).sp,
-                modifier = Modifier
-                    .statusBarsPadding()
-                    .padding(horizontal = 24.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Tab Chips
+            // Tab Chips (Premium Filter Style)
             LazyRow(
-                modifier = Modifier.fillMaxWidth().offset(y = (-13).dp),
+                modifier = Modifier.fillMaxWidth().offset(y = (-20).dp),
                 contentPadding = PaddingValues(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 items(LibraryTab.entries.toTypedArray()) { tab ->
                     val isSelected = state.selectedTab == tab
                     val tabName = if (tab == LibraryTab.Songs)
                         "New Songs" else tab.name
-                    Card(
-                        modifier = Modifier.height(40.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) AccentPurple else
-                                MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 0.dp),
-                        onClick = { onTabSelect(tab) }
-                    ) {
-                        Box(
-                            modifier = Modifier.padding(horizontal = 14.dp).fillMaxHeight(),
-                            contentAlignment = Alignment.Center
-                        ) {
+                    
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { onTabSelect(tab) },
+                        label = { 
                             Text(
                                 text = tabName,
-                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 14.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            )
-                        }
-                    }
+                                color = if (isSelected) Color.White else Color.Black,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 20.dp)
+                            ) 
+                        },
+                        shape = RoundedCornerShape(30.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = AccentPurple,
+                            selectedLabelColor = Color.White,
+                            containerColor = Color.White.copy(alpha = 0.9f),
+                            labelColor = Color.Black
+                        ),
+                        border = if (isSelected) null else
+                            FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = false,
+                            borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                        )
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Content Area
-            Column(modifier = Modifier.fillMaxWidth().offset(y = (-15).dp)) {
+            Column(modifier = Modifier.fillMaxWidth().offset(y = (-30).dp)) {
                 // Global Downloads Status (Visible across all tabs)
                 val downloadingSongsList = state.downloadingSongsList
                 val progressMap = state.downloadingSongs
@@ -425,7 +504,7 @@ fun LibraryContent(
                 when (state.selectedTab) {
                     LibraryTab.Playlists -> {
                         // Create Playlist Card
-                        CreatePlaylistCard(onClick = { })
+                        CreatePlaylistCard(onClick = { showCreateDialog = true })
 
                         Spacer(modifier = Modifier.height(12.dp))
                         
@@ -500,68 +579,59 @@ fun LibraryContent(
         }
     }
 }
-
-
-
 @Composable
 private fun CreatePlaylistCard(onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        shape = RoundedCornerShape(16.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        onClick = onClick,
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme
-                .colorScheme
-                .onSurface
-                .copy(alpha = 0.05f)
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(AccentPurple.copy(alpha = 0.2f)),
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = "Create Playlist",
-                    tint = AccentPurple,
-                    modifier = Modifier.size(24.dp)
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Create Playlist",
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 15.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Add your favorite songs",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp
+                    text = "Add songs that match your mood",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
             Icon(
                 imageVector = Icons.Filled.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                modifier = Modifier.size(20.dp)
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                modifier = Modifier.size(24.dp)
             )
         }
     }
@@ -584,12 +654,12 @@ private fun PlaylistListItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         onClick = onClick
     ) {
         Row(
@@ -598,16 +668,16 @@ private fun PlaylistListItem(
         ) {
             Box(
                 modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(gradients[playlist.gradientIndex % gradients.size]),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.audio_tune_icon),
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.5f),
-                    modifier = Modifier.size(28.dp)
+                    tint = Color.White.copy(alpha = 0.8f),
+                    modifier = Modifier.size(32.dp)
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
@@ -615,36 +685,37 @@ private fun PlaylistListItem(
                 Text(
                     text = playlist.name,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 16.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "Playlist • ${playlist.songCount} songs",
-                    color = AccentPurple,
-                    fontSize = 13.sp
+                    text = "${playlist.songCount} songs • Updated today",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            
+            IconButton(
+                onClick = onDeleteClick,
+                modifier = Modifier.size(40.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Filled.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    painter = painterResource(id = R.drawable.recycle_bin_line_icon),
+                    contentDescription = "Delete Playlist",
+                    tint = FavoriteRed.copy(alpha = 0.6f),
                     modifier = Modifier.size(20.dp)
                 )
-                IconButton(onClick = onDeleteClick) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.recycle_bin_line_icon),
-                        contentDescription = "Delete Playlist",
-                        tint = FavoriteRed.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
             }
+            
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

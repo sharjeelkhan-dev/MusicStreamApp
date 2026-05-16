@@ -19,11 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.musicstream.app.R
 import com.musicstream.app.presentation.MainViewModel
 import com.musicstream.app.ui.theme.MusicStreamTheme
 import kotlinx.coroutines.delay
@@ -75,14 +77,12 @@ fun SplashScreen(
                 .alpha(alpha.value)
         ) {
             Icon(
-                imageVector = Icons.Rounded.MusicNote,
+                painter = painterResource(id = R.drawable.audio_tune_icon),
                 contentDescription = null,
                 modifier = Modifier.size(120.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
-            
             Spacer(modifier = Modifier.height(16.dp))
-            
             Text(
                 text = "MusicStream",
                 style = MaterialTheme.typography.headlineLarge.copy(

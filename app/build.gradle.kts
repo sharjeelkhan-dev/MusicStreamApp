@@ -99,4 +99,10 @@ dependencies {
 
     // Accompanist
     implementation(libs.accompanist.systemuicontroller)
+
+    // NewPipe Extractor
+    implementation(libs.newpipe.extractor)
+
+    // FFmpeg
+    implementation(libs.ffmpeg.kit.full)
 }

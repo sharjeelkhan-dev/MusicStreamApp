@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,8 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.pulltorefresh.*
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import coil.compose.AsyncImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,11 +26,15 @@ import com.musicstream.app.presentation.components.*
 import com.musicstream.app.ui.theme.*
 import com.musicstream.app.R
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    playerViewModel: com.musicstream.app.presentation.player.PlayerViewModel = hiltViewModel(),
+    playerViewModel: com.musicstream
+        .app.presentation
+        .player.
+    PlayerViewModel = hiltViewModel(),
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
@@ -40,12 +42,18 @@ fun HomeScreen(
     onRecentlyPlayedSeeAllClick: () -> Unit = {},
     onPlaylistClick: (Playlist) -> Unit = {},
     onDownloadsClick: () -> Unit = {},
+    onToolsClick: () -> Unit = {},
     onGoToArtist: (String) -> Unit = {},
     onGoToPlayer: () -> Unit = {}
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
-    val playerState by playerViewModel.uiState.collectAsStateWithLifecycle()
+    val state by viewModel
+        .uiState
+        .collectAsStateWithLifecycle()
+    val isRefreshing by viewModel
+        .isRefreshing
+        .collectAsStateWithLifecycle()
+    val playerState by playerViewModel
+        .uiState.collectAsStateWithLifecycle()
 
     HomeContent(
         state = state,
@@ -54,6 +62,7 @@ fun HomeScreen(
         onPlaySongs = onPlaySongs,
         onNotificationClick = onNotificationClick,
         onProfileClick = onProfileClick,
+        onToolsClick = onToolsClick,
         onTrendingSeeAllClick = onTrendingSeeAllClick,
         onRecentlyPlayedSeeAllClick = onRecentlyPlayedSeeAllClick,
         onPlaylistClick = onPlaylistClick,
@@ -61,9 +70,11 @@ fun HomeScreen(
         onCreatePlaylist = { viewModel.createPlaylist(it) },
         onDeletePlaylist = { viewModel.deletePlaylist(it) },
         onDeleteAllPlaylists = { viewModel.deleteAllPlaylists() },
-        onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
+        onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId,
+            songId) },
         onToggleFavorite = { viewModel.toggleFavorite(it) },
         onDownloadSong = { viewModel.downloadSong(it) },
+        onDeleteDownload = { viewModel.deleteDownload(it) },
         onGoToArtist = onGoToArtist,
         currentPlayingSong = playerState.currentSong,
         isPlaying = playerState.isPlaying,
@@ -81,6 +92,7 @@ fun HomeContent(
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
+    onToolsClick: () -> Unit = {},
     onTrendingSeeAllClick: () -> Unit = {},
     onRecentlyPlayedSeeAllClick: () -> Unit = {},
     onPlaylistClick: (Playlist) -> Unit = {},
@@ -91,6 +103,7 @@ fun HomeContent(
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
     onToggleFavorite: (String) -> Unit = {},
     onDownloadSong: (Song) -> Unit = {},
+    onDeleteDownload: (String) -> Unit = {},
     onGoToArtist: (String) -> Unit = {},
     currentPlayingSong: Song? = null,
     isPlaying: Boolean = false,
@@ -108,23 +121,26 @@ fun HomeContent(
     if (showDeleteAllDialog) {
         AlertDialog(
             onDismissRequest = {
+                showDeleteAllDialog = false
             },
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = { Text("Delete All Playlists") },
-            text = { Text("Are you sure you want to delete all playlists? This cannot be undone.") },
+            text = { Text("Are you sure you want to delete all playlists?" +
+                    " This cannot be undone.") },
             confirmButton = {
                 TextButton(
                     onClick = {
                         onDeleteAllPlaylists()
+                        showDeleteAllDialog = false
                     }
                 ) {
                     Text("Delete All", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { }) {
+                TextButton(onClick = { showDeleteAllDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -133,7 +149,7 @@ fun HomeContent(
 
     if (playlistToDelete != null) {
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = { playlistToDelete = null },
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -150,7 +166,7 @@ fun HomeContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { }) {
+                TextButton(onClick = { playlistToDelete = null }) {
                     Text("Cancel")
                 }
             }
@@ -159,7 +175,7 @@ fun HomeContent(
 
     if (showCreateDialog) {
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = { showCreateDialog = false },
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -182,6 +198,7 @@ fun HomeContent(
                         if (newPlaylistName.isNotBlank()) {
                             onCreatePlaylist(newPlaylistName)
                             newPlaylistName = ""
+                            showCreateDialog = false
                         }
                     }
                 ) {
@@ -189,7 +206,7 @@ fun HomeContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { }) {
+                TextButton(onClick = { showCreateDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -204,26 +221,60 @@ fun HomeContent(
                 selectedSongIdForPlaylist = null
             },
             onCreatePlaylistClick = {
+                selectedSongIdForPlaylist = null
+                showCreateDialog = true
             },
             onDismissRequest = {
+                selectedSongIdForPlaylist = null
             }
         )
     }
 
     if (selectedSongForOptions != null) {
+        val context = androidx.compose.ui.platform.LocalContext.current
         SongOptionsBottomSheet(
             song = selectedSongForOptions,
-            onDismissRequest = { },
-            onFavoriteClick = { onToggleFavorite(it) },
-            onAddToPlaylistClick = { 
-                selectedSongIdForPlaylist = it
+            onDismissRequest = { 
+                selectedSongForOptions = null 
             },
-            onDownloadClick = { onDownloadSong(it) },
-            onShareClick = { /* Shared component already handles basic intent or could pass custom one */ },
-            onGoToArtistClick = { onGoToArtist(it) }
+            onFavoriteClick = { songId ->
+                onToggleFavorite(songId)
+                selectedSongForOptions = null
+            },
+            onAddToPlaylistClick = { songId ->
+                selectedSongIdForPlaylist = songId
+                selectedSongForOptions = null
+            },
+            onDownloadClick = { song ->
+                onDownloadSong(song)
+                selectedSongForOptions = null
+            },
+            onDeleteDownloadClick = { songId ->
+                onDeleteDownload(songId)
+                selectedSongForOptions = null
+            },
+            onShareClick = { _ ->
+                selectedSongForOptions?.let { songToShare ->
+                    val sendIntent: android.content.Intent = android.content.Intent().apply {
+                        action = android.content.Intent.ACTION_SEND
+                        putExtra(android.content.Intent.EXTRA_TEXT,
+                            "Check out this song '${songToShare.title}'" +
+                                    " by ${songToShare.artist} on Music Stream!")
+                        type = "text/plain"
+                    }
+                    val shareIntent = android.content.Intent
+                        .createChooser(sendIntent,
+                        null)
+                    context.startActivity(shareIntent)
+                }
+                selectedSongForOptions = null
+            },
+            onGoToArtistClick = { artistName ->
+                onGoToArtist(artistName)
+                selectedSongForOptions = null
+            }
         )
     }
-
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
@@ -236,165 +287,135 @@ fun HomeContent(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
-            // Greeting + Header
+            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = state.greeting,
-                        color = MaterialTheme
-                            .colorScheme
-                            .onBackground
-                            .copy(alpha = 0.7f),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "Discover",
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.5).sp
-                    )
-                }
+                Text(
+                    text = "Music Stream",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically)
+                {
+                    IconButton(
+                        onClick = { onNotificationClick() },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f))
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.notification_alarm_buzzer_icon),
+                            contentDescription = "Notifications",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    IconButton(
+                        onClick = { onToolsClick() },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f))
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.service_tools_icon),
+                            contentDescription = "Settings",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
                     Card(
                         modifier = Modifier.size(44.dp),
                         shape = CircleShape,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme
-                                .colorScheme
-                                .onBackground
-                                .copy(alpha = 0.05f)
-                        ),
-                        onClick = { onNotificationClick() }
+                        onClick = onProfileClick
                     ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        if (state.user?.avatarUrl?.isNotEmpty() == true) {
+                            AsyncImage(
+                                model = state.user.avatarUrl,
+                                contentDescription = "Profile",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                        } else {
                             Icon(
-                                imageVector = Icons.Filled.Notifications,
-                                contentDescription = "Notifications",
-                                tint = Color(0xFFFFC107),
-                                modifier = Modifier.size(24.dp)
+                                painter = painterResource(id = R.drawable.silhouette_male_icon),
+                                contentDescription = "Profile",
+                                tint = Color.LightGray,
+                                modifier = Modifier.size(25.dp).offset(y = 7.dp)
+                                    .align(Alignment.CenterHorizontally)
                             )
                         }
                     }
+                }
+            }
 
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Card(
-                        modifier = Modifier.size(44.dp),
-                        shape = CircleShape,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme
-                                .colorScheme
-                                .onBackground
-                                .copy(alpha = 0.05f)
-                        ),
-                        onClick = onProfileClick
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            if (state.featuredSongs.isNotEmpty()) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    StackedFeaturedCards(
+                        songs = state.featuredSongs,
+                        currentPlayingSong = currentPlayingSong,
+                        isPlaying = isPlaying,
+                        onSongClick = { song ->
+                            val index = state.featuredSongs.indexOf(song)
+                            onPlaySongs(state.featuredSongs,
+                                index)
+                        },
+                        onFavoriteClick = onToggleFavorite,
+                        onTogglePlayPause = onTogglePlayPause
+                    )
+                    
+                    // Page Indicator dots
+                    Row(
+                        modifier = Modifier.padding(top = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            if (state.user?.avatarUrl?.isNotEmpty() == true) {
-                                AsyncImage(
-                                    model = state.user.avatarUrl,
-                                    contentDescription = "Profile",
-                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                )
-                            } else {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.silhouette_male_icon),
-                                    contentDescription = "Profile",
-                                    tint = Color(0xFFCE93D8),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
+                        repeat(3) { i ->
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(if
+                                            (i == 1) AccentPurple
+                                    else Color.LightGray.copy(alpha = 0.5f))
+                            )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val displaySong = currentPlayingSong ?: state.featuredSong
-            displaySong?.let { song ->
-                FeaturedCard(
-                    song = song,
-                    onPlayClick = onTogglePlayPause,
-                    onCardClick = onGoToPlayer,
-                    onLongClick = { },
-                    isPlaying = isPlaying && (currentPlayingSong?.id == song.id)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Trending Section
             SectionHeader(
-                title = "Trending",
-                modifier = Modifier.offset(y = (-5).dp),
-                iconRes = R.drawable.fire_alarm_icon,
-                onSeeAllClick =
-                    { onTrendingSeeAllClick() }
+                title = "Trending Now",
+                onSeeAllClick = { onTrendingSeeAllClick() }
             )
+            
             TrendingRow(
                 songs = state.trendingSongs,
-                modifier = Modifier.offset(y = (-25).dp),
-                onSongClick = { song -> 
+                onSongClick = { song ->
                     val index = state.trendingSongs.indexOf(song)
                     onPlaySongs(state.trendingSongs, index)
                 },
-                onLongClick = { _ -> },
+                onLongClick = { song -> selectedSongForOptions = song },
                 downloadingSongs = state.downloadingSongs
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Recently Played
-            SectionHeader(
-                title = "Recently Played",
-                modifier = Modifier.offset(y = (-25).dp),
-                iconRes = R.drawable.clock_line_icon,
-                onSeeAllClick = { onRecentlyPlayedSeeAllClick() }
-            )
-            state.recentlyPlayed.take(5).forEach { song ->
-                val index = state.recentlyPlayed.indexOf(song)
-                SongListItem(
-                    song = song,
-                    onSongClick = { onPlaySongs(state.recentlyPlayed, index) },
-                    modifier = Modifier.offset(y = (-45).dp),
-                    onFavoriteClick = { onToggleFavorite(it) },
-                    onDownloadClick = { onDownloadSong(it) },
-                    onMoreClick = { },
-                    onLongClick = { 
-                        selectedSongIdForPlaylist = it.id
-                    },
-                    downloadProgress = state.downloadingSongs[song.id]
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Your Collections
-            SectionHeader(
-                title = "Your Collections",
-                modifier = Modifier.offset(y = (-30).dp),
-                emoji = "🎵",
-                onSeeAllClick = null
-            )
-            PlaylistRow(
-                playlists = state.playlists,
-                modifier = Modifier.offset(y = (-30).dp),
-                onPlaylistClick = onPlaylistClick,
-                onDownloadsClick = onDownloadsClick,
-                onPlaylistLongClick = { playlistToDelete = it },
-                downloadCount = state.downloads.size,
-                showDownloads = false
             )
 
             // Bottom spacer for edge-to-edge scrolling behind navigation bars
@@ -416,13 +437,13 @@ fun YourCollectionsPreview() {
         ) {
             SectionHeader(
                 title = "Your Collections",
-                modifier = Modifier.offset(y = (-40).dp),
+                modifier = Modifier.offset(y = (-55).dp),
                 emoji = "🎵",
                 onSeeAllClick = null
             )
             PlaylistRow(
                 playlists = MockData.playlists,
-                modifier = Modifier.offset(y = (-40).dp),
+                modifier = Modifier.offset(y = (-55).dp),
                 onPlaylistClick = {},
                 onDownloadsClick = {},
                 onPlaylistLongClick = {},
@@ -439,7 +460,7 @@ fun HomeScreenPreview() {
         HomeContent(
             state = HomeUiState(
                 greeting = "Good Morning 👋",
-                featuredSong = MockData.featuredSong,
+                featuredSongs = MockData.trendingSongs.take(3),
                 trendingSongs = MockData.trendingSongs,
                 recentlyPlayed = MockData.recentlyPlayed,
                 playlists = MockData.playlists

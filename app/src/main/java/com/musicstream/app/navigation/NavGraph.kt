@@ -1,5 +1,4 @@
 package com.musicstream.app.navigation
-
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -12,7 +11,6 @@ import com.musicstream.app.presentation.library.LibraryScreen
 import com.musicstream.app.presentation.profile.ProfileScreen
 import com.musicstream.app.presentation.player.PlayerScreen
 import com.musicstream.app.presentation.player.PlayerViewModel
-
 import com.musicstream.app.domain.model.User
 import com.musicstream.app.presentation.MainViewModel
 import com.musicstream.app.presentation.notifications.NotificationScreen
@@ -24,6 +22,8 @@ import com.musicstream.app.presentation.splash.SplashScreen
 import com.musicstream.app.presentation.library.DownloadsScreen
 import com.musicstream.app.presentation.library.PlaylistScreen
 import com.musicstream.app.presentation.artists.ArtistsScreen
+import com.musicstream.app.presentation.media_tools.MediaToolsScreen
+import com.musicstream.app.presentation.media_tools.EqualizerScreen
 
 @Composable
 fun NavGraph(
@@ -54,6 +54,7 @@ fun NavGraph(
                 onPlaySongs = onPlaySongs,
                 onNotificationClick = { navController.navigate(Screen.Notifications.route) },
                 onProfileClick = { navController.navigate(Screen.Profile.route) },
+                onToolsClick = { navController.navigate(Screen.MediaTools.route) },
                 onTrendingSeeAllClick = { navController.navigate(Screen.Trending.route) },
                 onRecentlyPlayedSeeAllClick = { navController.navigate(Screen.RecentlyPlayed.route) },
                 onPlaylistClick = { playlist ->
@@ -138,7 +139,20 @@ fun NavGraph(
                 onArtistClick = { _ ->
                     navController.navigate(Screen.Search.route) // Search for artist
                 },
-                onPlaySongs = onPlaySongs
+                onPlaySongs = onPlaySongs,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.MediaTools.route) {
+            MediaToolsScreen(
+                onPlaySongs = onPlaySongs,
+                onEqualizerClick = { navController.navigate(Screen.Equalizer.route) },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Equalizer.route) {
+            EqualizerScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
         composable(Screen.Profile.route) {

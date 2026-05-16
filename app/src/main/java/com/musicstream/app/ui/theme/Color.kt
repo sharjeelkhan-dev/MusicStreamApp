@@ -3,10 +3,10 @@ package com.musicstream.app.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Primary Background
-val DarkBackground = Color(0xFF0D0B1E)
-val DarkSurface = Color(0xFF1A1730)
-val DarkCardSurface = Color(0xFF1E1B35)
-val DarkElevated = Color(0xFF252240)
+val DarkBackground = Color(0xFF000000) // Pure Black
+val DarkSurface = Color(0xFF0F0F0F) // Very Dark Gray for surface
+val DarkCardSurface = Color(0xFF1A1A1A) // Slightly lighter for cards
+val DarkElevated = Color(0xFF242424) // More lighter for elevated items
 
 // Text Colors
 val TextPrimary = Color(0xFFFFFFFF)
@@ -17,7 +17,7 @@ val TextTertiary = Color(0xFF5C5C7A)
 val AccentOrange = Color(0xFFFF8C00)
 val AccentAmber = Color(0xFFFFA500)
 val AccentYellow = Color(0xFFFFD700)
-val AccentPurple = Color(0xFF8B5CF6)
+val AccentPurple = Color(0xFF1E1E2F)
 val AccentPink = Color(0xFFEC4899)
 val AccentMagenta = Color(0xFFD946EF)
 val AccentGreen = Color(0xFF10B981)
@@ -30,9 +30,9 @@ val AccentTeal = Color(0xFF14B8A6)
 val PremiumGold = Color(0xFFFFD700)
 
 // Bottom Nav
-val NavBarBackground = Color(0xFF110F24)
+val NavBarBackground = Color(0xFF000000)
 val NavBarInactive = Color(0xFF5C5C7A)
-val NavBarActive = AccentPurple
+val NavBarActive = Color.Black // This will be used as a base, logic in BottomNavBar.kt should handle theme properly
 
 // Favorite Heart
 val FavoriteRed = Color(0xFFFF4D6A)

@@ -94,6 +94,22 @@ class PlayerViewModel @Inject constructor(
                 val queue = _uiState.value.queue
                 if (newIndex in queue.indices) {
                     val nextSong = queue[newIndex]
+                    
+                    // Resolve YouTube URL if needed
+                    if (nextSong.streamUrl.startsWith("youtube://")) {
+                        viewModelScope.launch {
+                            val resolved = resolveSong(nextSong)
+                            if (resolved.streamUrl != nextSong.streamUrl && resolved.streamUrl.isNotEmpty()) {
+                                val updatedQueue = _uiState.value.queue.toMutableList()
+                                updatedQueue[newIndex] = resolved
+                                _uiState.update { it.copy(queue = updatedQueue, currentSong = resolved) }
+                                
+                                val newMediaItem = createMediaItem(resolved)
+                                mediaController?.replaceMediaItem(newIndex, newMediaItem)
+                            }
+                        }
+                    }
+
                     _uiState.update { it.copy(
                         currentSong = nextSong,
                         currentIndex = newIndex,
@@ -123,6 +139,7 @@ class PlayerViewModel @Inject constructor(
             }
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                android.util.Log.e("PlayerViewModel", "Playback Error: ${error.message}", error)
                 val currentSong = _uiState.value.currentSong
                 if (currentSong != null) {
                     val currentUri = mediaController?.currentMediaItem?.localConfiguration?.uri
@@ -130,6 +147,16 @@ class PlayerViewModel @Inject constructor(
                     
                     if (wasPlayingLocal && currentSong.streamUrl.isNotEmpty()) {
                         playWithUri(currentSong, currentSong.streamUrl)
+                    } else if (currentSong.streamUrl.startsWith("youtube://")) {
+                        // Attempt to resolve again if it failed
+                        viewModelScope.launch {
+                            val resolved = resolveSong(currentSong)
+                            if (resolved.streamUrl.isNotEmpty() && !resolved.streamUrl.startsWith("youtube://")) {
+                                playSong(resolved)
+                            } else {
+                                _uiState.update { it.copy(isPlaying = false) }
+                            }
+                        }
                     } else {
                         _uiState.update { it.copy(isPlaying = false) }
                     }
@@ -165,48 +192,75 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    private suspend fun resolveSong(song: Song): Song {
+        if (song.streamUrl.startsWith("youtube://") || (song.streamUrl.isEmpty() && song.id.length == 11)) {
+            return musicRepository.getSongById(song.id).firstOrNull() ?: song
+        }
+        return song
+    }
+
+    private fun createMediaItem(song: Song): MediaItem {
+        val mMetadata = androidx.media3.common.MediaMetadata.Builder()
+            .setTitle(song.title)
+            .setArtist(song.artist)
+            .setDisplayTitle(song.title)
+            .setArtworkUri(song.coverUrl.toUri())
+            .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
+            .setIsBrowsable(false)
+            .setIsPlayable(true)
+            .build()
+        
+        val uri = if (!song.localPath.isNullOrEmpty() && java.io.File(song.localPath).exists()) {
+            android.net.Uri.fromFile(java.io.File(song.localPath)).toString()
+        } else {
+            song.streamUrl
+        }
+
+        return MediaItem.Builder()
+            .setUri(uri)
+            .setMediaId(song.id)
+            .setMimeType(if (uri.startsWith("file")) "audio/mpeg" else null)
+            .setMediaMetadata(mMetadata)
+            .build()
+    }
+
     fun playSongs(songs: List<Song>, startIndex: Int = 0) {
         if (songs.isEmpty()) return
         
         playJob?.cancel()
         playJob = viewModelScope.launch {
+            val startSong = songs[startIndex]
+            
+            // 1. Update UI immediately for instant feedback
             _uiState.update { it.copy(
                 queue = songs,
                 currentIndex = startIndex,
-                currentSong = songs[startIndex],
+                currentSong = startSong,
                 currentPosition = 0L,
-                duration = songs[startIndex].duration,
+                duration = startSong.duration,
                 isPlaying = true
             ) }
             
+            // 2. Save start song to DB immediately so resolution finds it
+            musicRepository.addToRecentlyPlayed(startSong)
+            
+            // 3. Resolve the starting song's stream URL
+            val resolvedStartSong = resolveSong(startSong)
+            
+            val updatedSongs = songs.toMutableList()
+            updatedSongs[startIndex] = resolvedStartSong
+
+            _uiState.update { it.copy(
+                queue = updatedSongs,
+                currentSong = resolvedStartSong,
+                duration = resolvedStartSong.duration
+            ) }
+            
             if (!uiState.value.isShuffleOn) {
-                originalQueue = songs
+                originalQueue = updatedSongs
             }
 
-            val mediaItems = songs.map { song ->
-                val mMetadata = androidx.media3.common.MediaMetadata.Builder()
-                    .setTitle(song.title)
-                    .setArtist(song.artist)
-                    .setDisplayTitle(song.title)
-                    .setArtworkUri(song.coverUrl.toUri())
-                    .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
-                    .setIsBrowsable(false)
-                    .setIsPlayable(true)
-                    .build()
-                
-                val uri = if (!song.localPath.isNullOrEmpty() && java.io.File(song.localPath).exists()) {
-                    android.net.Uri.fromFile(java.io.File(song.localPath)).toString()
-                } else {
-                    song.streamUrl
-                }
-
-                MediaItem.Builder()
-                    .setUri(uri)
-                    .setMediaId(song.id)
-                    .setMimeType(if (uri.startsWith("file")) "audio/mpeg" else null)
-                    .setMediaMetadata(mMetadata)
-                    .build()
-            }
+            val mediaItems = updatedSongs.map { createMediaItem(it) }
             
             mediaController?.let { controller ->
                 controller.setMediaItems(mediaItems)
@@ -214,13 +268,11 @@ class PlayerViewModel @Inject constructor(
                 controller.prepare()
                 controller.play()
             }
-            
-            musicRepository.addToRecentlyPlayed(songs[startIndex])
         }
     }
 
     fun playSong(song: Song) {
-        if (_uiState.value.currentSong?.id == song.id) {
+        if (_uiState.value.currentSong?.id == song.id && !song.streamUrl.startsWith("youtube://")) {
             mediaController?.seekTo(0)
             if (mediaController?.playbackState == Player.STATE_ENDED) {
                 mediaController?.prepare()
@@ -232,82 +284,58 @@ class PlayerViewModel @Inject constructor(
 
         playJob?.cancel()
         playJob = viewModelScope.launch {
-            val latestSong = musicRepository.getSongById(song.id).firstOrNull()?.copy(
-                isFavorite = song.isFavorite
-            ) ?: song
-
-            val localFileExists = !latestSong.localPath.isNullOrEmpty() && java.io.File(latestSong.localPath).exists()
+            // 1. Update UI immediately with the passed song metadata
+            val currentQueue = _uiState.value.queue
+            val existingIdx = currentQueue.indexOfFirst { it.id == song.id }
             
-            val mediaUri = if (localFileExists) {
-                android.net.Uri.fromFile(java.io.File(latestSong.localPath)).toString()
-            } else {
-                latestSong.streamUrl
+            _uiState.update { state ->
+                state.copy(
+                    currentSong = song,
+                    isPlaying = true,
+                    currentPosition = 0L,
+                    duration = song.duration,
+                    currentIndex = if (existingIdx >= 0) existingIdx else state.currentIndex
+                )
             }
 
-            val currentQueue = _uiState.value.queue
-            val existingIndex = currentQueue.indexOfFirst { it.id == latestSong.id }
+            // 2. Add to Recently Played (Saves to DB)
+            musicRepository.addToRecentlyPlayed(song)
+
+            // 3. Resolve the stream URL (will now use DB metadata if needed)
+            val latestSong = resolveSong(song).copy(
+                isFavorite = song.isFavorite
+            )
+
+            val updatedQueue = _uiState.value.queue.toMutableList()
+            val finalIndex = if (existingIdx >= 0) {
+                updatedQueue[existingIdx] = latestSong
+                existingIdx
+            } else {
+                updatedQueue.add(latestSong)
+                updatedQueue.size - 1
+            }
             
-            var indexToPlay = 0
             _uiState.update { state ->
-                val newQueue = if (existingIndex >= 0) {
-                    currentQueue
-                } else {
-                    currentQueue + latestSong
-                }
-
-                val newIndex = if (existingIndex >= 0) {
-                    existingIndex
-                } else {
-                    newQueue.size - 1
-                }
-                indexToPlay = newIndex
-
                 if (!state.isShuffleOn) {
-                    originalQueue = newQueue
-                } else if (existingIndex == -1) {
+                    originalQueue = updatedQueue
+                } else if (existingIdx == -1) {
                     originalQueue = originalQueue + latestSong
                 }
 
                 state.copy(
                     currentSong = latestSong,
-                    queue = newQueue,
-                    currentIndex = newIndex,
-                    currentPosition = 0L,
+                    queue = updatedQueue,
+                    currentIndex = finalIndex,
                     duration = latestSong.duration
                 )
             }
             
-            musicRepository.addToRecentlyPlayed(latestSong)
-            
-            if (mediaUri.isNotEmpty()) {
-                val mediaItems = _uiState.value.queue.map { qSong ->
-                    val mMetadata = androidx.media3.common.MediaMetadata.Builder()
-                        .setTitle(qSong.title)
-                        .setArtist(qSong.artist)
-                        .setDisplayTitle(qSong.title)
-                        .setArtworkUri(qSong.coverUrl.toUri())
-                        .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
-                        .setIsBrowsable(false)
-                        .setIsPlayable(true)
-                        .build()
-                    
-                    val qUri = if (!qSong.localPath.isNullOrEmpty() && java.io.File(qSong.localPath).exists()) {
-                        android.net.Uri.fromFile(java.io.File(qSong.localPath)).toString()
-                    } else {
-                        qSong.streamUrl
-                    }
-
-                    MediaItem.Builder()
-                        .setUri(qUri)
-                        .setMediaId(qSong.id)
-                        .setMimeType(if (qUri.startsWith("file")) "audio/mpeg" else null)
-                        .setMediaMetadata(mMetadata)
-                        .build()
-                }
+            if (latestSong.streamUrl.isNotEmpty() && !latestSong.streamUrl.startsWith("youtube://")) {
+                val mediaItems = updatedQueue.map { createMediaItem(it) }
                 
                 mediaController?.let { controller ->
                     controller.setMediaItems(mediaItems)
-                    controller.seekTo(indexToPlay, 0L)
+                    controller.seekTo(finalIndex, 0L)
                     controller.prepare()
                     controller.play()
                 }
@@ -380,6 +408,24 @@ class PlayerViewModel @Inject constructor(
     fun pauseSong() {
         // Agar aap MediaController use kar rahe hain toh:
         mediaController?.pause()
+    }
+
+    fun stopMusic() {
+        mediaController?.let { controller ->
+            controller.pause()
+            controller.stop()
+            controller.clearMediaItems()
+        }
+        _uiState.update { 
+            it.copy(
+                currentSong = null,
+                isPlaying = false,
+                queue = emptyList(),
+                currentIndex = 0,
+                progress = 0f,
+                currentPosition = 0L
+            ) 
+        }
     }
 
     fun toggleShuffle() {

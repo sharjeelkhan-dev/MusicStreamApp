@@ -7,11 +7,15 @@ import kotlinx.coroutines.flow.Flow
 
 interface MusicRepository {
     fun getFeaturedSong(): Flow<Song>
-    fun getTrendingSongs(): Flow<List<Song>>
+    fun getTrendingSongs(query: String = "Top Trending Music"): Flow<List<Song>>
     fun getRecentlyPlayed(): Flow<List<Song>>
     fun getPlaylists(): Flow<List<Playlist>>
     fun getGenres(): Flow<List<Genre>>
     fun getTrendingSearches(): Flow<List<String>>
+    fun getSearchHistory(): Flow<List<String>>
+    suspend fun addSearchHistory(query: String)
+    suspend fun deleteSearchHistory(query: String)
+    suspend fun clearSearchHistory()
     fun searchSongs(query: String): Flow<List<Song>>
     fun getFavorites(): Flow<List<Song>>
     fun getDownloads(): Flow<List<Song>>
@@ -25,6 +29,7 @@ interface MusicRepository {
     suspend fun removeSongFromPlaylist(playlistId: String, songId: String)
     suspend fun deleteDownload(songId: String)
     suspend fun addToRecentlyPlayed(song: Song)
+    suspend fun addLocalSong(song: Song)
     suspend fun downloadSong(song: Song): Flow<DownloadProgress>
 }
 
@@ -53,4 +58,10 @@ interface SettingsRepository {
     suspend fun setLanguage(language: String)
     fun getEqualizerPreset(): Flow<String>
     suspend fun setEqualizerPreset(preset: String)
+    fun getBassBoostLevel(): Flow<Int>
+    suspend fun setBassBoostLevel(level: Int)
+    fun getVirtualizerLevel(): Flow<Int>
+    suspend fun setVirtualizerLevel(level: Int)
+    fun getEqualizerBandLevels(): Flow<Map<Int, Int>>
+    suspend fun setEqualizerBandLevel(band: Int, level: Int)
 }

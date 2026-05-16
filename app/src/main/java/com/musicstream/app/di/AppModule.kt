@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import com.musicstream.app.data.local.MusicDatabase
 import com.musicstream.app.data.local.dao.FavoriteDao
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -30,8 +29,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(
+        pipedInterceptor: com.musicstream.app.data.remote.interceptor.PipedInstanceInterceptor
+    ): OkHttpClient {
         return OkHttpClient.Builder()
+            .addInterceptor(pipedInterceptor)
             .addInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
             })
@@ -42,7 +44,7 @@ object AppModule {
     @Singleton
     fun provideMusicApi(okHttpClient: OkHttpClient): MusicApi {
         return Retrofit.Builder()
-            .baseUrl("https://jiosaavn-api-privatecvc2.vercel.app/")
+            .baseUrl("https://saavn.dev/")
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
@@ -80,25 +82,13 @@ object AppModule {
     fun provideFavoriteDao(db: MusicDatabase): FavoriteDao = db.favoriteDao()
 
     @Provides
+    fun provideSearchDao(db: MusicDatabase): com.musicstream.app.data.local.dao.SearchDao = db.searchDao()
+
+    @Provides
     @Singleton
     fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
         return PreferenceDataStoreFactory.create(
             produceFile = { context.preferencesDataStoreFile("settings") }
         )
-    }
-
-    @Provides
-    @Singleton
-    fun provideExoPlayer(@ApplicationContext context: Context): ExoPlayer {
-        val audioAttributes = androidx.media3.common.AudioAttributes.Builder()
-            .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC)
-            .setUsage(androidx.media3.common.C.USAGE_MEDIA)
-            .build()
-
-        return ExoPlayer.Builder(context)
-            .setAudioAttributes(audioAttributes, true)
-            .setHandleAudioBecomingNoisy(true)
-            .setWakeMode(androidx.media3.common.C.WAKE_MODE_NETWORK)
-            .build()
     }
 }

@@ -17,7 +17,7 @@ import javax.inject.Inject
 data class HomeUiState(
     val user: User? = null,
     val greeting: String = "",
-    val featuredSong: Song? = null,
+    val featuredSongs: List<Song> = emptyList(),
     val trendingSongs: List<Song> = emptyList(),
     val recentlyPlayed: List<Song> = emptyList(),
     val downloads: List<Song> = emptyList(),
@@ -39,6 +39,8 @@ class HomeViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private var refreshCount = 0
+
     init {
         loadData()
     }
@@ -46,8 +48,9 @@ class HomeViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _isRefreshing.value = true
+            refreshCount++
             // Add a small delay to show the refresh indicator
-            kotlinx.coroutines.delay(1500)
+            kotlinx.coroutines.delay(800)
             loadData()
             _isRefreshing.value = false
         }
@@ -58,38 +61,77 @@ class HomeViewModel @Inject constructor(
     private fun loadData() {
         dataJob?.cancel()
         dataJob = viewModelScope.launch {
-            // Set greeting based on time of day
-            val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            val calendar = java.util.Calendar.getInstance()
+            val hour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+            val year = calendar.get(java.util.Calendar.YEAR)
+
             val greeting = when {
                 hour < 12 -> "Good Morning 👋"
                 hour < 17 -> "Good Afternoon ☀️"
                 else -> "Good Evening 🌙"
             }
             
-            combine(
-                userRepository.getCurrentUser(),
-                musicRepository.getFeaturedSong(),
-                musicRepository.getTrendingSongs(),
-                musicRepository.searchSongs("new releases").map { songs -> 
-                    songs.filter { !it.isExplicit } 
-                },
-                musicRepository.getRecentlyPlayed(),
-                musicRepository.getPlaylists(),
-                musicRepository.getDownloads()
-            ) { args: Array<*> ->
-                HomeUiState(
-                    user = args[0] as? User,
-                    greeting = greeting,
-                    featuredSong = args[1] as? Song,
-                    trendingSongs = args[2] as List<Song>,
-                    newSongs = args[3] as List<Song>,
-                    recentlyPlayed = args[4] as List<Song>,
-                    playlists = args[5] as List<Playlist>,
-                    downloads = args[6] as List<Song>,
-                    isLoading = false
-                )
-            }.collect { state ->
-                _uiState.value = state
+            val trendingQueries = listOf("Top Charts India", "New Releases 2026", "Trending Songs Today")
+            val currentTrendingQuery = trendingQueries[refreshCount % trendingQueries.size]
+            val currentTerm = "Latest Hits $year"
+
+            _uiState.update { it.copy(greeting = greeting) }
+
+            // Sequential collection to ensure reliability
+            launch {
+                userRepository.getCurrentUser().collect { user ->
+                    _uiState.update { it.copy(user = user) }
+                }
+            }
+
+            launch {
+                musicRepository.getTrendingSongs(currentTrendingQuery)
+                    .catch { e ->
+                        android.util.Log.e("HomeViewModel", "Trending error: ${e.message}")
+                        _uiState.update { it.copy(isLoading = false) }
+                    }
+                    .collect { trending ->
+                        _uiState.update {
+                            val featured = if (it.recentlyPlayed.isNotEmpty()) it.recentlyPlayed else trending
+                            it.copy(
+                                trendingSongs = trending,
+                                featuredSongs = featured.take(5),
+                                isLoading = false 
+                            ) 
+                        }
+                    }
+            }
+
+            launch {
+                musicRepository.searchSongs(currentTerm)
+                    .catch { e -> android.util.Log.e("HomeViewModel", "NewSongs error: ${e.message}") }
+                    .collect { songs ->
+                        _uiState.update { it.copy(newSongs = songs) }
+                    }
+            }
+
+            launch {
+                musicRepository.getRecentlyPlayed().collect { recent ->
+                    _uiState.update {
+                        val featured = if (recent.isNotEmpty()) recent else it.trendingSongs
+                        it.copy(
+                            recentlyPlayed = recent,
+                            featuredSongs = featured.take(5)
+                        ) 
+                    }
+                }
+            }
+
+            launch {
+                musicRepository.getPlaylists().collect { playlists ->
+                    _uiState.update { it.copy(playlists = playlists) }
+                }
+            }
+
+            launch {
+                musicRepository.getDownloads().collect { downloads ->
+                    _uiState.update { it.copy(downloads = downloads) }
+                }
             }
         }
     }
@@ -115,6 +157,13 @@ class HomeViewModel @Inject constructor(
     fun deletePlaylist(playlistId: String) {
         viewModelScope.launch {
             musicRepository.deletePlaylist(playlistId)
+        }
+    }
+
+    fun deleteDownload(songId: String) {
+        viewModelScope.launch {
+            musicRepository.deleteDownload(songId)
+            loadData()
         }
     }
 

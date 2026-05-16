@@ -1,4 +1,5 @@
 package com.musicstream.app.presentation.player
+import android.annotation.SuppressLint
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.background
@@ -11,7 +12,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,12 +21,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.animation.core.*
+import com.musicstream.app.data.MockData
 import com.musicstream.app.domain.model.Song
 import com.musicstream.app.ui.theme.*
 
+@SuppressLint("AutoboxingStateCreation")
 @Composable
 fun MiniPlayerBar(
     song: Song?,
@@ -35,7 +42,9 @@ fun MiniPlayerBar(
     onPlayPauseClick: () -> Unit,
     onNextClick: () -> Unit,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
+    onDismiss: () -> Unit = {},
+    @SuppressLint("ModifierParameter")
+    modifier: Modifier = Modifier.offset(y = 20.dp),
 ) {
     if (song == null) return
 
@@ -44,14 +53,44 @@ fun MiniPlayerBar(
         Gradients.songThumbOrange,
         Gradients.songThumbBlue,
         Gradients.songThumbGreen,
-        Gradients.trendingPurple
+        Gradients.trendingPurple,
+    )
+
+    // Swipe to dismiss state
+    var offsetX by remember { mutableFloatStateOf(0f) }
+
+    // Rotation animation for the thumbnail
+    val infiniteTransition = rememberInfiniteTransition(label = "thumbnailRotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Restart
+        ),
+        label = "rotation"
     )
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 8.dp)
-            .height(72.dp),
+            .height(72.dp)
+            .offset(x = (offsetX / 2).dp) // Visual feedback for swipe
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (kotlin.math.abs(offsetX) > 150) {
+                            onDismiss()
+                        }
+                        offsetX = 0f
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        offsetX += dragAmount
+                    }
+                )
+            },
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         onClick = onClick
@@ -65,7 +104,10 @@ fun MiniPlayerBar(
             // 1. Background Blur (Glassmorphism Effect)
             if (song.coverUrl.isNotEmpty()) {
                 AsyncImage(
-                    model = song.coverUrl,
+                    model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                        .data(song.coverUrl)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -95,15 +137,15 @@ fun MiniPlayerBar(
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color.White.copy(alpha = if (MaterialTheme.colorScheme.surface == Color.White) 0.15f else 0.08f),
-                                Color.White.copy(alpha = if (MaterialTheme.colorScheme.surface == Color.White) 0.05f else 0.02f)
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.02f)
                             )
                         )
                     )
                     .border(
                         width = 1.dp,
                         brush = Brush.linearGradient(
-                            colors = listOf(Color.White.copy(alpha = 0.2f), Color.Transparent)
+                            colors = listOf(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), Color.Transparent)
                         ),
                         shape = RoundedCornerShape(24.dp)
                     )
@@ -117,15 +159,22 @@ fun MiniPlayerBar(
                         .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Thumbnail with high quality look
+                    // Rotating Rounded Thumbnail
                     Card(
-                        modifier = Modifier.size(44.dp),
+                        modifier = Modifier
+                            .size(48.dp)
+                            .graphicsLayer { 
+                                rotationZ = if (isPlaying) rotation else 0f 
+                            },
                         shape = RoundedCornerShape(12.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         if (song.coverUrl.isNotEmpty()) {
                             AsyncImage(
-                                model = song.coverUrl,
+                                model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                                    .data(song.coverUrl)
+                                    .crossfade(true)
+                                    .build(),
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
@@ -134,14 +183,15 @@ fun MiniPlayerBar(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(thumbGradients[song.gradientIndex % thumbGradients.size]),
+                                    .background(thumbGradients[song.gradientIndex
+                                            % thumbGradients.size]),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.MusicNote,
                                     contentDescription = null,
                                     tint = Color.White.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
                         }
@@ -153,6 +203,7 @@ fun MiniPlayerBar(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = song.title,
+                            modifier = Modifier.offset(y = 5.dp),
                             color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
@@ -161,6 +212,7 @@ fun MiniPlayerBar(
                         )
                         Text(
                             text = song.artist,
+                            modifier = Modifier.offset(y = (-3).dp),
                             color = songColor.copy(alpha = 0.9f),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
@@ -177,7 +229,7 @@ fun MiniPlayerBar(
                         IconButton(onClick = onPlayPauseClick, modifier = Modifier.size(44.dp)) {
                             Surface(
                                 shape = CircleShape,
-                                color = Color.White.copy(alpha = 0.9f),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
                                 shadowElevation = 2.dp
                             ) {
                                 Box(
@@ -193,7 +245,7 @@ fun MiniPlayerBar(
                                     Icon(
                                         imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                         contentDescription = if (isPlaying) "Pause" else "Play",
-                                        tint = Color.White,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -219,7 +271,61 @@ fun MiniPlayerBar(
                         .height(2.dp),
                     color = songColor,
                     trackColor = Color.Transparent,
-                    drawStopIndicator = { }
+                ) { }
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun MiniPlayerBarPreview() {
+    MusicStreamTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp),
+        ) {
+            MiniPlayerBar(
+                song = MockData.featuredSong,
+                isPlaying = true,
+                progress = 0.45f,
+                songColor = MaterialTheme.colorScheme.primary,
+                onPlayPauseClick = {},
+                onNextClick = {},
+                onClick = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "Notification Style")
+@Composable
+fun MiniPlayerNotificationPreview() {
+    MusicStreamTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(
+                    text = "Incoming Notification",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+                
+                // Simulation of how it looks when triggered via notification area
+                MiniPlayerBar(
+                    song = MockData.trendingSongs[0],
+                    isPlaying = true,
+                    progress = 0.72f,
+                    songColor = AccentOrange,
+                    onPlayPauseClick = {},
+                    onNextClick = {},
+                    onClick = {}
                 )
             }
         }

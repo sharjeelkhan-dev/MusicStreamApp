@@ -66,6 +66,16 @@ class LibraryViewModel @Inject constructor(
             .onEach { songs -> _uiState.update { it.copy(songs = songs) } }
             .launchIn(viewModelScope)
 
+        // Collect Downloads (This also includes converted files with localPath)
+        musicRepository.getDownloads()
+            .onEach { downloads -> 
+                _uiState.update { it.copy(
+                    downloads = downloads,
+                    songs = (it.songs + downloads).distinctBy { s -> s.id }.sortedByDescending { s -> s.id }
+                ) }
+            }
+            .launchIn(viewModelScope)
+
         // Collect Favorites
         musicRepository.getFavorites()
             .onEach { favorites -> _uiState.update { it.copy(favorites = favorites) } }

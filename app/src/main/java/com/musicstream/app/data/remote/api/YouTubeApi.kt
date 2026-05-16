@@ -12,7 +12,8 @@ interface YouTubeApi {
     @GET("search")
     suspend fun search(
         @Query("q") query: String,
-        @Query("filter") filter: String = "music_videos"
+        @Query("filter") filter: String = "all",
+        @Query("limit") limit: Int = 100
     ): YouTubeSearchResponseDto
 
     @GET("streams/{videoId}")
@@ -20,12 +21,7 @@ interface YouTubeApi {
         @Path("videoId") videoId: String
     ): YouTubeStreamDto
 
-    @GET("trending")
-    suspend fun getTrending(
-        @Query("region") region: String? = null
-    ): List<YouTubeSearchItemDto>
-
     companion object {
-        const val BASE_URL = "https://piped-api.lilly.garden/"
+        const val BASE_URL = "https://pipedapi.in.projectsegfau.lt/" // Default to India
     }
 }

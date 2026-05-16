@@ -1,7 +1,9 @@
 package com.musicstream.app.presentation.components
 import android.annotation.SuppressLint
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -9,7 +11,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -17,11 +20,14 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -72,13 +78,13 @@ fun PlaylistCard(
                 .aspectRatio(1f)
                 .fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            onClick = onClick
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(gradient)
+                    .clip(RoundedCornerShape(24.dp))
                     .combinedClickable(
                         onClick = onClick,
                         onLongClick = onLongClick,
@@ -141,117 +147,155 @@ fun TrendingCard(
     artist: String,
     gradient: Brush,
     coverUrl: String = "",
-    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
+    @SuppressLint("ModifierParameter")
+    modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
     downloadProgress: Int? = null,
     isDownloaded: Boolean = false
 ) {
-    Column(
-        modifier = modifier.width(165.dp),
-        horizontalAlignment = Alignment.Start
+    Card(
+        modifier = modifier
+            .height(260.dp)
+            .width(220.dp)
+            .clip(RoundedCornerShape(40.dp))
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
+        shape = RoundedCornerShape(40.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Card(
-            modifier = Modifier
-                .aspectRatio(1f)
-                .fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-            onClick = onClick
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Background Image (Blurred for artistic effect like FeaturedCard)
+            if (coverUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(coverUrl)
+                        .crossfade(true)
+                        .placeholder(R.drawable.music_song_file_icon)
+                        .error(R.drawable.music_song_file_icon)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(20.dp)
+                        .graphicsLayer { alpha = 0.6f }
+                )
+                
+                // Main Image (Clear)
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(coverUrl)
+                        .crossfade(true)
+                        .placeholder(R.drawable.music_song_file_icon)
+                        .error(R.drawable.music_song_file_icon)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(modifier = Modifier.fillMaxSize().background(gradient))
+            }
+
+            // Dark Gradient Overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(gradient)
-                    .combinedClickable(
-                        onClick = { onClick() },
-                        onLongClick = { onLongClick() },
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = LocalIndication.current
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (coverUrl.isNotEmpty()) {
-                    AsyncImage(
-                        model = coverUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.3f),
+                                Color.Black.copy(alpha = 0.85f)
+                            ),
+                            startY = 200f
+                        )
                     )
-                } else {
-                    Icon(
-                        painter = painterResource(id = R.drawable.audio_tune_icon),
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.4f),
-                        modifier = Modifier.size(56.dp)
-                    )
-                }
+            )
 
-                if (downloadProgress != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.4f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            progress = { downloadProgress / 100f },
-                            modifier = Modifier.size(40.dp),
-                            color = Color.White,
-                            strokeWidth = 3.dp,
-                            trackColor = Color.White.copy(alpha = 0.2f)
-                        )
-                        Text(
-                            text = "$downloadProgress%",
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                } else if (isDownloaded) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp)
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center
-                    ) {
+            // Content
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Top: Favorite Button
+                Surface(
+                    modifier = Modifier.size(32.dp),
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.2f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = Icons.Filled.DownloadDone,
-                            contentDescription = "Downloaded",
-                            tint = Color.White,
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = null,
+                            tint = Color(0xFFEF5350).copy(alpha = 0.8f),
                             modifier = Modifier.size(16.dp)
                         )
                     }
                 }
+
+                // Bottom: Title and Open Button
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    
+                    Text(
+                        text = artist,
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Surface(
+                        modifier = Modifier
+                            .wrapContentSize(),
+                        shape = RoundedCornerShape(28.dp),
+                        color = Color.Black.copy(alpha = 0.35f),
+                        onClick = onClick
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Open",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
-        
-        Spacer(modifier = Modifier.height(10.dp))
-        
-        Text(
-            text = title,
-            color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 2.dp)
-        )
-        
-        Text(
-            text = artist,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 2.dp).offset(y = (-6.5).dp)
-        )
     }
 }
+
 
 @Preview(showBackground = true, backgroundColor = 0xFF0D0B1E)
 @Composable

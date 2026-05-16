@@ -58,6 +58,8 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     private var equalizer: android.media.audiofx.Equalizer? = null
+    private var bassBoost: android.media.audiofx.BassBoost? = null
+    private var virtualizer: android.media.audiofx.Virtualizer? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -65,15 +67,8 @@ class MusicPlaybackService : MediaSessionService() {
         
         createNotificationChannel()
         
-        // Initialize equalizer with the player's session ID
-        try {
-            equalizer = android.media.audiofx.Equalizer(0, exoPlayer.audioSessionId)
-            equalizer?.enabled = true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize equalizer: ${e.message}")
-        }
-
-        observeEqualizerSettings()
+        initializeAudioEffects()
+        observeAudioEffectsSettings()
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -138,18 +133,63 @@ class MusicPlaybackService : MediaSessionService() {
         }
     }
 
-    private fun observeEqualizerSettings() {
+    private fun initializeAudioEffects() {
+        val sessionId = exoPlayer.audioSessionId
+        try {
+            equalizer = android.media.audiofx.Equalizer(0, sessionId).apply { enabled = true }
+            bassBoost = android.media.audiofx.BassBoost(0, sessionId).apply { enabled = true }
+            virtualizer = android.media.audiofx.Virtualizer(0, sessionId).apply { enabled = true }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to initialize audio effects: ${e.message}")
+        }
+    }
+
+    private fun observeAudioEffectsSettings() {
+        // Observe Preset
         settingsRepository.getEqualizerPreset()
             .onEach { preset ->
-                if (equalizer == null) {
-                    try {
-                        equalizer = android.media.audiofx.Equalizer(0, exoPlayer.audioSessionId)
-                        equalizer?.enabled = true
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Late initialize equalizer failed: ${e.message}")
+                if (preset != "Custom") {
+                    applyEqualizerPreset(preset)
+                }
+            }
+            .launchIn(serviceScope)
+
+        // Observe Bass Boost
+        settingsRepository.getBassBoostLevel()
+            .onEach { level ->
+                try {
+                    bassBoost?.setStrength(level.toShort())
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error setting bass boost: ${e.message}")
+                }
+            }
+            .launchIn(serviceScope)
+
+        // Observe Virtualizer
+        settingsRepository.getVirtualizerLevel()
+            .onEach { level ->
+                try {
+                    virtualizer?.setStrength(level.toShort())
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error setting virtualizer: ${e.message}")
+                }
+            }
+            .launchIn(serviceScope)
+
+        // Observe Custom Band Levels
+        settingsRepository.getEqualizerBandLevels()
+            .onEach { bandLevels ->
+                settingsRepository.getEqualizerPreset().first().let { preset ->
+                    if (preset == "Custom") {
+                        bandLevels.forEach { (band, level) ->
+                            try {
+                                equalizer?.setBandLevel(band.toShort(), level.toShort())
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error setting band $band: ${e.message}")
+                            }
+                        }
                     }
                 }
-                applyEqualizerPreset(preset)
             }
             .launchIn(serviceScope)
     }
@@ -157,55 +197,24 @@ class MusicPlaybackService : MediaSessionService() {
     private fun applyEqualizerPreset(preset: String) {
         val eq = equalizer ?: return
         try {
-            if (!eq.enabled) eq.enabled = true
-            
             val numBands = eq.numberOfBands
-            val (minLevel, maxLevel) = eq.bandLevelRange
-            val center = (minLevel + maxLevel) / 2
-            val step = (maxLevel - minLevel) / 2000 // Total levels typically 3000 (-1500 to +1500)
             
-            Log.d(TAG, "Applying equalizer preset: $preset, numBands: $numBands, range: $minLevel to $maxLevel")
-
-            fun setBand(band: Int, levelInMilliBel: Int) {
-                if (band < numBands) {
-                    val targetLevel = (center + levelInMilliBel).toShort().coerceIn(minLevel, maxLevel)
-                    eq.setBandLevel(band.toShort(), targetLevel)
-                }
+            // Standard preset mapping
+            val presetLevels = when (preset) {
+                "Flat" -> List(numBands.toInt()) { 0 }
+                "Bass Boost" -> listOf(1000, 500, 0, 0, 0)
+                "Rock" -> listOf(400, 200, -200, 300, 500)
+                "Pop" -> listOf(-200, 100, 300, 100, -200)
+                "Electronic" -> listOf(400, 200, 0, 200, 400)
+                "Classical" -> listOf(0, 0, 0, -200, -200)
+                "Jazz" -> listOf(0, 0, 200, 200, 0)
+                "Dance" -> listOf(600, 0, 200, 400, 0)
+                else -> List(numBands.toInt()) { 0 }
             }
 
-            when (preset) {
-                "Flat" -> {
-                    for (i in 0 until numBands) eq.setBandLevel(i.toShort(), center.toShort())
-                }
-                "Bass Boost" -> {
-                    setBand(0, 1000)
-                    setBand(1, 500)
-                    for (i in 2 until numBands) eq.setBandLevel(i.toShort(), center.toShort())
-                }
-                "Rock" -> {
-                    setBand(0, 400)
-                    setBand(1, 200)
-                    setBand(2, -200)
-                    setBand(3, 300)
-                    setBand(4, 500)
-                }
-                "Pop" -> {
-                    setBand(0, -200)
-                    setBand(1, 100)
-                    setBand(2, 300)
-                    setBand(3, 100)
-                    setBand(4, -200)
-                }
-                "Electronic" -> {
-                    setBand(0, 400)
-                    setBand(1, 200)
-                    setBand(2, 0)
-                    setBand(3, 200)
-                    setBand(4, 400)
-                }
-                else -> { // Custom or anything else - set to flat
-                    for (i in 0 until numBands) eq.setBandLevel(i.toShort(), center.toShort())
-                }
+            for (i in 0 until numBands) {
+                val level = if (i < presetLevels.size) presetLevels[i] else 0
+                eq.setBandLevel(i.toShort(), level.toShort())
             }
         } catch (e: Exception) { 
             Log.e(TAG, "Error applying equalizer: ${e.message}")
@@ -292,7 +301,11 @@ class MusicPlaybackService : MediaSessionService() {
     override fun onDestroy() {
         serviceJob.cancel()
         equalizer?.release()
+        bassBoost?.release()
+        virtualizer?.release()
         equalizer = null
+        bassBoost = null
+        virtualizer = null
         mediaSession?.run {
             player.release()
             release()

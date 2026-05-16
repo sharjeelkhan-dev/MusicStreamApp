@@ -3,8 +3,9 @@ package com.musicstream.app.presentation.trending
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -29,10 +30,12 @@ import com.musicstream.app.ui.theme.*
 @Composable
 fun TrendingScreen(
     viewModel: TrendingViewModel = hiltViewModel(),
+    playerViewModel: com.musicstream.app.presentation.player.PlayerViewModel = hiltViewModel(),
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val playerState by playerViewModel.uiState.collectAsStateWithLifecycle()
 
     TrendingContent(
         state = state,
@@ -41,7 +44,10 @@ fun TrendingScreen(
         onBackClick = onBackClick,
         onFavoriteClick = { viewModel.toggleFavorite(it) },
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
-        onCreatePlaylist = { viewModel.createPlaylist(it) }
+        onCreatePlaylist = { viewModel.createPlaylist(it) },
+        currentPlayingSong = playerState.currentSong,
+        isPlaying = playerState.isPlaying,
+        onTogglePlayPause = { playerViewModel.togglePlayPause() }
     )
 }
 
@@ -54,16 +60,22 @@ fun TrendingContent(
     onBackClick: () -> Unit = {},
     onFavoriteClick: (String) -> Unit = {},
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
-    onCreatePlaylist: (String) -> Unit = {}
+    onCreatePlaylist: (String) -> Unit = {},
+    currentPlayingSong: Song? = null,
+    isPlaying: Boolean = false,
+    onTogglePlayPause: () -> Unit = {}
 ) {
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("Trending") }
+
+    val categories = listOf("Trending", "Rock", "EDM", "Hip Hop", "Pop", "Jazz")
 
     if (showCreateDialog) {
         AlertDialog(
-            onDismissRequest = { },
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            onDismissRequest = { showCreateDialog = false },
+            containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = { Text("New Playlist") },
@@ -74,11 +86,8 @@ fun TrendingContent(
                     label = { Text("Playlist Name") },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentPurple,
-                        cursorColor = AccentPurple,
-                        focusedLabelColor = AccentPurple,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
             },
@@ -88,15 +97,16 @@ fun TrendingContent(
                         if (newPlaylistName.isNotBlank()) {
                             onCreatePlaylist(newPlaylistName)
                             newPlaylistName = ""
+                            showCreateDialog = false
                         }
                     }
                 ) {
-                    Text("Create", color = AccentPurple)
+                    Text("Create")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { }) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = { showCreateDialog = false }) {
+                    Text("Cancel")
                 }
             }
         )
@@ -110,8 +120,11 @@ fun TrendingContent(
                 selectedSongIdForPlaylist = null
             },
             onCreatePlaylistClick = {
+                selectedSongIdForPlaylist = null
+                showCreateDialog = true
             },
             onDismissRequest = {
+                selectedSongIdForPlaylist = null
             }
         )
     }
@@ -128,20 +141,20 @@ fun TrendingContent(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Header
+            // Header (Matching Image)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Card(
-                    modifier = Modifier.size(44.dp),
+                    modifier = Modifier.size(48.dp),
                     shape = CircleShape,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     onClick = onBackClick
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -153,30 +166,53 @@ fun TrendingContent(
                         )
                     }
                 }
-                Text(
-                    text = "Trending Now",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 160.dp) // Space for bottom nav bleed
-            ) {
-                items(state.songs) { song ->
-                    val index = state.songs.indexOf(song)
-                    SongListItem(
-                        song = song,
-                        onSongClick = { onPlaySongs(state.songs, index) },
-                        onFavoriteClick = onFavoriteClick,
-                        onMoreClick = { selectedSongIdForPlaylist = it.id },
-                        downloadProgress = state.downloadingSongs[song.id]
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                Column {
+                    Text(
+                        text = "Trending Now",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.ExtraBold
                     )
                 }
             }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 120.dp)
+            ) {
+                itemsIndexed(state.songs) { index, song ->
+                    val isSongPlaying = currentPlayingSong?.id == song.id && isPlaying
+                    SongListItem(
+                        song = song,
+                        onSongClick = { onPlaySongs(state.songs, index) },
+                        onMoreClick = { selectedSongIdForPlaylist = it.id },
+                        isPlaying = isSongPlaying,
+                        onPlayPauseClick = {
+                            if (currentPlayingSong?.id == song.id) {
+                                onTogglePlayPause()
+                            } else {
+                                onPlaySongs(state.songs, index)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+        
+        // Floating "Play All" Button (Matching "Create Playlist" position)
+        Button(
+            onClick = { if (state.songs.isNotEmpty()) onPlaySongs(state.songs, 0) },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 32.dp, start = 24.dp, end = 24.dp)
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = AccentPurple)
+        ) {
+            Text("Play All Trending", fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
     }
 }

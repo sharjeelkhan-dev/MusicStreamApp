@@ -1,269 +1,247 @@
 package com.musicstream.app.presentation.library
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import com.musicstream.app.data.MockData
-import com.musicstream.app.ui.theme.MusicStreamTheme
+import com.musicstream.app.ui.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.musicstream.app.R
-import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
+import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
 import com.musicstream.app.presentation.components.SongListItem
-import com.musicstream.app.presentation.components.SongOptionsBottomSheet
-import com.musicstream.app.ui.theme.AccentPurple
-import com.musicstream.app.ui.theme.Gradients
 
 @Composable
 fun PlaylistScreen(
     viewModel: PlaylistViewModel = hiltViewModel(),
+    playerViewModel: com.musicstream.app.presentation.player.PlayerViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
     onPlaySongs: (List<Song>, Int) -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val playerState by playerViewModel.uiState.collectAsStateWithLifecycle()
     
     PlaylistScreenContent(
         state = state,
         onBackClick = onBackClick,
         onPlaySongs = onPlaySongs,
         onToggleFavorite = { viewModel.toggleFavorite(it) },
-    ) { viewModel.downloadSong(it) }
+        onAddSongToPlaylist = { pid, sid -> viewModel.addSongToPlaylist(pid, sid) },
+        onCreatePlaylist = { viewModel.createPlaylist(it) },
+        onDownloadSong = { viewModel.downloadSong(it) },
+        currentPlayingSong = playerState.currentSong,
+        isPlaying = playerState.isPlaying,
+        onTogglePlayPause = { playerViewModel.togglePlayPause() }
+    )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistScreenContent(
     state: PlaylistUiState,
     onBackClick: () -> Unit,
     onPlaySongs: (List<Song>, Int) -> Unit,
     onToggleFavorite: (String) -> Unit,
-    onDownloadSong: (Song) -> Unit
+    onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
+    onCreatePlaylist: (String) -> Unit = {},
+    onDownloadSong: (Song) -> Unit,
+    currentPlayingSong: Song? = null,
+    isPlaying: Boolean = false,
+    onTogglePlayPause: () -> Unit = {}
 ) {
-    var selectedSongForOptions by remember { mutableStateOf<Song?>(null) }
+    var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("All") }
 
-    if (state.isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = AccentPurple)
-        }
-    } else {
-        state.playlist?.let { playlist ->
-            PlaylistDetailView(
-                playlist = playlist,
-                songs = state.songs,
-                onBackClick = onBackClick,
-                onPlaySongs = onPlaySongs,
-                onPlayAllClick = {
-                    if (state.songs.isNotEmpty()) {
-                        onPlaySongs(state.songs, 0)
-                    }
-                },
-                onShuffleClick = {
-                    if (state.songs.isNotEmpty()) {
-                        onPlaySongs(state.songs.shuffled(), 0)
-                    }
-                },
-                onFavoriteClick = onToggleFavorite,
-                onMoreClick = { selectedSongForOptions = it },
-                downloadingSongs = state.downloadingSongs
-            )
-        } ?: run {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Playlist not found", color = MaterialTheme.colorScheme.onSurface)
-            }
-        }
-    }
+    val categories = listOf("All", "Recent", "Added", "Recommended")
 
-    if (selectedSongForOptions != null) {
-        SongOptionsBottomSheet(
-            song = selectedSongForOptions,
-            onDismissRequest = {
+    if (showCreateDialog) {
+        AlertDialog(
+            onDismissRequest = { showCreateDialog = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("New Playlist") },
+            text = {
+                OutlinedTextField(
+                    value = newPlaylistName,
+                    onValueChange = { newPlaylistName = it },
+                    label = { Text("Playlist Name") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    )
+                )
             },
-            onFavoriteClick = onToggleFavorite,
-            onAddToPlaylistClick = { /* Already in a playlist, but could add to others */ },
-            onDownloadClick = onDownloadSong,
-            onDeleteDownloadClick = { /* Handle delete if needed */ },
-            onShareClick = { /* Handle share */ },
-            onGoToArtistClick = { /* Handle artist click */ }
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newPlaylistName.isNotBlank()) {
+                            onCreatePlaylist(newPlaylistName)
+                            newPlaylistName = ""
+                            showCreateDialog = false
+                        }
+                    }
+                ) {
+                    Text("Create")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreateDialog = false }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
-}
 
-@Composable
-private fun PlaylistDetailView(
-    playlist: Playlist,
-    songs: List<Song>,
-    onBackClick: () -> Unit,
-    onPlaySongs: (List<Song>, Int) -> Unit,
-    onPlayAllClick: () -> Unit,
-    onShuffleClick: () -> Unit,
-    onFavoriteClick: (String) -> Unit,
-    onMoreClick: (Song) -> Unit,
-    downloadingSongs: Map<String, Int> = emptyMap()
-) {
-    val gradients = listOf(
-        Gradients.playlistBlue,
-        Gradients.playlistPink,
-        Gradients.playlistGreen,
-        Gradients.trendingOrange,
-        Gradients.trendingPurple
-    )
-    val scrollState = rememberScrollState()
+    if (selectedSongIdForPlaylist != null) {
+        PlaylistSelectionBottomSheet(
+            playlists = state.playlists,
+            onPlaylistSelected = { playlist ->
+                onAddSongToPlaylist(playlist.id, selectedSongIdForPlaylist!!)
+                selectedSongIdForPlaylist = null
+            },
+            onCreatePlaylistClick = {
+                selectedSongIdForPlaylist = null
+                showCreateDialog = true
+            },
+            onDismissRequest = {
+                selectedSongIdForPlaylist = null
+            }
+        )
+    }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-            .verticalScroll(scrollState)
     ) {
-        // Top Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(24.dp)
-                )
+        if (state.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
-            Text(
-                text = "Playlist",
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
-
-        // Playlist Header
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
+        } else {
+            Column(
                 modifier = Modifier
-                    .size(160.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(gradients[playlist.gradientIndex % gradients.size]),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .statusBarsPadding()
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.audio_tune_icon),
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.6f),
-                    modifier = Modifier.size(64.dp)
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(20.dp))
-            
-            Text(
-                text = playlist.name,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-            
-            Text(
-                text = "${playlist.songCount} songs • Updated today",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium
-            )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = onPlayAllClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentPurple),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.weight(1f).height(44.dp)
+                // Circular Back Button (Top Left)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
                 ) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Play", fontWeight = FontWeight.Bold)
+                    Card(
+                        modifier = Modifier.size(48.dp),
+                        shape = CircleShape,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        onClick = onBackClick
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 }
-                
-                OutlinedButton(
-                    onClick = onShuffleClick,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.weight(1f).height(44.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+
+                // Title and Subtitle (Centered Style like Image)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(Icons.Filled.Shuffle, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Shuffle", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Songs Header
-        Text(
-            text = "Songs",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier
-                .padding(
-                    horizontal = 24.dp,
-                    vertical = 8.dp,
-                )
-                .offset(y = (-13).dp),
-        )
-
-        // Songs List
-        Column(
-            modifier = Modifier
-                .fillMaxWidth().offset(y = (-13).dp)
-                .padding(bottom = 30.dp)
-        ) {
-            if (songs.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-                    Text(text = "No songs in this playlist", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            } else {
-                songs.forEachIndexed { index, song ->
-                    SongListItem(
-                        song = song,
-                        onSongClick = { onPlaySongs(songs, index) },
-                        onFavoriteClick = onFavoriteClick,
-                        onMoreClick = { onMoreClick(song) },
-                        downloadProgress = downloadingSongs[song.id]
+                    val displayTitle = if (state.playlist?.id?.startsWith("new_") == true) "Create playlist" else (state.playlist?.name ?: "Playlist")
+                    Text(
+                        text = displayTitle,
+                        modifier = Modifier.offset(y = (-62).dp),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center
                     )
+                    Spacer(Modifier.height(4.dp))
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Songs List (Vertical)
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .offset(y = (-110).dp),
+                    contentPadding = PaddingValues(bottom = 160.dp)
+                ) {
+                    itemsIndexed(state.songs) { index, song ->
+                        val isSongPlaying = currentPlayingSong?.id == song.id && isPlaying
+                        SongListItem(
+                            song = song,
+                            modifier = Modifier.offset(y = 40.dp),
+                            onSongClick = { onPlaySongs(state.songs, index) },
+                            onMoreClick = { selectedSongIdForPlaylist = it.id },
+                            isPlaying = isSongPlaying,
+                            onPlayPauseClick = {
+                                if (currentPlayingSong?.id == song.id) {
+                                    onTogglePlayPause()
+                                } else {
+                                    onPlaySongs(state.songs, index)
+                                }
+                            }
+                        )
+                    }
+                    
+                    if (state.songs.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
+                                Text(text = "No songs found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Bottom Action Button (Large Purple Button like Image)
+            Button(
+                onClick = { if (state.songs.isNotEmpty()) onPlaySongs(state.songs, 0) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp, start = 24.dp, end = 24.dp)
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AccentPurple)
+            ) {
+                Text(
+                    text = if (state.playlist?.id?.startsWith("new_") == true) "Create Playlist" else "Play Collection",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
             }
         }
     }

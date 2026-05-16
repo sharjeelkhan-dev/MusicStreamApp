@@ -19,6 +19,7 @@ data class SearchUiState(
     val query: String = "",
     val genres: List<Genre> = emptyList(),
     val trendingSearches: List<String> = emptyList(),
+    val searchHistory: List<String> = emptyList(),
     val searchResults: List<Song> = emptyList(),
     val playlists: List<Playlist> = emptyList(),
     val downloadingSongs: Map<String, Int> = emptyMap(),
@@ -48,8 +49,6 @@ class SearchViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            // Add a small delay to show the refresh indicator
-            kotlinx.coroutines.delay(1500)
             loadData()
             _uiState.update { it.copy(isRefreshing = false) }
         }
@@ -68,41 +67,49 @@ class SearchViewModel @Inject constructor(
             combine(
                 musicRepository.getGenres(),
                 musicRepository.getTrendingSearches(),
+                musicRepository.getSearchHistory(),
                 musicRepository.getPlaylists()
-            ) { genres, searches, playlists ->
-                Triple(genres, searches, playlists)
-            }.collect { (genres, searches, playlists) ->
-                _uiState.update { 
+            ) { genres, searches, history, playlists ->
+                _uiState.update {
                     it.copy(
                         greeting = greeting,
-                        genres = genres, 
+                        genres = genres,
                         trendingSearches = searches,
+                        searchHistory = history,
                         playlists = playlists
-                    ) 
+                    )
                 }
-            }
+            }.collect()
         }
     }
 
     private fun setupSearch() {
         viewModelScope.launch {
             _searchQuery
+                .debounce(500)
                 .onEach { query ->
                     savedStateHandle["query"] = query
                     if (query.isBlank()) {
-                        _uiState.update { it.copy(searchResults = emptyList(), isSearching = false, query = query) }
+                        _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
                     }
                 }
-                .debounce(300)
                 .filter { it.isNotBlank() }
                 .distinctUntilChanged()
                 .flatMapLatest { query ->
-                    _uiState.update { it.copy(isSearching = true, query = query) }
+                    _uiState.update { it.copy(isSearching = true) }
                     musicRepository.searchSongs(query)
+                        .catch { e ->
+                            android.util.Log.e("SearchViewModel", "Search error: ${e.message}")
+                            _uiState.update { it.copy(isSearching = false) }
+                            emit(emptyList())
+                        }
                 }
                 .collect { results ->
                     _uiState.update {
                         it.copy(searchResults = results, isSearching = false)
+                    }
+                    if (results.isNotEmpty() && _searchQuery.value.isNotBlank()) {
+                        musicRepository.addSearchHistory(_searchQuery.value)
                     }
                 }
         }
@@ -111,6 +118,18 @@ class SearchViewModel @Inject constructor(
     fun onQueryChange(query: String) {
         _searchQuery.value = query
         _uiState.update { it.copy(query = query) }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            musicRepository.clearSearchHistory()
+        }
+    }
+
+    fun deleteHistoryItem(query: String) {
+        viewModelScope.launch {
+            musicRepository.deleteSearchHistory(query)
+        }
     }
 
     fun toggleFavorite(songId: String) {
@@ -128,6 +147,16 @@ class SearchViewModel @Inject constructor(
     fun createPlaylist(name: String) {
         viewModelScope.launch {
             musicRepository.createPlaylist(name)
+        }
+    }
+
+    fun deleteDownload(songId: String) {
+        viewModelScope.launch {
+            musicRepository.deleteDownload(songId)
+            // Re-trigger current search to update UI
+            val currentQuery = _searchQuery.value
+            _searchQuery.value = ""
+            _searchQuery.value = currentQuery
         }
     }
 

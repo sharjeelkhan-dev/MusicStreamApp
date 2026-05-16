@@ -14,6 +14,7 @@ import javax.inject.Inject
 data class PlaylistUiState(
     val playlist: Playlist? = null,
     val songs: List<Song> = emptyList(),
+    val playlists: List<Playlist> = emptyList(),
     val downloadingSongs: Map<String, Int> = emptyMap(),
     val isLoading: Boolean = false
 )
@@ -43,6 +44,7 @@ class PlaylistViewModel @Inject constructor(
                 PlaylistUiState(
                     playlist = playlist,
                     songs = songs,
+                    playlists = playlists,
                     isLoading = false
                 )
             }.collect { newState ->
@@ -54,6 +56,24 @@ class PlaylistViewModel @Inject constructor(
     fun toggleFavorite(songId: String) {
         viewModelScope.launch {
             musicRepository.toggleFavorite(songId)
+        }
+    }
+
+    fun createPlaylist(name: String) {
+        viewModelScope.launch {
+            musicRepository.createPlaylist(name)
+        }
+    }
+
+    fun addSongToPlaylist(playlistId: String, songId: String) {
+        viewModelScope.launch {
+            musicRepository.addSongToPlaylist(playlistId, songId)
+        }
+    }
+
+    fun deleteDownload(songId: String) {
+        viewModelScope.launch {
+            musicRepository.deleteDownload(songId)
         }
     }
 

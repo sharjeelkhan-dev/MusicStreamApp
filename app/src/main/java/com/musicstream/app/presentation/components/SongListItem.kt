@@ -7,11 +7,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,12 +30,15 @@ import com.musicstream.app.R
 fun SongListItem(
     song: Song,
     modifier: Modifier = Modifier,
+    showThumbnail: Boolean = true,
     onSongClick: (Song) -> Unit = {},
     onFavoriteClick: (String) -> Unit = {},
     onDownloadClick: (Song) -> Unit = {},
     onMoreClick: (Song) -> Unit = {},
     onLongClick: (Song) -> Unit = {},
     downloadProgress: Int? = null,
+    isPlaying: Boolean = false,
+    onPlayPauseClick: () -> Unit = {}
 ) {
     val thumbGradients = listOf(
         Gradients.songThumbPink,
@@ -53,157 +52,122 @@ fun SongListItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(20.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
                 .combinedClickable(
                     onClick = { onSongClick(song) },
                     onLongClick = { onLongClick(song) }
                 )
-                .padding(10.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Thumbnail
-            if (song.coverUrl.isNotEmpty()) {
-                AsyncImage(
-                    model = song.coverUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(gradient),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.audio_tune_icon),
+            // Thumbnail (Optional)
+            if (showThumbnail) {
+                if (song.coverUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                            .data(song.coverUrl)
+                            .crossfade(true)
+                            .build(),
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.size(24.dp)
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(16.dp))
                     )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(gradient),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.audio_tune_icon),
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.7f),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
+                Spacer(modifier = Modifier.width(16.dp))
+            } else {
+                // If no thumbnail, add some padding to center content better
+                Spacer(modifier = Modifier.width(12.dp))
             }
-
-            Spacer(modifier = Modifier.width(14.dp))
 
             // Title and artist
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = if (showThumbnail) Alignment.Start else Alignment.CenterHorizontally
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = song.title,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                }
-                if (downloadProgress != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 2.dp)
-                    ) {
-                        LinearProgressIndicator(
-                            progress = { downloadProgress / 100f },
-                            modifier = Modifier
-                                .width(60.dp)
-                                .height(3.dp)
-                                .clip(CircleShape),
-                            color = AccentPurple,
-                            trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                            drawStopIndicator = {}
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "$downloadProgress%",
-                            color = AccentPurple,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                } else {
-                    Text(
-                        text = song.artist,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            // Favorite icon
-            IconButton(
-                onClick = { onFavoriteClick(song.id) },
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = "Favorite",
-                    tint = if (song.isFavorite) FavoriteRed else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-                    modifier = Modifier.size(20.dp)
+                Text(
+                    text = song.title,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = if (showThumbnail) TextAlign.Start else TextAlign.Center
+                )
+                Text(
+                    text = song.artist,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = if (showThumbnail) TextAlign.Start else TextAlign.Center
                 )
             }
 
-            // Download icon
-            if ((song.localPath == null) && (downloadProgress == null)) {
-                IconButton(
-                    onClick = { onDownloadClick(song) },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.import_icon),
-                        contentDescription = "Download",
-                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            } else if (song.localPath != null) {
-                Icon(
-                    imageVector = Icons.Filled.DownloadDone,
-                    contentDescription = "Downloaded",
-                    tint = AccentPurple,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(6.dp)
-                )
-            }
-
+            // Controls (Plus and Play/Pause like the image)
             IconButton(
                 onClick = { onMoreClick(song) },
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(40.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More",
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-                    modifier = Modifier.size(20.dp)
+                    painter = painterResource(id = R.drawable.plus_line_icon),
+                    contentDescription = "Add",
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            IconButton(
+                onClick = {
+                    if (isPlaying) onPlayPauseClick() else onSongClick(song)
+                },
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(if (isPlaying) AccentPurple else Color.Transparent)
+            ) {
+                Icon(
+                    painter = painterResource(
+                        id = if (isPlaying) R.drawable.pause_button_icon
+                        else R.drawable.play_button_icon
+                    ),
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    tint = if (isPlaying) Color.White else MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(if (isPlaying) 20.dp else 28.dp)
                 )
             }
         }
     }
 }
 
-/**
- * A wide version of SongListItem specifically for screens where cards should stretch 
- * nearly to the screen edges (like the Liked Songs screen).
- */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WideSongListItem(
@@ -215,174 +179,21 @@ fun WideSongListItem(
     onMoreClick: (Song) -> Unit = {},
     onLongClick: (Song) -> Unit = {},
     downloadProgress: Int? = null,
+    isPlaying: Boolean = false,
+    onPlayPauseClick: () -> Unit = {}
 ) {
-    val thumbGradients = listOf(
-        Gradients.songThumbPink,
-        Gradients.songThumbOrange,
-        Gradients.songThumbBlue,
-        Gradients.songThumbGreen,
-        Gradients.trendingPurple
+    SongListItem(
+        song = song,
+        modifier = modifier,
+        onSongClick = onSongClick,
+        onFavoriteClick = onFavoriteClick,
+        onDownloadClick = onDownloadClick,
+        onMoreClick = onMoreClick,
+        onLongClick = onLongClick,
+        downloadProgress = downloadProgress,
+        isPlaying = isPlaying,
+        onPlayPauseClick = onPlayPauseClick
     )
-    val gradient = thumbGradients[song.gradientIndex % thumbGradients.size]
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .combinedClickable(
-                    onClick = { onSongClick(song) },
-                    onLongClick = { onLongClick(song) }
-                )
-                .padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Thumbnail
-            if (song.coverUrl.isNotEmpty()) {
-                AsyncImage(
-                    model = song.coverUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(gradient),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.audio_tune_icon),
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            // Title and artist
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = song.title,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                }
-                if (downloadProgress != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 2.dp)
-                    ) {
-                        LinearProgressIndicator(
-                            progress = { downloadProgress / 100f },
-                            modifier = Modifier
-                                .width(60.dp)
-                                .height(3.dp)
-                                .clip(CircleShape),
-                            color = AccentPurple,
-                            trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                            drawStopIndicator = {}
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "$downloadProgress%",
-                            color = AccentPurple,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                } else {
-                    Text(
-                        text = song.artist,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            // Favorite icon
-            IconButton(
-                onClick = { onFavoriteClick(song.id) },
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = "Favorite",
-                    tint = if (song.isFavorite) FavoriteRed else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            // Download icon
-            if ((song.localPath == null) && (downloadProgress == null)) {
-                IconButton(
-                    onClick = { onDownloadClick(song) },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.import_icon),
-                        contentDescription = "Download",
-                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            } else if (song.localPath != null) {
-                Icon(
-                    imageVector = Icons.Filled.DownloadDone,
-                    contentDescription = "Downloaded",
-                    tint = AccentPurple,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(6.dp)
-                )
-            }
-
-            IconButton(
-                onClick = { onMoreClick(song) },
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More",
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun WideSongListItemPreview() {
-    MusicStreamTheme {
-        WideSongListItem(
-            song = MockData.trendingSongs[0]
-        )
-    }
 }
 
 @Preview(showBackground = true)
@@ -397,21 +208,11 @@ fun SongListItemPreview() {
 
 @Preview(showBackground = true)
 @Composable
-fun SongListItemFavoritePreview() {
-    MusicStreamTheme {
-        SongListItem(
-            song = MockData.trendingSongs[0].copy(isFavorite = true)
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun SongListItemDownloadingPreview() {
+fun SongListItemPlayingPreview() {
     MusicStreamTheme {
         SongListItem(
             song = MockData.trendingSongs[0],
-            downloadProgress = 45
+            isPlaying = true
         )
     }
 }

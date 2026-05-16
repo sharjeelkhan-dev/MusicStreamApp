@@ -38,6 +38,12 @@ data class RecentlyPlayedEntity(
     val playedAt: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "search_history")
+data class SearchHistoryEntity(
+    @PrimaryKey val query: String,
+    val searchedAt: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "playlist_song_cross_ref", primaryKeys = ["playlistId", "songId"])
 data class PlaylistSongCrossRef(
     val playlistId: String,

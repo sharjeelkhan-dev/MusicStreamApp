@@ -2,15 +2,21 @@ package com.musicstream.app.data.repository
 import com.musicstream.app.data.MockData
 import com.musicstream.app.data.local.dao.FavoriteDao
 import com.musicstream.app.data.local.dao.PlaylistDao
+import com.musicstream.app.data.local.dao.SearchDao
 import com.musicstream.app.data.local.dao.SongDao
 import com.musicstream.app.data.local.entity.FavoriteEntity
 import com.musicstream.app.data.local.entity.PlaylistEntity
 import com.musicstream.app.data.local.entity.PlaylistSongCrossRef
 import com.musicstream.app.data.local.entity.RecentlyPlayedEntity
+import com.musicstream.app.data.local.entity.SearchHistoryEntity
+import com.musicstream.app.data.local.entity.SongEntity
 import com.musicstream.app.data.remote.api.MusicApi
 import com.musicstream.app.data.remote.api.YouTubeApi
+import com.musicstream.app.data.remote.dto.SaavnDownloadUrlDto
+import com.musicstream.app.data.remote.dto.SaavnImageDto
 import com.musicstream.app.data.remote.dto.SaavnSongDto
-import com.musicstream.app.data.remote.dto.YouTubeSearchItemDto
+import com.musicstream.app.data.remote.extractor.YouTubeExtractor
+import com.musicstream.app.data.remote.interceptor.PipedInstanceInterceptor
 import com.musicstream.app.domain.model.Genre
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
@@ -34,70 +40,108 @@ class MusicRepositoryImpl @Inject constructor(
     private val songDao: SongDao,
     private val playlistDao: PlaylistDao,
     private val favoriteDao: FavoriteDao,
+    private val searchDao: SearchDao,
     private val musicApi: MusicApi,
     private val youTubeApi: YouTubeApi,
+    private val youTubeExtractor: YouTubeExtractor,
     private val okHttpClient: okhttp3.OkHttpClient,
+    private val pipedInterceptor: PipedInstanceInterceptor,
     @param:dagger.hilt.android.qualifiers.ApplicationContext
-    private val context: android.content.Context
+    private val context: android.content.Context,
 ) : MusicRepository {
 
     override fun getFeaturedSong(): Flow<Song> = 
         songDao.getRecentlyPlayed()
             .combine(favoriteDao.getAllFavorites()) { recentlyPlayed, favorites ->
-                val favIds = favorites.map { it.songId }.toSet()
-                val latest = recentlyPlayed.firstOrNull()?.toDomain() ?: MockData.featuredSong
+                val favIds = favorites.asSequence().map { it.songId }.toSet()
+                val latest = recentlyPlayed.firstOrNull()?.toDomain() ?: Song(
+                    id = "initial_discover",
+                    title = "Discover New Music",
+                    artist = "Start Playing",
+                    coverUrl = "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800"
+                )
                 latest.copy(isFavorite = favIds.contains(latest.id))
             }
 
-    override fun getTrendingSongs(): Flow<List<Song>> = flow {
-        val allFavs = favoriteDao.getAllFavorites().first().map { it.songId }.toSet()
-        val allLocal = songDao.getAllSongs().first()
-        val results = mutableListOf<Song>()
-
-        // 1. Try Saavn Trending (Global/Region specific charts)
-        try {
-            val saavnResponse = musicApi.getTrendingSongs()
-            val saavnResults = saavnResponse.data?.results?.map { it.toDomain() } ?: emptyList()
-            results.addAll(saavnResults)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        // 2. Try YouTube Trending (Real-time viral hits)
-        try {
-            val ytTrending = youTubeApi.getTrending()
-            val ytResults = ytTrending.filter { it.type == "stream" }.map { it.toDomain() }
+    override fun getTrendingSongs(query: String): Flow<List<Song>> {
+        val remoteFlow = flow {
+            var trendingResults = emptyList<Song>()
             
-            val existingNames = results.map { "${it.title.lowercase()}${it.artist.lowercase()}" }.toSet()
-            val uniqueYtResults = ytResults.filter { 
-                "${it.title.lowercase()}${it.artist.lowercase()}" !in existingNames
+            android.util.Log.d("MusicRepo", "--- TRENDING FETCH START ---")
+            // Try Saavn Trending (/modules endpoint)
+            try {
+                val response = withTimeoutOrNull(10000) { musicApi.getTrending() }
+                android.util.Log.d("MusicRepo", "Modules Response raw data: ${response?.data}")
+
+                // Manual extraction for polymorphism
+                val rawData = response?.data
+                val songs = when (rawData) {
+                    is Map<*, *> -> {
+                        // case: data -> trending -> songs
+                        val trending = rawData["trending"] as? Map<*, *>
+                        val results = trending?.get("songs") as? List<*>
+                        results?.mapNotNull { if (it is Map<*, *>) parseSaavnSongFromMap(it) else null }
+                    }
+                    is List<*> -> {
+                        // case: data is a direct list
+                        rawData.mapNotNull { if (it is Map<*, *>) parseSaavnSongFromMap(it) else null }
+                    }
+                    else -> null
+                }
+
+                if (!songs.isNullOrEmpty()) {
+                    trendingResults = songs.map { it.toDomain() }
+                    android.util.Log.d("MusicRepo", "Saavn Trending Success: ${trendingResults.size} songs")
+                    emit(trendingResults)
+                } else {
+                    android.util.Log.w("MusicRepo", "Saavn modules parsing returned null or empty")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MusicRepo", "Saavn Trending Exception: ${e.message}", e)
             }
-            results.addAll(uniqueYtResults)
-        } catch (e: Exception) {
-            e.printStackTrace()
+
+            // Supplement with YouTube
+            try {
+                android.util.Log.d("MusicRepo", "Trying YouTube Trending fallback...")
+                val ytResults = withTimeoutOrNull(10000) {
+                    youTubeExtractor.search("Latest Indian Trending Songs 2026")
+                }
+                if (!ytResults.isNullOrEmpty()) {
+                    trendingResults = (trendingResults + ytResults).distinctBy { it.id }
+                    android.util.Log.d("MusicRepo", "YouTube Trending Success: ${ytResults.size} songs")
+                    emit(trendingResults)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MusicRepo", "YouTube Trending Exception: ${e.message}", e)
+            }
+
+            if (trendingResults.isEmpty()) {
+                android.util.Log.d("MusicRepo", "All Trending sources failed, using Mock Data")
+                emit(MockData.trendingSongs)
+            }
         }
 
-        if (results.isNotEmpty()) {
-            val merged = results.map { remote ->
-                val local = allLocal.find { it.id == remote.id }
-                remote.copy(
-                    localPath = local?.localPath,
-                    isFavorite = allFavs.contains(remote.id)
+        // CRITICAL FIX: Single parallel combine with onStart backup to break database deadlock
+        return combine(
+            remoteFlow,
+            songDao.getAllSongs().onStart { emit(emptyList()) },
+            favoriteDao.getAllFavorites().onStart { emit(emptyList()) }
+        ) { remote, local, favorites ->
+            val favIds = favorites.map { it.songId }.toSet()
+            remote.map { song ->
+                val localMatch = local.find { it.id == song.id }
+                song.copy(
+                    localPath = localMatch?.localPath,
+                    isFavorite = favIds.contains(song.id)
                 )
             }
-            emit(merged)
-        } else {
-            emit(MockData.trendingSongs)
-        }
-    }.flowOn(Dispatchers.IO)
+        }.flowOn(Dispatchers.IO)
+    }
 
     override fun getRecentlyPlayed(): Flow<List<Song>> = songDao.getRecentlyPlayed().combine(favoriteDao.getAllFavorites()) { entities, favorites ->
         val favIds = favorites.map { it.songId }.toSet()
         entities.map { entity ->
             val domain = entity.toDomain()
-            // If the song is already downloaded, it will have a localPath in the 'songs' table
-            // However, the getRecentlyPlayed query joins with the songs table, so toDomain() 
-            // will already pick up the localPath if it exists.
             domain.copy(isFavorite = favIds.contains(entity.id))
         }
     }
@@ -114,58 +158,158 @@ class MusicRepositoryImpl @Inject constructor(
         emit(MockData.trendingSearches)
     }
 
-    override fun searchSongs(query: String): Flow<List<Song>> = flow {
-        if (query.isBlank()) {
-            emit(emptyList())
-            return@flow
-        }
-        
-        val allFavs = favoriteDao.getAllFavorites().first().map { it.songId }.toSet()
-        val allLocal = songDao.getAllSongs().first()
+    override fun getSearchHistory(): Flow<List<String>> = 
+        searchDao.getSearchHistory().map { entities -> entities.map { it.query } }
 
-        val results = mutableListOf<Song>()
-        
-        // 1. Try Saavn first for high-quality official studio tracks
-        try {
-            val saavnResponse = musicApi.searchSongs(query, limit = 15)
-            val saavnResults = saavnResponse.data?.results?.map { it.toDomain() } ?: emptyList()
-            results.addAll(saavnResults)
-        } catch (e: Exception) {
-            e.printStackTrace()
+    override suspend fun addSearchHistory(query: String) {
+        if (query.isNotBlank()) {
+            searchDao.insertSearchHistory(SearchHistoryEntity(query = query))
         }
+    }
 
-        // 2. Try YouTube for everything else (covers, remixes, rare songs)
-        try {
-            val ytResponse = youTubeApi.search(query)
-            val ytResults = ytResponse.items?.filter { it.type == "stream" }?.map { it.toDomain() } ?: emptyList()
-            
-            // Avoid duplicates (simplified check by title + artist)
-            val existingNames = results.map { "${it.title.lowercase()}${it.artist.lowercase()}" }.toSet()
-            val uniqueYtResults = ytResults.filter { 
-                "${it.title.lowercase()}${it.artist.lowercase()}" !in existingNames
+    override suspend fun deleteSearchHistory(query: String) {
+        searchDao.deleteSearchHistory(query)
+    }
+
+    override suspend fun clearSearchHistory() {
+        searchDao.clearSearchHistory()
+    }
+
+    override fun searchSongs(query: String): Flow<List<Song>> {
+        if (query.isBlank()) return flowOf(emptyList())
+
+        val remoteFlow = flow {
+            coroutineScope {
+                android.util.Log.d("MusicRepo", "Starting Search for: $query")
+                val saavnDeferred = async {
+                    try {
+                        withTimeoutOrNull(8000) {
+                            val response = musicApi.searchSongs(query, limit = 50)
+                            android.util.Log.d("MusicRepo", "Saavn Search raw data type: ${response.data?.javaClass?.name}")
+
+                            // Manual extraction to handle polymorphisim/nested issues
+                            val resultsList = when (val data = response.data) {
+                                is Map<*, *> -> {
+                                    (data["results"] as? List<*>)?.mapNotNull { item ->
+                                        if (item is Map<*, *>) {
+                                            // Handle Map to DTO if Moshi didn't parse nested objects
+                                            parseSaavnSongFromMap(item)
+                                        } else item as? SaavnSongDto
+                                    } ?: emptyList()
+                                }
+                                is List<*> -> data.filterIsInstance<SaavnSongDto>()
+                                else -> emptyList()
+                            }
+
+                            resultsList.map { it.toDomain() }.also {
+                                android.util.Log.d("MusicRepo", "Saavn Search found: ${it.size} songs")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("MusicRepo", "Saavn Search Failed: ${e.message}", e)
+                        null
+                    }
+                }
+
+                val ytDeferred = async {
+                    try {
+                        withTimeoutOrNull(12000) {
+                            youTubeExtractor.search(query).also {
+                                android.util.Log.d("MusicRepo", "YouTube Search found: ${it.size} songs")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("MusicRepo", "YouTube Search Failed: ${e.message}", e)
+                        null
+                    }
+                }
+
+                val currentResults = mutableListOf<Song>()
+
+                val saavnRes = saavnDeferred.await()
+                if (!saavnRes.isNullOrEmpty()) {
+                    currentResults.addAll(saavnRes)
+                    emit(currentResults.toList())
+                }
+
+                val ytRes = ytDeferred.await()
+                if (!ytRes.isNullOrEmpty()) {
+                    val combined = (currentResults + ytRes).distinctBy { it.id }
+                    if (combined.size > currentResults.size) {
+                        emit(combined)
+                    }
+                }
+
+                if (currentResults.isEmpty() && ytRes.isNullOrEmpty()) {
+                    android.util.Log.w("MusicRepo", "All search sources failed for: $query")
+                    // Final fallback to local
+                    val localResults = songDao.searchSongs(query).first().map { it.toDomain() }
+                    emit(localResults)
+                }
             }
-            results.addAll(uniqueYtResults)
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
 
-        if (results.isNotEmpty()) {
-            // Merge with local download status and favorites
-            val mergedResults = results.map { remote ->
-                val local = allLocal.find { it.id == remote.id }
-                remote.copy(
-                    localPath = local?.localPath,
-                    isFavorite = allFavs.contains(remote.id)
+        // CRITICAL FIX: Single parallel combine with onStart backup to break database deadlock
+        return combine(
+            remoteFlow,
+            songDao.getAllSongs().onStart { emit(emptyList()) },
+            favoriteDao.getAllFavorites().onStart { emit(emptyList()) }
+        ) { remote, local, favorites ->
+            val favIds = favorites.map { it.songId }.toSet()
+            remote.map { song ->
+                val localMatch = local.find { it.id == song.id }
+                song.copy(
+                    localPath = localMatch?.localPath,
+                    isFavorite = favIds.contains(song.id)
                 )
             }
-            emit(mergedResults)
-        } else {
-            // Last resort: search local DB
-            emitAll(songDao.searchSongs(query).map { entities -> 
-                entities.map { it.toDomain().copy(isFavorite = allFavs.contains(it.id)) } 
-            })
+        }.flowOn(Dispatchers.IO)
+    }
+
+    private fun parseSaavnSongFromMap(map: Map<*, *>): SaavnSongDto {
+        android.util.Log.d("MusicRepo", "Manually parsing map: $map")
+        val id = (map["id"] as? String) ?: (map["songid"] as? String) ?: ""
+        val name = (map["name"] as? String) ?: (map["songname"] as? String) ?: (map["title"] as? String)
+        val artists = (map["primaryArtists"] as? String) ?: (map["singers"] as? String) ?: (map["artist"] as? String)
+        
+        // Handle images
+        val imageList = (map["image"] as? List<*>)?.mapNotNull { img ->
+            when (img) {
+                is Map<*, *> -> SaavnImageDto((img["quality"] as? String) ?: "", (img["link"] as? String) ?: "")
+                is String -> SaavnImageDto("unknown", img)
+                else -> null
+            }
+        } ?: listOfNotNull(
+            (map["image"] as? String)?.let { SaavnImageDto("high", it) }
+        )
+
+        // Handle download URLs
+        val downloadList = (map["downloadUrl"] as? List<*>)?.mapNotNull { url ->
+            when (url) {
+                is Map<*, *> -> SaavnDownloadUrlDto((url["quality"] as? String) ?: "", (url["link"] as? String) ?: "")
+                is String -> SaavnDownloadUrlDto("high", url)
+                else -> null
+            }
+        } ?: listOfNotNull(
+            (map["download_url"] as? String)?.let { SaavnDownloadUrlDto("high", it) },
+            (map["media_url"] as? String)?.let { SaavnDownloadUrlDto("high", it) }
+        )
+
+        val duration = when (val dur = map["duration"]) {
+            is Number -> dur.toInt()
+            is String -> dur.toIntOrNull()
+            else -> null
         }
-    }.flowOn(Dispatchers.IO)
+
+        return SaavnSongDto(
+            id = id,
+            name = name,
+            primaryArtists = artists,
+            duration = duration,
+            image = imageList.takeIf { it.isNotEmpty() },
+            downloadUrl = downloadList.takeIf { it.isNotEmpty() }
+        )
+    }
 
     override fun getFavorites(): Flow<List<Song>> =
         favoriteDao.getAllFavorites()
@@ -181,26 +325,35 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     override fun getSongById(songId: String): Flow<Song?> = flow {
-        // First check local DB
         val localSong = songDao.getSongById(songId)?.toDomain()
         
-        // If it's a YouTube placeholder, resolve it
-        if (localSong?.streamUrl?.startsWith("youtube://") == true || songId.length == 11) {
-            try {
-                val videoId = if (localSong?.streamUrl?.startsWith("youtube://") == true) {
-                    localSong.streamUrl.substringAfter("youtube://")
-                } else songId
-                
-                val streamInfo = youTubeApi.getStreamInfo(videoId)
-                val audioUrl = streamInfo.audioStreams?.maxByOrNull { it.bitrate ?: 0 }?.url
-                
-                if (audioUrl != null) {
-                    emit((localSong ?: Song(id = videoId, title = "YouTube Song", artist = "YouTube")).copy(streamUrl = audioUrl))
+        val isYouTube = localSong?.streamUrl?.startsWith("youtube://") == true || (localSong == null && songId.length == 11)
+        
+        if (isYouTube) {
+            val videoId = if (localSong?.streamUrl?.startsWith("youtube://") == true) {
+                localSong.streamUrl.substringAfter("youtube://")
+            } else songId
+            
+            android.util.Log.d("MusicRepo", "Resolving YouTube URL for: $videoId")
+            val audioUrl = try {
+                youTubeExtractor.getAudioUrl(videoId)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                android.util.Log.e("MusicRepo", "YouTube resolution failed: ${e.message}")
+                null
+            }
+
+            if (audioUrl != null) {
+                android.util.Log.d("MusicRepo", "YouTube resolution success: $audioUrl")
+                emit((localSong ?: Song(id = videoId, title = "YouTube Song", artist = "YouTube")).copy(streamUrl = audioUrl))
+            } else {
+                android.util.Log.w("MusicRepo", "YouTube resolution returned null")
+                // If it's a youtube URI, don't emit it to the player as is
+                if (localSong?.streamUrl?.startsWith("youtube://") == true) {
+                    emit(localSong.copy(streamUrl = ""))
                 } else {
                     emit(localSong)
                 }
-            } catch (_: Exception) {
-                emit(localSong)
             }
         } else {
             emit(localSong)
@@ -256,45 +409,35 @@ class MusicRepositoryImpl @Inject constructor(
         val song = songDao.getSongById(songId)
         if (song?.localPath != null) {
             val file = java.io.File(song.localPath)
-            if (file.exists()) {
-                file.delete()
-            }
+            if (file.exists()) file.delete()
             songDao.insertSong(song.copy(localPath = null))
         }
     }
 
     override suspend fun addToRecentlyPlayed(song: Song) {
         songDao.insertSong(song.toEntity())
-        songDao.insertRecentlyPlayed(
-            RecentlyPlayedEntity(songId = song.id)
-        )
+        songDao.insertRecentlyPlayed(RecentlyPlayedEntity(songId = song.id))
         songDao.incrementPlayCount(song.id)
+    }
+
+    override suspend fun addLocalSong(song: Song) {
+        songDao.insertSong(song.toEntity())
     }
 
     override suspend fun downloadSong(song: Song): Flow<DownloadProgress> = flow {
         try {
             emit(DownloadProgress.Progress(0))
-            
-            // Get user's preferred audio quality
-
-            // Try to find the URL for the selected quality if available in the DTO or meta
-            // For now we use streamUrl which is already set to 320kbps in mapping if available
-            // In a real app we might need to re-fetch or use a different property
-
             val request = okhttp3.Request.Builder().url(song.streamUrl).build()
             val response = okHttpClient.newCall(request).execute()
-            
             if (response.isSuccessful && response.body != null) {
                 val totalBytes = response.body!!.contentLength()
                 val file = java.io.File(context.filesDir, "downloads/${song.id}.mp3")
                 file.parentFile?.mkdirs()
-                
                 response.body!!.byteStream().use { input ->
                     java.io.FileOutputStream(file).use { output ->
                         val buffer = ByteArray(8192)
                         var bytesRead: Int
                         var totalRead = 0L
-                        
                         while (input.read(buffer).also { bytesRead = it } != -1) {
                             output.write(buffer, 0, bytesRead)
                             totalRead += bytesRead
@@ -305,15 +448,10 @@ class MusicRepositoryImpl @Inject constructor(
                         }
                     }
                 }
-                
-                val songEntity = song.toEntity().copy(
-                    localPath = file.absolutePath
-                )
+                val songEntity = song.toEntity().copy(localPath = file.absolutePath)
                 songDao.insertSong(songEntity)
                 emit(DownloadProgress.Completed)
-            } else {
-                emit(DownloadProgress.Failed("Response failed"))
-            }
+            } else emit(DownloadProgress.Failed("Response failed"))
         } catch (e: Exception) {
             e.printStackTrace()
             emit(DownloadProgress.Failed(e.message ?: "Unknown error"))
@@ -322,38 +460,33 @@ class MusicRepositoryImpl @Inject constructor(
 
     // --- Mappers ---
 
-    private fun YouTubeSearchItemDto.toDomain(): Song {
-        val id = videoId ?: ""
-        val songName = title ?: "Unknown"
-        return Song(
-            id = id,
-            title = songName,
-            artist = uploaderName ?: "Unknown Artist",
-            coverUrl = thumbnail ?: "",
-            // Use a specific pattern for YouTube streams that we can resolve later
-            streamUrl = "youtube://$id",
-            duration = (duration ?: 0) * 1000L,
-            gradientIndex = (songName.hashCode() and Integer.MAX_VALUE) % 5
-        )
-    }
-
     private fun SaavnSongDto.toDomain(): Song {
-        val highQualImage = image?.find { it.quality == "500x500" }?.link 
+        val rawImage = image?.find { it.quality == "500x500" }?.link
+            ?: image?.find { it.quality == "150x150" }?.link
             ?: image?.lastOrNull()?.link ?: ""
         
-        val highQualDownload = downloadUrl?.find { it.quality == "320kbps" }?.link 
+        var secureImage = rawImage.replace("http://", "https://").trim()
+        
+        // Upgrade image quality if it's a known pattern but smaller size
+        if (secureImage.contains("saavncdn.com") || secureImage.contains("cdn-images")) {
+            if (secureImage.contains("150x150")) {
+                secureImage = secureImage.replace("150x150", "500x500")
+            } else if (secureImage.contains("50x50")) {
+                secureImage = secureImage.replace("50x50", "500x500")
+            }
+        }
+
+        val highQualDownload = downloadUrl?.find { it.quality == "320kbps" }?.link
             ?: downloadUrl?.lastOrNull()?.link ?: ""
-
-        val songName = name ?: "Unknown Title"
-
+        val songName = name?.trim()?.takeIf { it.isNotBlank() } ?: "Unknown Track"
+        val artistName = primaryArtists?.trim()?.takeIf { it.isNotBlank() } ?: "Various Artists"
         return Song(
             id = id,
             title = songName,
-            artist = primaryArtists ?: "Unknown Artist",
+            artist = artistName,
             album = "",
-            // Provide a default duration in case duration comes as null.
             duration = (duration ?: 0) * 1000L,
-            coverUrl = highQualImage,
+            coverUrl = secureImage,
             streamUrl = highQualDownload,
             isFavorite = false,
             gradientIndex = (songName.hashCode() and Integer.MAX_VALUE) % 5,
@@ -361,7 +494,7 @@ class MusicRepositoryImpl @Inject constructor(
         )
     }
 
-    private fun com.musicstream.app.data.local.entity.SongEntity.toDomain() = Song(
+    private fun SongEntity.toDomain() = Song(
         id = id,
         title = title,
         artist = artist,
@@ -370,7 +503,7 @@ class MusicRepositoryImpl @Inject constructor(
         coverUrl = coverUrl,
         streamUrl = streamUrl,
         localPath = localPath,
-        isFavorite = false, // This will be updated by the combine/merge logic
+        isFavorite = false,
         gradientIndex = gradientIndex,
         playCount = playCount
     )
@@ -382,7 +515,7 @@ class MusicRepositoryImpl @Inject constructor(
         gradientIndex = gradientIndex
     )
 
-    private fun Song.toEntity() = com.musicstream.app.data.local.entity.SongEntity(
+    private fun Song.toEntity() = SongEntity(
         id = id,
         title = title,
         artist = artist,
@@ -402,7 +535,7 @@ class UserRepositoryImpl @Inject constructor(
     private val favoriteDao: FavoriteDao,
     private val dataStore: DataStore<Preferences>,
     @param:dagger.hilt.android.qualifiers.ApplicationContext
-    private val context: android.content.Context // Context added for file saving
+    private val context: android.content.Context
 ) : UserRepository {
 
     private object UserKeys {
@@ -415,7 +548,6 @@ class UserRepositoryImpl @Inject constructor(
         val REGISTERED_EMAILS = stringSetPreferencesKey("registered_emails")
     }
 
-    // Direct flow from DataStore so UI updates automatically when data changes
     override fun getCurrentUser(): Flow<User> = dataStore.data.map { preferences ->
         User(
             id = preferences[UserKeys.ID] ?: UUID.randomUUID().toString(),
@@ -438,32 +570,24 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun updateUser(user: User) {
         dataStore.edit { preferences ->
-            // Pehle check karein ke kya hamare paas pehle se koi Avatar ya Banner save hai
             val existingAvatar = preferences[UserKeys.AVATAR] ?: ""
             val existingBanner = preferences[UserKeys.BANNER] ?: ""
-
-            // Agar naya user object khali hai (Login ke waqt aksar hota hai),
-            // toh purana wala hi use karein.
             val finalAvatar = if (user.avatarUrl.isEmpty()) existingAvatar else {
                 if (user.avatarUrl.startsWith("content://")) {
                     saveImageToInternal(user.avatarUrl, "avatar_${user.id}.jpg")
                 } else user.avatarUrl
             }
-
             val finalBanner = if (user.bannerUrl.isEmpty()) existingBanner else {
                 if (user.bannerUrl.startsWith("content://")) {
                     saveImageToInternal(user.bannerUrl, "banner_${user.id}.jpg")
                 } else user.bannerUrl
             }
-
-            // Data save karein
             preferences[UserKeys.ID] = user.id
             preferences[UserKeys.NAME] = user.name
             preferences[UserKeys.EMAIL] = user.email
             preferences[UserKeys.AVATAR] = finalAvatar
             preferences[UserKeys.BANNER] = finalBanner
             preferences[UserKeys.IS_LOGGED_IN] = true
-
             val currentEmails = preferences[UserKeys.REGISTERED_EMAILS] ?: emptySet()
             preferences[UserKeys.REGISTERED_EMAILS] = currentEmails + user.email
         }
@@ -471,35 +595,28 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun signOut() {
         withContext(Dispatchers.IO) {
-            // Hum favorites aur playlists delete kar rahe hain as per your original code
             favoriteDao.deleteAllFavorites()
             playlistDao.deleteAllPlaylists()
-
-            // CRITICAL: Hum sirf Login status remove karenge.
-            // Name, Email, Avatar aur Banner ko remove nahi karenge taake wo "Hamesha Save" rahe.
             dataStore.edit { preferences ->
                 preferences[UserKeys.IS_LOGGED_IN] = false
-                // ID, NAME, EMAIL, AVATAR, BANNER ko delete nahi kiya taake persistence bani rahe
             }
         }
     }
 
-    // Helper function to save image permanently
     private fun saveImageToInternal(uriString: String, fileName: String): String {
         return try {
             val uri = uriString.toUri()
             val inputStream = context.contentResolver.openInputStream(uri)
             val file = java.io.File(context.filesDir, fileName)
-
             inputStream?.use { input ->
                 file.outputStream().use { output ->
                     input.copyTo(output)
                 }
             }
-            file.absolutePath // Ab ye permanent path hai
+            file.absolutePath
         } catch (e: Exception) {
             e.printStackTrace()
-            uriString // Error par wapis wahi bhej do
+            uriString
         }
     }
 }
@@ -515,6 +632,9 @@ class SettingsRepositoryImpl @Inject constructor(
         val NOTIFICATIONS = booleanPreferencesKey("notifications")
         val LANGUAGE = stringPreferencesKey("language")
         val EQUALIZER = stringPreferencesKey("equalizer")
+        val BASS_BOOST = intPreferencesKey("bass_boost")
+        val VIRTUALIZER = intPreferencesKey("virtualizer")
+        fun bandKey(band: Int) = intPreferencesKey("eq_band_$band")
     }
 
     override fun getAudioQuality(): Flow<String> = dataStore.data.map { preferences ->
@@ -550,10 +670,38 @@ class SettingsRepositoryImpl @Inject constructor(
     }
 
     override fun getEqualizerPreset(): Flow<String> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.EQUALIZER] ?: "Custom"
+        preferences[PreferencesKeys.EQUALIZER] ?: "Flat"
     }
 
     override suspend fun setEqualizerPreset(preset: String) {
         dataStore.edit { it[PreferencesKeys.EQUALIZER] = preset }
+    }
+
+    override fun getBassBoostLevel(): Flow<Int> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.BASS_BOOST] ?: 0
+    }
+
+    override suspend fun setBassBoostLevel(level: Int) {
+        dataStore.edit { it[PreferencesKeys.BASS_BOOST] = level }
+    }
+
+    override fun getVirtualizerLevel(): Flow<Int> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.VIRTUALIZER] ?: 0
+    }
+
+    override suspend fun setVirtualizerLevel(level: Int) {
+        dataStore.edit { it[PreferencesKeys.VIRTUALIZER] = level }
+    }
+
+    override fun getEqualizerBandLevels(): Flow<Map<Int, Int>> = dataStore.data.map { preferences ->
+        val map = mutableMapOf<Int, Int>()
+        for (i in 0 until 10) {
+            preferences[PreferencesKeys.bandKey(i)]?.let { map[i] = it }
+        }
+        map
+    }
+
+    override suspend fun setEqualizerBandLevel(band: Int, level: Int) {
+        dataStore.edit { it[PreferencesKeys.bandKey(band)] = level }
     }
 }

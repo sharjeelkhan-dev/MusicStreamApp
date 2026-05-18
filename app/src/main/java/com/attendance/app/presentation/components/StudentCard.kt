@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -165,7 +166,7 @@ fun StudentAttendanceItem(
     }
 
     LinearProgressIndicator(
-        progress = {(attendancePercentage / 100f).toFloat()},
+        progress = { (attendancePercentage / 100f).toFloat() },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
@@ -174,6 +175,8 @@ fun StudentAttendanceItem(
         color = progressColor,
         drawStopIndicator = {},
         trackColor = progressColor.copy(alpha = 0.1f),
+        strokeCap = StrokeCap.Round,
+        gapSize = 0.dp
     )
 }
 

@@ -391,6 +391,7 @@ private fun StudentReportCard(
                         .offset(y = (-4).dp)
                         .clip(CircleShape),
                     drawStopIndicator = {},
+                    gapSize = 0.dp,
                     color = statusColor,
                     trackColor = statusColor.copy(alpha = 0.08f),
                     strokeCap = StrokeCap.Round

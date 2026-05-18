@@ -151,6 +151,7 @@ fun SessionCard(
                 trackColor = accentColor.copy(alpha = 0.1f),
                 strokeCap = StrokeCap.Round,
                 drawStopIndicator = {},
+                gapSize = 0.dp
             )
 
             Spacer(modifier = Modifier.height(20.dp))

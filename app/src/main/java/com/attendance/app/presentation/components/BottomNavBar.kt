@@ -31,7 +31,6 @@ val bottomNavItems = listOf(
     BottomNavItem(Screen.Classes, "Classes", R.drawable.classes, R.drawable.classes),
     BottomNavItem(Screen.TakeAttendance, "Attend", R.drawable.hand_line_icon, R.drawable.hand_line_icon),
     BottomNavItem(Screen.Reports, "Reports", R.drawable.reports_icon, R.drawable.reports_icon),
-    BottomNavItem(Screen.Students, "Students", R.drawable.graduation_cap_icon, R.drawable.graduation_cap_icon),
 )
 
 @Composable

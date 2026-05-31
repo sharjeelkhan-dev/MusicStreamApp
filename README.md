@@ -26,4 +26,4 @@ featuring powerful **Generative AI** integration.
 - Android Studio Ladybug (or newer)
 - A Google Gemini API Key
 - Firebase Project setup
-Developed with ❤️ by [Your Name]
+Developed by [Sharjeel Khan]

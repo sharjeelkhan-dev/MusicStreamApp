@@ -20,7 +20,7 @@ featuring powerful **Generative AI** integration.
 - **Background Tasks:** WorkManager
 - **Networking:** Retrofit & OkHttp
 - **Reactive Programming:** Kotlin Coroutines & Flow
-- 
+
 ##  Getting Started
 ### Prerequisites
 - Android Studio Ladybug (or newer)

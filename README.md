@@ -1,29 +1,61 @@
-# Smart Todo App 
-An advanced, intelligent task management application built with **Kotlin** and **Jetpack Compose**,
-featuring powerful **Generative AI** integration.
+# Student Attendance & Analytics App
 
-## Key Features
- AI-Powered Commands:** Manage your tasks using natural language. Just type *"Add a task to buy groceries at 5 PM"* or *"Mark all my shopping tasks as done"*, and let Gemini 2.0 handle the rest.
-Smart Prioritization:** An AI-driven engine that analyzes task deadlines, user-defined priorities, and descriptions to calculate a "Smart Score" (0-100), automatically highlighting what's most important.
-Seamless Cloud Sync:** Offline-first architecture using **Room Database** with real-time cloud synchronization via **Firebase Firestore**.
-Smart Reminders: Intelligent notification system powered by **WorkManager** to ensure you never miss a deadline.
-Secure & Robust: Integrated with **Firebase App Check** (Play Integrity) and **Firebase Authentication** for enterprise-grade security.
-Dark Mode Support:** Beautiful, accessible UI that respects system theme settings with custom Material 3 components.
+A modern, high-performance Android application designed to streamline student attendance management. Built with an offline-first approach, the app ensures that attendance can be marked anytime, anywhere, while providing seamless cloud synchronization for data durability.
 
-## Tech Stack
-- **Language:** Kotlin
-- **UI Framework:** Jetpack Compose (Material 3)
-- **Architecture:** Clean Architecture + MVVM + SOLID Principles
-- **Dependency Injection:** Hilt
-- **AI Engine:** Google Gemini 2.0 Flash (via Firebase SDK)
-- **Database:** Room (Local), Firestore (Cloud)
-- **Background Tasks:** WorkManager
-- **Networking:** Retrofit & OkHttp
-- **Reactive Programming:** Kotlin Coroutines & Flow
+## 🚀 Key Features
 
-##  Getting Started
+*   **Offline-First Experience**: Mark attendance without an internet connection using local Room Database storage.
+*   **Real-time Cloud Sync**: Automatic and manual synchronization with Firebase Firestore to ensure data is never lost.
+*   **Biometric Security**: Protect sensitive student data with Fingerprint and Face Unlock integration.
+*   **Comprehensive Analytics**: Visualize student performance through attendance percentages, recent session history, and detailed reports.
+*   **Class Management**: Easily create, update, and manage multiple classes and sections.
+*   **Smart Imports**: Import student lists from external files to get started quickly.
+*   **Modern UI/UX**: Immersive edge-to-edge design built with Jetpack Compose and Material 3.
+*   **Dark Mode Support**: Fully responsive theme that adapts to system preferences.
+
+## 🛠 Tech Stack
+
+*   **Language**: [Kotlin](https://kotlinlang.org/)
+*   **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose) (Declarative UI)
+*   **Architecture**: MVVM (Model-View-ViewModel) with Clean Architecture principles.
+*   **Dependency Injection**: [Dagger Hilt](https://dagger.dev/hilt/)
+*   **Local Database**: [Room Persistence Library](https://developer.android.com/training/data-storage/room)
+*   **Backend/Cloud**: 
+    *   **Firebase Authentication**: Secure user login and registration.
+    *   **Firebase Firestore**: Real-time NoSQL database for cloud synchronization.
+*   **Concurrency**: Kotlin Coroutines & Flow for reactive data streams.
+*   **Jetpack Libraries**:
+    *   Navigation Compose
+    *   Biometric API
+    *   Core Splashscreen API
+    *   DataStore Preferences
+
+## 🏗 Architecture
+
+The project follows a modularized clean architecture pattern:
+*   **Data Layer**: Handles database operations (Room DAOs), Firebase service implementations, and repository logic.
+*   **Domain Layer**: Contains business logic, models, and repository interfaces (Pure Kotlin).
+*   **Presentation Layer**: UI logic using ViewModels and Compose screens.
+
+## ⚙️ Setup & Installation
+
 ### Prerequisites
-- Android Studio Ladybug (or newer)
-- A Google Gemini API Key
-- Firebase Project setup
-Developed by [Sharjeel Khan]
+*   Android Studio Ladybug or newer.
+*   JDK 17 or higher.
+*   A Firebase Project.
+
+### Steps
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/yourusername/Student-Attendance-App.git
+    ```
+2.  **Firebase Configuration**:
+    *   Create a new project in the [Firebase Console](https://console.firebase.google.com/).
+    *   Add an Android app with the package name `com.attendance.app`.
+    *   Download the `google-services.json` file and place it in the `app/` directory.
+    *   Enable **Email/Password Authentication** and **Cloud Firestore**.
+    
+3.  **Build & Run**:
+    *   Open the project in Android Studio.
+    *   Sync Gradle files.
+    *   Click **Run** to install the app on your emulator or physical device.

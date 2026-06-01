@@ -46,3 +46,8 @@ The project follows a modularized clean architecture pattern:
     *   Open the project in Android Studio.
     *   Sync Gradle files.
     *   Click **Run** to install the app on your emulator or physical device.
+
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/65cdfd96-07d5-474a-9ea0-3ebcc83d527c" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/1f076d8d-44ce-4464-a6ad-56fae404f5e7" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/70faec7f-5e8a-4a5d-9d53-631329355aa6" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/ddd986e1-2734-48df-845b-20684bf3a941" />

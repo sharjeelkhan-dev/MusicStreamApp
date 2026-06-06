@@ -37,17 +37,31 @@ The project follows a modularized clean architecture pattern:
 *   **Domain Layer**: Contains business logic, models, and repository interfaces (Pure Kotlin).
 *   **Presentation Layer**: UI logic using ViewModels and Compose screens.
 
+## ⚙️ Setup & Installation
+
 ### Prerequisites
 *   Android Studio Ladybug or newer.
 *   JDK 17 or higher.
 *   A Firebase Project.
-    
+
+### Steps
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/yourusername/Student-Attendance-App.git
+    ```
+2.  **Firebase Configuration**:
+    *   Create a new project in the [Firebase Console](https://console.firebase.google.com/).
+    *   Add an Android app with the package name `com.attendance.app`.
+    *   Download the `google-services.json` file and place it in the `app/` directory.
+    *   Enable **Email/Password Authentication** and **Cloud Firestore**.
 3.  **Build & Run**:
     *   Open the project in Android Studio.
     *   Sync Gradle files.
     *   Click **Run** to install the app on your emulator or physical device.
 
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/65cdfd96-07d5-474a-9ea0-3ebcc83d527c" />
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/1f076d8d-44ce-4464-a6ad-56fae404f5e7" />
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/70faec7f-5e8a-4a5d-9d53-631329355aa6" />
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/ddd986e1-2734-48df-845b-20684bf3a941" />
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+Developed as a University Final Year Project / Semester Project.

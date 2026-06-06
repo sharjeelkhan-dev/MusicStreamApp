@@ -59,9 +59,7 @@ The project follows a modularized clean architecture pattern:
     *   Sync Gradle files.
     *   Click **Run** to install the app on your emulator or physical device.
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-Developed as a University Final Year Project / Semester Project.
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/f3baad2c-4985-4a2d-bcb4-21513fe5bccb" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/a05ecdf3-3b28-4d1d-b498-aedd85198207" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/de3de2b1-9710-4fa1-9d3e-23c6d1e5d5fd" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/28198500-a282-40a8-8177-c4bbffcc396e" />

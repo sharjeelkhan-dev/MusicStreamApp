@@ -317,7 +317,7 @@ private fun AttendanceDualBarChart(
     val yLabels = listOf("100%", "75%", "50%", "25%", "0%")
     val xAxisHeight = 35.dp
     val labelWidth = 35.dp
-    val labelSpacer = 9.dp
+    val labelSpacer = 10.dp
     val rowHeight = 16.dp
     
     Box(modifier = modifier) {

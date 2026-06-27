@@ -76,7 +76,6 @@ private fun SplashContent(
                 tint = Color.White,
                 modifier = Modifier.size(80.dp)
             )
-            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = "Student Attendance",
                 style = MaterialTheme.typography.headlineLarge,
@@ -84,7 +83,6 @@ private fun SplashContent(
                 fontWeight = FontWeight.Bold,
                 fontSize = 28.sp
             )
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Manage. Track. Report.",
                 style = MaterialTheme.typography.bodyMedium,

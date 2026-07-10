@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -37,6 +38,8 @@ fun StandardHeader(
     date: String? = null,
     onDateClick: (() -> Unit)? = null,
     onSettingsClick: () -> Unit = {},
+    showAi: Boolean = false,
+    onAiClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     showSave: Boolean = false,
     onSaveClick: () -> Unit = {},
@@ -123,7 +126,8 @@ fun StandardHeader(
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
-                            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp
+                            else Icons.Default.KeyboardArrowDown,
                             contentDescription = "Toggle Details",
                             tint = contentColor,
                             modifier = Modifier.size(24.dp)
@@ -180,6 +184,21 @@ fun StandardHeader(
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Search",
+                            tint = contentColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                if (showAi) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = onAiClick,
+                        modifier = Modifier.size(24.dp).offset(y = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "AI Assistant",
                             tint = contentColor,
                             modifier = Modifier.size(18.dp)
                         )

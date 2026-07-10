@@ -20,6 +20,7 @@ data class SettingsState(
     val isNotificationsEnabled: Boolean = false,
     val isBiometricEnabled: Boolean = false,
     val attendanceDate: String? = null,
+    val aiApiKey: String = "",
     val backupMessage: String? = null,
     val userEmail: String? = null
 )
@@ -56,6 +57,17 @@ class SettingsViewModel @Inject constructor(
             preferencesManager.attendanceDateFlow.collect { date ->
                 _state.update { it.copy(attendanceDate = date) }
             }
+        }
+        viewModelScope.launch {
+            preferencesManager.aiApiKeyFlow.collect { key ->
+                _state.update { it.copy(aiApiKey = key ?: "") }
+            }
+        }
+    }
+
+    fun setAiApiKey(key: String) {
+        viewModelScope.launch {
+            preferencesManager.setAiApiKey(key)
         }
     }
 

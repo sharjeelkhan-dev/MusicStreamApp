@@ -92,6 +92,7 @@ fun SettingsScreen(
             onCreateBackup = viewModel::createBackup,
             onRestoreBackup = viewModel::restoreBackup,
             onSetAttendanceDate = viewModel::setAttendanceDate,
+            onSetAiApiKey = viewModel::setAiApiKey,
             onSignOut = viewModel::signOut,
             modifier = Modifier
                 .padding(bottom = paddingValues
@@ -111,6 +112,7 @@ private fun SettingsContent(
     onCreateBackup: () -> Unit,
     onRestoreBackup: () -> Unit,
     onSetAttendanceDate: (String?) -> Unit,
+    onSetAiApiKey: (String) -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -202,6 +204,12 @@ private fun SettingsContent(
 
                 // Security
                 item {
+                    SettingsSectionHeader("AI CONFIGURATION")
+                    SettingsAiKeyItem(
+                        apiKey = state.aiApiKey,
+                        onKeyChange = onSetAiApiKey
+                    )
+                    
                     SettingsSectionHeader("SECURITY")
                     SettingsToggleItem(
                         icon = Icons.Default.Fingerprint,
@@ -362,6 +370,77 @@ private fun SettingsContent(
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsAiKeyItem(
+    apiKey: String,
+    onKeyChange: (String) -> Unit
+) {
+    val isDark = LocalIsDarkMode.current
+    val primaryColor = if (isDark) MaterialTheme.colorScheme.primary else PrimaryGreen
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 20.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = primaryColor,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.width(20.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Gemini API Key", 
+                        style = MaterialTheme.typography.titleMedium, 
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Use your own key for Gemini 2.0 (optional)", 
+                        style = MaterialTheme.typography.bodySmall, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = apiKey,
+                onValueChange = onKeyChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Enter API Key (AIza...)") },
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = primaryColor,
+                    cursorColor = primaryColor
+                )
+            )
+            if (apiKey.isEmpty()) {
+                Text(
+                    text = "* Defaulting to Firebase Managed AI",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = primaryColor.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 8.dp, start = 4.dp)
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun SettingsSectionHeader(title: String) {
@@ -553,6 +632,7 @@ fun SettingsPreview() {
             onCreateBackup = {},
             onRestoreBackup = {},
             onSetAttendanceDate = {},
+            onSetAiApiKey = {},
             onSignOut = {}
         )
     }

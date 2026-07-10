@@ -1,12 +1,15 @@
 package com.attendance.app.presentation.home
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -54,6 +57,8 @@ fun HomeScreen(
         uri?.let { viewModel.importAttendance(context, it) }
     }
 
+    var showAiAssistant by remember { mutableStateOf(false) }
+
     LaunchedEffect(state.message) {
         state.message?.let {
             android.widget.Toast.makeText(context,
@@ -73,9 +78,16 @@ fun HomeScreen(
         onNavigateToSettings = onNavigateToSettings,
         onImportClick = { filePickerLauncher.launch("*/*") },
         onRefresh = { viewModel.refresh() },
+        onAiClick = { showAiAssistant = true },
         modifier = modifier,
         paddingValues = paddingValues
     )
+
+    if (showAiAssistant) {
+        AiAssistantDialog(
+            onDismiss = { showAiAssistant = false }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,6 +101,7 @@ private fun HomeContent(
     onNavigateToSettings: () -> Unit,
     onImportClick: () -> Unit,
     onRefresh: () -> Unit,
+    onAiClick: () -> Unit,
     modifier: Modifier = Modifier,
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
@@ -106,7 +119,9 @@ private fun HomeContent(
             else state.selectedClass?.name ?: "No Class",
             showDate = true,
             showSettings = true,
-            onSettingsClick = onNavigateToSettings
+            onSettingsClick = onNavigateToSettings,
+            showAi = true,
+            onAiClick = onAiClick
         )
         Box(modifier = Modifier.fillMaxSize().weight(1f)) {
             PullToRefreshBox(
@@ -146,6 +161,7 @@ private fun HomeContent(
                             onImportClick = onImportClick
                         )
                     }
+
                     item {
                         Row(
                             modifier = Modifier
@@ -256,7 +272,6 @@ private fun HomeContent(
         }
     }
 }
-
 
 @Composable
 private fun StatsRow(
@@ -434,7 +449,7 @@ fun HomePreview() {
                         listOf("Aisha Khan" to true, "Junaid Rashid" to true)
                     )
                 ),
-                isLoading = false
+                message = null
             ),
             onNavigateToAttendance = {},
             onNavigateToReports = {},
@@ -442,6 +457,7 @@ fun HomePreview() {
             onNavigateToSettings = {},
             onImportClick = {},
             onRefresh = {},
+            onAiClick = {},
             greeting = "Good Morning"
         )
     }

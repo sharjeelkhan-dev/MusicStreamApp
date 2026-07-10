@@ -1,10 +1,11 @@
-## 🚀 Featured Project 2: Student Attendance & Analytics App
+## 🚀 Featured Project 2: Smart Student Attendance & Analytics App
 
 A modern, high-performance Android application designed to streamline student attendance management using an offline-first architecture for absolute data durability.
 
 ### ✨ Key Features
 *   **💾 Offline-First Experience:** Mark attendance without an internet connection using local Room Database storage.
 *   **🔄 Real-time Cloud Sync:** Automatic and manual synchronization with Firebase Firestore to ensure data is never lost.
+*   **⚡AI Parsing Engine:** Integrated "Google Gemini 3.5 Flash" for processing natural language scheduling logic & Take Attendance Daily.
 *   **🔒 Biometric Security:** Protect sensitive student data with Fingerprint and Face Unlock integration.
 *   **📊 Comprehensive Analytics:** Visualize student performance through attendance percentages, recent session history, and detailed reports.
 *   **🏫 Class Management:** Easily create, update, and manage multiple classes, sections, and student lists.

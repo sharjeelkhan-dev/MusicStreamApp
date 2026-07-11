@@ -2,6 +2,7 @@ package com.attendance.app.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.attendance.app.domain.repository.AiChatMessage
 import com.attendance.app.domain.repository.AiRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -21,6 +22,8 @@ data class ChatMessage(
     val isUser: Boolean
 )
 
+fun ChatMessage.toDomain() = AiChatMessage(text, isUser)
+
 @HiltViewModel
 class AiAssistantViewModel @Inject constructor(
     private val aiRepository: AiRepository
@@ -38,6 +41,8 @@ class AiAssistantViewModel @Inject constructor(
         if (input.isEmpty()) return
 
         val userMessage = ChatMessage(input, isUser = true)
+        val history = _state.value.messages.map { it.toDomain() }
+        
         _state.update { 
             it.copy(
                 messages = it.messages + userMessage,
@@ -47,7 +52,7 @@ class AiAssistantViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            aiRepository.processAiCommand(input).collect { response ->
+            aiRepository.processAiCommand(input, history).collect { response ->
                 _state.update { 
                     it.copy(
                         messages = it.messages + ChatMessage(response, isUser = false),

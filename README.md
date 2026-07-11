@@ -1,25 +1,18 @@
-## 🚀 Featured Project 2: Smart Student Attendance & Analytics App
+### 🧑🏼‍🎓 Student Attendance & Analytics App
+![Status](https://img.shields.io/badge/Private_Code-181717?style=for-the-badge&logo=github&logoColor=white) ![Security](https://img.shields.io/badge/Biometric_API-3DDC84?style=for-the-badge&logo=android&logoColor=black) ![Database](https://img.shields.io/badge/Room_SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white) ![AI](https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)
 
-A modern, high-performance Android application designed to streamline student attendance management using an offline-first architecture for absolute data durability.
+> A modern, high-performance Android application designed to streamline student attendance management using an offline-first architecture for absolute data durability.
 
-### ✨ Key Features
-*   **💾 Offline-First Experience:** Mark attendance without an internet connection using local Room Database storage.
-*   **🔄 Real-time Cloud Sync:** Automatic and manual synchronization with Firebase Firestore to ensure data is never lost.
-*   **⚡AI Parsing Engine:** Integrated "Google Gemini 3.5 Flash" for processing natural language scheduling logic & Take Attendance Daily.
-*   **🔒 Biometric Security:** Protect sensitive student data with Fingerprint and Face Unlock integration.
-*   **📊 Comprehensive Analytics:** Visualize student performance through attendance percentages, recent session history, and detailed reports.
-*   **🏫 Class Management:** Easily create, update, and manage multiple classes, sections, and student lists.
-*   **🎨 Modern UI/UX:** Immersive edge-to-edge design built with Jetpack Compose, Material 3, and Dark Mode support.
+| Subsystem | Technical Execution Architecture |
+| :--- | :--- |
+| 💾 **Offline-First Experience** | Mark attendance without an internet connection using local Room Database storage. |
+| 🔄 **Real-time Cloud Sync** | Automatic and manual synchronization with Firebase Firestore to ensure data is never lost. |
+| ⚡ **AI Parsing Engine** | Integrated "Google Gemini 3.5 Flash" for processing natural language scheduling logic & Take Attendance Daily. |
+| 🔒 **Biometric Security** | Protect sensitive student data with Fingerprint and Face Unlock integration using the Biometric API. |
+| 📊 **Comprehensive Analytics** | Visualize student performance through attendance percentages, recent session history, and detailed reports. |
+| 🏫 **Class Management** | Easily create, update, and manage multiple classes, sections, and student lists. |
+| 🎨 **Modern UI/UX** | Immersive edge-to-edge design built with Jetpack Compose, Material 3, and Dark Mode support. |
 
-### 🛠 Tech Stack & Architecture
-*   **Language & UI:** Kotlin | Jetpack Compose (Declarative UI)
-*   **Architecture & Design:** Clean Architecture + MVVM Pattern
-*   **Dependency Injection:** Dagger Hilt
-*   **Local & Cloud Database:** Room Persistence Library | Firebase Firestore (NoSQL)
-*   **Jetpack Libraries:** DataStore Preferences | Biometric API | Core Splashscreen API | Navigation Compose
-*   **Concurrency:** Kotlin Coroutines & Flow for reactive data streams
-
-### 🎬 Project Showcase & Security Note
 <details>
 <summary><b>✨ View Interface Design (Click to Expand)</b></summary>
 <br/>
@@ -45,26 +38,16 @@ A modern, high-performance Android application designed to streamline student at
 </table>
 </details>
 
+---
+
 ## ⚙️ Setup & Installation
 
-### Prerequisites
-*   Android Studio Ladybug or newer.
-*   JDK 17 or higher.
-*   A Firebase Project.
+### 📋 Prerequisites
+* Android Studio Ladybug or newer.
+* JDK 17 or higher.
+* A Firebase Project.
 
-### Steps
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/yourusername/Student-Attendance-App.git
-    ```
-    
-2.  **Firebase Configuration**:
-    *   Create a new project in the [Firebase Console](https://console.firebase.google.com/).
-    *   Add an Android app with the package name `com.attendance.app`.
-    *   Download the `google-services.json` file and place it in the `app/` directory.
-    *   Enable **Email/Password Authentication** and **Cloud Firestore**.
-      
-3.  **Build & Run**:
-    *   Open the project in Android Studio.
-    *   Sync Gradle files.
-    *   Click **Run** to install the app on your emulator or physical device.
+### ⚙️ Steps
+1. **Clone the repository**:
+   ```bash
+   git clone [https://github.com/sharjeelkhan111213-coder/Student-Attendance-App.git](https://github.com/sharjeelkhan111213-coder/Student-Attendance-App.git)

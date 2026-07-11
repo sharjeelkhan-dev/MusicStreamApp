@@ -20,17 +20,30 @@ A modern, high-performance Android application designed to streamline student at
 *   **Concurrency:** Kotlin Coroutines & Flow for reactive data streams
 
 ### 🎬 Project Showcase & Security Note
-> 🔒 **Security Notice:** The source code of this repository is kept **Private** to safeguard enterprise-level Firebase configuration details and secure local biometrics logic. 
-*   **[📸 View Application Screenshots / UI Flow](
-
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/7ddd222b-a5d6-45a9-8840-24b5343fadb8" />
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/1692f15c-9af5-4969-a710-3d86a33dcf28" />
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/756269f4-5b21-4e5e-b781-c3d22fbe54d1" />
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/2b8325ed-24c7-4b11-a6ac-1d137345ec80" />
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/6615c639-e08e-4026-862b-65521b84675e" />
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/a3f722a9-51eb-4afa-8b93-9a23cd066ce4" />
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/043df7a1-4c58-46b7-9942-ce2ac76379a9" />
-<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/3f945c09-b99d-4573-8279-9720f4079384" />
+<details>
+<summary><b>✨ View Interface Design (Click to Expand)</b></summary>
+<br/>
+<table width="100%">
+  <!-- Row 1 -->
+  <tr>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/7ddd222b-a5d6-45a9-8840-24b5343fadb8" width="100%" alt="Screen 1" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/1692f15c-9af5-4969-a710-3d86a33dcf28" width="100%" alt="Screen 2" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/756269f4-5b21-4e5e-b781-c3d22fbe54d1" width="100%" alt="Screen 3" /></td>
+  </tr>
+  <!-- Row 2 -->
+  <tr>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/2b8325ed-24c7-4b11-a6ac-1d137345ec80" width="100%" alt="Screen 4" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/6615c639-e08e-4026-862b-65521b84675e" width="100%" alt="Screen 5" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/a3f722a9-51eb-4afa-8b93-9a23cd066ce4" width="100%" alt="Screen 6" /></td>
+  </tr>
+  <!-- Row 3 -->
+  <tr>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/043df7a1-4c58-46b7-9942-ce2ac76379a9" width="100%" alt="Screen 7" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/3f945c09-b99d-4573-8279-9720f4079384" width="100%" alt="Screen 8" /></td>
+    <td width="33.3%" align="center"></td>
+  </tr>
+</table>
+</details>
 
 ## ⚙️ Setup & Installation
 

@@ -12,6 +12,9 @@ import javax.inject.Inject
 
 data class ProfileUiState(
     val user: User? = null,
+    val playlistsCount: Int = 0,
+    val favoritesCount: Int = 0,
+    val downloadsCount: Int = 0,
     val audioQuality: String = "High (320kbps)",
     val theme: String = "System Default",
     val notifications: String = "On",
@@ -23,7 +26,8 @@ data class ProfileUiState(
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val musicRepository: com.musicstream.app.domain.repository.MusicRepository
 ) : ViewModel() {
 
     // Ab humne _uiState ko khatam kar diya hai kyunki hum
@@ -34,17 +38,26 @@ class ProfileViewModel @Inject constructor(
         settingsRepository.getTheme(),
         settingsRepository.getNotificationsEnabled(),
         settingsRepository.getLanguage(),
-        settingsRepository.getEqualizerPreset()
-    ) { args: Array<Any?> -> // 6 flows ke liye Array use karein
+        settingsRepository.getEqualizerPreset(),
+        musicRepository.getPlaylists(),
+        musicRepository.getFavorites(),
+        musicRepository.getDownloads()
+    ) { args: Array<Any?> -> // 9 flows ke liye Array use karein
         val user = args[0] as User
         val audio = args[1] as String
         val theme = args[2] as String
         val notifications = args[3] as Boolean
         val language = args[4] as String
         val equalizer = args[5] as String
+        val playlistsCount = (args[6] as List<*>).size
+        val favoritesCount = (args[7] as List<*>).size
+        val downloadsCount = (args[8] as List<*>).size
 
         ProfileUiState(
             user = user,
+            playlistsCount = playlistsCount,
+            favoritesCount = favoritesCount,
+            downloadsCount = downloadsCount,
             audioQuality = audio,
             theme = theme,
             notifications = if (notifications) "On" else "Off",

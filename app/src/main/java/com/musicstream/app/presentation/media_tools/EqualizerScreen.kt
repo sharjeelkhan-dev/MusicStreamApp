@@ -1,21 +1,31 @@
 package com.musicstream.app.presentation.media_tools
+
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.SettingsInputComponent
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -29,7 +39,6 @@ fun EqualizerScreen(
     onBackClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
     EqualizerContent(
         uiState = uiState,
         onBackClick = onBackClick,
@@ -55,21 +64,31 @@ fun EqualizerContent(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        "Equalizer & FX",
+                        "Sound Master",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.5).sp
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back")
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = Modifier
+                            .padding(start = 16.dp)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
@@ -85,12 +104,12 @@ fun EqualizerContent(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Presets Row
+            // Sound Profiles Section
             Text(
-                "Presets",
+                "Sound Profiles",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
@@ -103,52 +122,122 @@ fun EqualizerContent(
                     FilterChip(
                         selected = isSelected,
                         onClick = { onPresetSelected(preset) },
-                        label = { Text(preset) },
+                        label = {
+                            Text(
+                                preset,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = Color.White
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        border = null,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.height(44.dp)
                     )
                 }
             }
 
-            // Equalizer Bands
-            EffectCard(
-                title = "Equalizer",
+            // Graphic Equalizer Section
+            ModernFXCard(
+                title = "Graphic Equalizer",
                 icon = Icons.Default.GraphicEq
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
+                        .height(240.dp)
                         .padding(vertical = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val bands = listOf("60Hz", "230Hz", "910Hz", "3.6kHz", "14kHz")
-                    bands.forEachIndexed { index, label ->
+                    val bandLabels = listOf("60Hz", "230Hz", "910Hz", "3.6k", "14k")
+                    bandLabels.forEachIndexed { index, label ->
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1f)
                         ) {
                             val level = uiState.bandLevels[index] ?: 0
-                            Slider(
-                                value = level.toFloat(),
-                                onValueChange = { onBandLevelChanged(index, it.toInt()) },
-                                valueRange = -1500f..1500f,
+
+                            Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .graphicsLayer {
-                                        rotationZ = -90f
+                                    .width(44.dp)
+                                    .clip(RoundedCornerShape
+                                        (22.dp))
+                                    .background(MaterialTheme
+                                        .colorScheme.surfaceVariant
+                                        .copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                // Vertical Slider with corrected touch area
+                                Slider(
+                                    value = level.toFloat(),
+                                    onValueChange = { onBandLevelChanged(index, it.toInt()) },
+                                    valueRange = -1500f..1500f,
+                                    modifier = Modifier
+                                        .graphicsLayer {
+                                            rotationZ = 270f
+                                            transformOrigin = TransformOrigin(0f, 0f)
+                                        }
+                                        .layout { measurable, constraints ->
+                                            val placeable = measurable.measure(
+                                                Constraints(
+                                                    minWidth = constraints.minHeight,
+                                                    maxWidth = constraints.maxHeight,
+                                                    minHeight = constraints.minWidth,
+                                                    maxHeight = constraints.maxHeight
+                                                )
+                                            )
+                                            layout(placeable.height, placeable.width) {
+                                                placeable.place(-placeable.width, 0)
+                                            }
+                                        }
+                                        .width(180.dp),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = Color.White,
+                                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                                        inactiveTrackColor = Color.Transparent
+                                    ),
+                                    thumb = {
+                                        Surface(
+                                            modifier = Modifier.size(24.dp),
+                                            shape = CircleShape,
+                                            color = Color.White,
+                                            shadowElevation = 4.dp,
+                                            border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+                                            }
+                                        }
                                     },
-                                colors = SliderDefaults.colors(
-                                    thumbColor = MaterialTheme.colorScheme.primary,
-                                    activeTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                    track = { sliderState ->
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                                        ) {
+                                            SliderDefaults.Track(
+                                                sliderState = sliderState,
+                                                modifier = Modifier.fillMaxSize(),
+                                                colors = SliderDefaults.colors(
+                                                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                                                    inactiveTrackColor = Color.Transparent
+                                                )
+                                            )
+                                        }
+                                    }
                                 )
-                            )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
                             Text(
                                 label,
-                                fontSize = 10.sp,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                         }
@@ -158,73 +247,85 @@ fun EqualizerContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Audio FX (Bass Boost & Virtualizer)
+            // Audio Enhancements Section
             Text(
-                "Audio Enhancements",
+                "Enhancements",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            FXControl(
+            EnhancementControl(
                 title = "Bass Boost",
+                icon = Icons.Default.MusicNote,
                 value = uiState.bassBoost,
                 onValueChange = { onBassBoostChanged(it) },
                 max = 1000
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            FXControl(
+            EnhancementControl(
                 title = "Virtualizer",
+                icon = Icons.Default.SettingsInputComponent,
                 value = uiState.virtualizer,
                 onValueChange = { onVirtualizerChanged(it) },
                 max = 1000
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }
 
 @Composable
-fun EffectCard(
+fun ModernFXCard(
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     content: @Composable () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(24.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    }
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
             }
             content()
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FXControl(
+fun EnhancementControl(
     title: String,
+    icon: ImageVector,
     value: Int,
     onValueChange: (Int) -> Unit,
     max: Int
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -232,17 +333,64 @@ fun FXControl(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(title, fontWeight = FontWeight.SemiBold)
-                Text("${(value / 10)}%", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                        modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(title, fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurface)
+                }
+
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        "${(value / 10)}%",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
             Slider(
                 value = value.toFloat(),
                 onValueChange = { onValueChange(it.toInt()) },
                 valueRange = 0f..max.toFloat(),
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary
-                )
+                thumb = {
+                    Surface(
+                        modifier = Modifier.size(24.dp),
+                        shape = CircleShape,
+                        color = Color.White,
+                        shadowElevation = 2.dp,
+                        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+                        }
+                    }
+                },
+                track = { sliderState ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                    ) {
+                        SliderDefaults.Track(
+                            sliderState = sliderState,
+                            modifier = Modifier.fillMaxSize(),
+                            colors = SliderDefaults.colors(
+                                activeTrackColor = MaterialTheme.colorScheme.primary,
+                                inactiveTrackColor = Color.Transparent
+                            )
+                        )
+                    }
+                }
             )
         }
     }

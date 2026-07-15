@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,27 +21,30 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.musicstream.app.ui.theme.*
-
+import com.musicstream.app.R
 import com.musicstream.app.data.MockData
+import com.musicstream.app.domain.model.User
+import com.musicstream.app.ui.theme.*
 
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileViewModel = hiltViewModel()
+    viewModel: ProfileViewModel = hiltViewModel(),
+    onBackClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = androidx.compose.ui.platform.LocalContext.current
+    LocalContext.current
     
     var showAudioQualityDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -49,12 +54,12 @@ fun ProfileScreen(
 
     ProfileContent(
         state = state,
+        onBackClick = onBackClick,
         onSignOut = { viewModel.signOut() },
         onAudioQualityClick = { showAudioQualityDialog = true },
         onThemeClick = { showThemeDialog = true },
         onNotificationsClick = { 
             viewModel.toggleNotifications()
-            android.widget.Toast.makeText(context, "Notifications updated", android.widget.Toast.LENGTH_SHORT).show()
         },
         onLanguageClick = { showLanguageDialog = true },
         onEqualizerClick = { showEqualizerDialog = true },
@@ -64,10 +69,10 @@ fun ProfileScreen(
     if (showEditProfileDialog && state.user != null) {
         EditProfileDialog(
             user = state.user!!,
-            onDismiss = { },
+            onDismiss = { showEditProfileDialog = false },
             onSave = { name, email, avatarUrl, bannerUrl ->
                 viewModel.updateProfile(name, email, avatarUrl, bannerUrl)
-                android.widget.Toast.makeText(context, "Profile updated", android.widget.Toast.LENGTH_SHORT).show()
+                showEditProfileDialog = false
             }
         )
     }
@@ -79,9 +84,9 @@ fun ProfileScreen(
             selectedOption = state.audioQuality,
             onOptionSelected = {
                 viewModel.setAudioQuality(it)
-                android.widget.Toast.makeText(context, "Audio quality set to $it", android.widget.Toast.LENGTH_SHORT).show()
+                showAudioQualityDialog = false
             },
-            onDismiss = { }
+            onDismiss = { showAudioQualityDialog = false }
         )
     }
 
@@ -92,9 +97,9 @@ fun ProfileScreen(
             selectedOption = state.theme,
             onOptionSelected = {
                 viewModel.setTheme(it)
-                android.widget.Toast.makeText(context, "Theme set to $it", android.widget.Toast.LENGTH_SHORT).show()
+                showThemeDialog = false
             },
-            onDismiss = { }
+            onDismiss = { showThemeDialog = false }
         )
     }
 
@@ -105,9 +110,9 @@ fun ProfileScreen(
             selectedOption = state.language,
             onOptionSelected = {
                 viewModel.setLanguage(it)
-                android.widget.Toast.makeText(context, "Language set to $it", android.widget.Toast.LENGTH_SHORT).show()
+                showLanguageDialog = false
             },
-            onDismiss = { }
+            onDismiss = { showLanguageDialog = false }
         )
     }
 
@@ -118,16 +123,347 @@ fun ProfileScreen(
             selectedOption = state.equalizer,
             onOptionSelected = {
                 viewModel.setEqualizerPreset(it)
-                android.widget.Toast.makeText(context, "Equalizer set to $it", android.widget.Toast.LENGTH_SHORT).show()
+                showEqualizerDialog = false
             },
-            onDismiss = { }
+            onDismiss = { showEqualizerDialog = false }
+        )
+    }
+}
+
+@Composable
+fun ProfileContent(
+    state: ProfileUiState,
+    onBackClick: () -> Unit = {},
+    onSignOut: () -> Unit = {},
+    onAudioQualityClick: () -> Unit = {},
+    onThemeClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
+    onLanguageClick: () -> Unit = {},
+    onEqualizerClick: () -> Unit = {},
+    onEditProfileClick: () -> Unit = {}
+) {
+    val scrollState = rememberScrollState()
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = padding.calculateBottomPadding())
+                .verticalScroll(scrollState)
+        ) {
+            // Immersive Header with Banner and Profile Info
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(340.dp)
+            ) {
+                // Banner
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                        .background(Gradients.profileBanner)
+                ) {
+                    if (state.user?.bannerUrl?.isNotEmpty() == true) {
+                        AsyncImage(
+                            model = state.user.bannerUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    // Overlay for contrast
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Black.copy(alpha = 0.3f),
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.5f))
+                                )
+                            )
+                    )
+                }
+
+                // Back Button
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(16.dp)
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.2f))
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Rounded.ArrowBack,
+                        null,
+                        tint = Color.White)
+                }
+
+                // Edit Button
+                IconButton(
+                    onClick = onEditProfileClick,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .statusBarsPadding()
+                        .padding(16.dp)
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.2f))
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.edit_pen_icon),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Profile Info Card (Floating)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Avatar
+                    Card(
+                        modifier = Modifier
+                            .size(110.dp)
+                            .border(4.dp, MaterialTheme.colorScheme.background, CircleShape),
+                        shape = CircleShape,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surface),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (state.user?.avatarUrl?.isNotEmpty() == true) {
+                                AsyncImage(
+                                    model = state.user.avatarUrl,
+                                    contentDescription = "Avatar",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Rounded.Person, 
+                                    null, 
+                                    modifier = Modifier.size(50.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Text(
+                        text = state.user?.name ?: "Guest User",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = state.user?.email ?: "Join the stream",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(32.dp))
+
+            // Stats Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                ProfileStat(label = "Playlists", value = state.playlistsCount.toString())
+                ProfileStat(label = "Favorites", value = state.favoritesCount.toString())
+                ProfileStat(label = "Downloads", value = state.downloadsCount.toString())
+            }
+
+            Spacer(Modifier.height(32.dp))
+
+            // Settings Sections
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                SettingsGroup(title = "MUSIC PREFERENCES") {
+                    SettingsItem(
+                        ImageVector.vectorResource(id = R.drawable.audio_tune_icon),
+                        iconColor = AccentCyan,
+                        title = "Audio Quality",
+                        value = state.audioQuality,
+                        onClick = onAudioQualityClick
+                    )
+                    SettingsItem(
+                        ImageVector.vectorResource
+                            (id = R.drawable.music_player_equalizer_round_outline_icon),
+                        iconColor = AccentOrange,
+                        title = "Equalizer",
+                        value = state.equalizer,
+                        onClick = onEqualizerClick
+                    )
+                }
+
+                SettingsGroup(title = "APP SETTINGS") {
+                    SettingsItem(
+                        ImageVector.vectorResource
+                            (id = R.drawable.paint_palette_icon),
+                        iconColor = AccentPurple,
+                        title = "Appearance",
+                        value = state.theme,
+                        onClick = onThemeClick
+                    )
+                    SettingsItem(
+                        icon = ImageVector.vectorResource
+                            (id = R.drawable.notification_alarm_buzzer_icon),
+                        iconColor = AccentAmber,
+                        title = "Notifications",
+                        value = state.notifications,
+                        onClick = onNotificationsClick
+                    )
+                    SettingsItem(
+                        icon = ImageVector.vectorResource(id = R.drawable.language_translator_icon),
+                        iconColor = AccentGreen,
+                        title = "Language",
+                        value = state.language,
+                        onClick = onLanguageClick
+                    )
+                }
+
+                SettingsGroup(title = "ACCOUNT") {
+                    SettingsItem(
+                        icon = ImageVector.vectorResource(id = R.drawable.logout_icon),
+                        iconColor = MusicStreamTheme.colors.signOutButton,
+                        title = "Sign Out",
+                        value = "",
+                        onClick = onSignOut,
+                        textColor = MusicStreamTheme.colors.signOutButton
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(120.dp))
+        }
+    }
+}
+
+@Composable
+private fun ProfileStat(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun SettingsGroup(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.2.sp,
+            modifier = Modifier.padding(start = 12.dp, bottom = 12.dp)
+        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor =
+                MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsItem(
+    icon: ImageVector,
+    iconColor: Color,
+    title: String,
+    value: String,
+    onClick: () -> Unit,
+    textColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(iconColor.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(imageVector = icon, contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(22.dp))
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = textColor,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
+        )
+        if (value.isNotEmpty()) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+        }
+        Icon(
+            imageVector = Icons.Rounded.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            modifier = Modifier.size(20.dp)
         )
     }
 }
 
 @Composable
 fun EditProfileDialog(
-    user: com.musicstream.app.domain.model.User,
+    user: User,
     onDismiss: () -> Unit,
     onSave: (String, String, String, String) -> Unit
 ) {
@@ -136,132 +472,106 @@ fun EditProfileDialog(
     var avatarUrl by remember { mutableStateOf(user.avatarUrl) }
     var bannerUrl by remember { mutableStateOf(user.bannerUrl) }
 
-    val avatarLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: android.net.Uri? ->
+    val avatarLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { avatarUrl = it.toString() }
     }
-
-    val bannerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: android.net.Uri? ->
+    val bannerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { bannerUrl = it.toString() }
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text("Edit Profile", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+        shape = RoundedCornerShape(28.dp),
+        title = { Text("Edit Profile", fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Banner Picker
-                Text("Profile Banner", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.align(Alignment.Start))
-                Spacer(Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable { bannerLauncher.launch("image/*") },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (bannerUrl.isNotEmpty()) {
-                        AsyncImage(
-                            model = bannerUrl,
+                // Banner and Avatar selectors...
+                Box(modifier = Modifier.fillMaxWidth()
+                    .height(100.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme
+                        .colorScheme.surfaceVariant)
+                    .clickable
+                    { bannerLauncher.launch("image/*") }) {
+                    if (bannerUrl.isNotEmpty())
+                        AsyncImage(model = bannerUrl,
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(Icons.Rounded.AddPhotoAlternate, null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                    Box(
-                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Change Banner", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            contentScale = ContentScale.Crop)
+                    Box(modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.CameraAlt,
+                            null,
+                            tint = Color.White)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Avatar Picker
-                Text("Profile Picture", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.align(Alignment.Start))
-                Spacer(Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable { avatarLauncher.launch("image/*") },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (avatarUrl.isNotEmpty()) {
-                        AsyncImage(
-                            model = avatarUrl,
+                Spacer(Modifier.height(16.dp))
+                Box(modifier = Modifier.size(80.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme
+                        .colorScheme.surfaceVariant).clickable
+                    { avatarLauncher.launch("image/*") }) {
+                    if (avatarUrl.isNotEmpty())
+                        AsyncImage(model = avatarUrl,
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(Icons.Rounded.AddAPhoto, null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                    Box(
-                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Change", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            contentScale = ContentScale.Crop)
+                    Box(modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.CameraAlt,
+                            null,
+                            tint = Color.White)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                OutlinedTextField(
-                    value = name,
+                Spacer(Modifier.height(24.dp))
+                OutlinedTextField(value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    label = { Text("Name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = email,
+                    shape = RoundedCornerShape(12.dp))
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    label = { Text("Email") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
+                    shape = RoundedCornerShape(12.dp))
             }
         },
         confirmButton = {
             Button(
                 onClick = { onSave(name, email, avatarUrl, bannerUrl) },
-                enabled = name.isNotBlank() && email.isNotBlank()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
             ) {
-                Text("Save")
+                Text(
+                    text = "Save Changes",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = Color.DarkGray)
+            TextButton(onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()) {
+                Text("Cancel",
+                    color = MaterialTheme
+                        .colorScheme.onSurfaceVariant)
             }
         }
     )
@@ -278,322 +588,79 @@ fun SettingsDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        title = { 
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            ) 
-        },
+        shape = RoundedCornerShape(28.dp),
+        title = null,
         text = {
-            Column(modifier = Modifier.padding(top = 8.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    textAlign = TextAlign.Center
+                )
+                
                 options.forEach { option ->
                     val isSelected = option == selectedOption
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent)
+                            .background(if (isSelected)
+                                MaterialTheme.colorScheme
+                                    .primary.copy(alpha = 0.1f)
+                            else Color.Transparent)
                             .clickable { onOptionSelected(option) }
-                            .padding(vertical = 14.dp, horizontal = 8.dp),
+                            .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
                             selected = isSelected,
                             onClick = { onOptionSelected(option) },
                             colors = RadioButtonDefaults.colors(
-                                selectedColor = MaterialTheme.colorScheme.primary
+                                selectedColor = MaterialTheme.colorScheme.primary,
+                                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(Modifier.width(12.dp))
                         Text(
                             text = option,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            color = if (isSelected) MaterialTheme.colorScheme.primary 
+                                   else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close", color = MaterialTheme.colorScheme.primary)
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(
+                    text = "Done",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
             }
-        },
-        shape = RoundedCornerShape(28.dp)
+        }
     )
 }
 
-@Composable
-fun ProfileContent(
-    state: ProfileUiState,
-    onSignOut: () -> Unit = {},
-    onAudioQualityClick: () -> Unit = {},
-    onThemeClick: () -> Unit = {},
-    onNotificationsClick: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
-    onEqualizerClick: () -> Unit = {},
-    onEditProfileClick: () -> Unit = {}
-) {
-    val scrollState = rememberScrollState()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme
-                .colorScheme.background)
-            .verticalScroll(scrollState)
-    ) {
-        // Gradient Banner (Full Bleed at top)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-                .background(
-                    brush = if (state.user?.bannerUrl?.isEmpty() == true) {
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                Color(0xFF8B5CF6),
-                                Color(0xFFD946EF),
-                                Color(0xFFFF8C00)
-                            )
-                        )
-                    } else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
-                )
-        ) {
-            if (state.user?.bannerUrl?.isNotEmpty() == true) {
-                AsyncImage(
-                    model = state.user.bannerUrl,
-                    contentDescription = "Profile Banner",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-        }
-
-        // Avatar and Edit Profile
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = (-40).dp)
-                .padding(horizontal = 20.dp)
-        ) {
-            // Avatar
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(3.dp, MaterialTheme.colorScheme.background, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                if (state.user?.avatarUrl?.isNotEmpty() == true) {
-                    AsyncImage(
-                        model = state.user.avatarUrl,
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.fillMaxSize().clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Rounded.Person,
-                        contentDescription = "Avatar",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-            }
-
-            // Edit Profile button
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(y = 48.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .clickable { onEditProfileClick() }
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = "Edit Profile",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-
-        // User Info
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = (-20).dp)
-                .padding(horizontal = 20.dp)
-        ) {
-            state.user?.let { user ->
-                Text(
-                    text = user.name,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = user.email,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        fontSize = 13.sp
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // SETTINGS label
-        Text(
-            text = "SETTINGS",
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.5.sp,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Settings List
-        SettingsItem(
-            icon = Icons.Rounded.MusicNote,
-            iconColor = MaterialTheme.colorScheme.primary,
-            title = "Audio Quality",
-            value = state.audioQuality,
-            onClick = onAudioQualityClick
-        )
-        SettingsItem(
-            icon = Icons.Rounded.NightsStay,
-            iconColor = AccentAmber,
-            title = "Theme",
-            value = state.theme,
-            onClick = onThemeClick
-        )
-        SettingsItem(
-            icon = Icons.Rounded.Notifications,
-            iconColor = AccentOrange,
-            title = "Notifications",
-            value = state.notifications,
-            onClick = onNotificationsClick
-        )
-        SettingsItem(
-            icon = Icons.Rounded.Language,
-            iconColor = AccentGreen,
-            title = "Language",
-            value = state.language,
-            onClick = onLanguageClick
-        )
-        SettingsItem(
-            icon = Icons.Rounded.BarChart,
-            iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            title = "Equalizer",
-            value = state.equalizer,
-            onClick = onEqualizerClick
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Sign Out Button
-        OutlinedButton(
-            onClick = onSignOut,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .height(56.dp),
-            shape = CircleShape,
-            border = BorderStroke(1.dp,
-                MaterialTheme
-                    .colorScheme
-                    .error
-                    .copy(alpha = 0.3f)),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.error
-            )
-        ) {
-            Text(
-                text = "Sign Out",
-                fontSize = 15.sp,
-                color = Color.Red,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-        
-        // Bottom spacer for edge-to-edge
-        Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-        Spacer(modifier = Modifier.height(70.dp))
-    }
-}
-
-@Composable
-private fun SettingsItem(
-    icon: ImageVector,
-    iconColor: Color,
-    title: String,
-    value: String,
-    onClick: () -> Unit = {}
-) {
-    val haptic = LocalHapticFeedback.current
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { 
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onClick() 
-            }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(iconColor.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = iconColor,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            modifier = Modifier.padding(horizontal = 8.dp)
-        )
-        Icon(
-            imageVector = Icons.Rounded.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0A0A12)
+@Preview(showBackground = true)
 @Composable
 fun ProfileScreenPreview() {
     MusicStreamTheme {
@@ -601,7 +668,38 @@ fun ProfileScreenPreview() {
             state = ProfileUiState(
                 user = MockData.currentUser,
                 isLoading = false
+
             )
         )
+    }
+}
+
+@Preview(name = "Light Mode", showBackground = true)
+@Composable
+fun SettingsDialogLightPreview() {
+    MusicStreamTheme(darkTheme = false) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            SettingsDialog(
+                title = "Audio Quality",
+                options = listOf("Low", "Normal", "High (320kbps)", "Ultra (Hi-Fi)"),
+                selectedOption = "Normal",
+                onOptionSelected = {},
+                onDismiss = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Edit Profile Dark", showBackground = true)
+@Composable
+fun EditProfileDialogDarkPreview() {
+    MusicStreamTheme(darkTheme = true) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            EditProfileDialog(
+                user = MockData.currentUser,
+                onDismiss = {},
+                onSave = { _, _, _, _ -> }
+            )
+        }
     }
 }

@@ -1,11 +1,7 @@
 package com.musicstream.app.presentation.components
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,142 +12,176 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.compose.ui.res.painterResource
+import com.musicstream.app.R
 import com.musicstream.app.domain.model.Song
-import com.musicstream.app.ui.theme.FavoriteRed
+import com.musicstream.app.ui.theme.*
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SongOptionsContent(
+    song: Song,
+    onFavoriteClick: (Song) -> Unit,
+    onAddToPlaylistClick: (String) -> Unit,
+    onDownloadClick: (Song) -> Unit,
+    onDeleteDownloadClick: ((String) -> Unit)? = null,
+    onRemoveFromPlaylistClick: ((Song) -> Unit)? = null,
+    onShareClick: (String) -> Unit = {},
+    onGoToArtistClick: (String) -> Unit = {},
+    onDismissRequest: () -> Unit = {}
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 32.dp)
+    ) {
+        // Song Info Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = song.coverUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = song.title,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = song.artist,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 14.sp
+                )
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
+        OptionItem(
+            iconRes = if (song.isFavorite) R.drawable.ic_heart_filled else R.drawable.ic_heart,
+            text = if (song.isFavorite) "Remove from Favorites" else "Add to Favorites",
+            onClick = {
+                onFavoriteClick(song) // ✅ Pass the full song object
+                onDismissRequest()
+            },
+            iconColor = if (song.isFavorite) MusicStreamTheme.colors.favoriteActive else MusicStreamTheme.colors.favoriteInactive
+        )
+        OptionItem(
+            iconRes = R.drawable.music_player_add_playlist_queue_round_outline_icon__1_,
+            text = "Add to Playlist",
+            onClick = {
+                onAddToPlaylistClick(song.id)
+                onDismissRequest()
+            }
+        )
+
+        if (song.localPath != null) {
+            if (onDeleteDownloadClick != null) {
+                OptionItem(
+                    iconRes = R.drawable.recycle_bin_line_icon,
+                    text = "Delete Download",
+                    iconColor = FavoriteRed,
+                    textColor = FavoriteRed,
+                    onClick = {
+                        onDeleteDownloadClick(song.id)
+                        onDismissRequest()
+                    }
+                )
+            }
+        } else {
+            OptionItem(
+                iconRes = R.drawable.round_line_bottom_arrow_icon,
+                text = "Download",
+                onClick = {
+                    onDownloadClick(song)
+                    onDismissRequest()
+                }
+            )
+        }
+
+        if (onRemoveFromPlaylistClick != null) {
+            OptionItem(
+                iconRes = R.drawable.recycle_bin_line_icon,
+                text = "Remove from Playlist",
+                iconColor = FavoriteRed,
+                textColor = FavoriteRed,
+                onClick = {
+                    onRemoveFromPlaylistClick(song)
+                    onDismissRequest()
+                }
+            )
+        }
+
+        OptionItem(
+            iconRes = R.drawable.share_line_icon,
+            text = "Share",
+            onClick = {
+                onShareClick(song.id)
+                onDismissRequest()
+            }
+        )
+        OptionItem(
+            iconRes = R.drawable.silhouette_male_icon,
+            text = "Go to Artist",
+            onClick = {
+                onGoToArtistClick(song.artist)
+                onDismissRequest()
+            }
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongOptionsBottomSheet(
     song: Song?,
     onDismissRequest: () -> Unit,
-    onFavoriteClick: (String) -> Unit,
+    onFavoriteClick: (Song) -> Unit, // ✅ UPDATED: Song object signature fix
     onAddToPlaylistClick: (String) -> Unit,
     onDownloadClick: (Song) -> Unit,
-    onDeleteDownloadClick: (String) -> Unit = {},
+    onDeleteDownloadClick: ((String) -> Unit)? = null,
     onRemoveFromPlaylistClick: ((Song) -> Unit)? = null,
     onShareClick: (String) -> Unit = {},
     onGoToArtistClick: (String) -> Unit = {}
 ) {
     if (song == null) return
 
+    val sheetState = rememberModalBottomSheetState()
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp)
-        ) {
-            // Song Info Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                AsyncImage(
-                    model = song.coverUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = song.title,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = song.artist,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
-                    )
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-
-            OptionItem(
-                icon = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                text = if (song.isFavorite) "Remove from Favorites" else "Add to Favorites",
-                onClick = { 
-                    onFavoriteClick(song.id)
-                    onDismissRequest()
-                },
-                iconColor = if (song.isFavorite) FavoriteRed else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            OptionItem(
-                icon = Icons.Outlined.PlaylistAdd,
-                text = "Add to Playlist",
-                onClick = { 
-                    onAddToPlaylistClick(song.id)
-                    onDismissRequest()
-                }
-            )
-            
-            if (song.localPath != null) {
-                OptionItem(
-                    icon = Icons.Outlined.Delete,
-                    text = "Delete Download",
-                    iconColor = FavoriteRed,
-                    textColor = FavoriteRed,
-                    onClick = { 
-                        onDeleteDownloadClick(song.id)
-                        onDismissRequest()
-                    }
-                )
-            } else {
-                OptionItem(
-                    icon = Icons.Outlined.Download,
-                    text = "Download",
-                    onClick = { 
-                        onDownloadClick(song)
-                        onDismissRequest()
-                    }
-                )
-            }
-
-            if (onRemoveFromPlaylistClick != null) {
-                OptionItem(
-                    icon = Icons.Outlined.PlaylistRemove,
-                    text = "Remove from Playlist",
-                    iconColor = FavoriteRed,
-                    textColor = FavoriteRed,
-                    onClick = { 
-                        onRemoveFromPlaylistClick(song)
-                        onDismissRequest()
-                    }
-                )
-            }
-
-            OptionItem(
-                icon = Icons.Outlined.Share,
-                text = "Share",
-                onClick = { 
-                    onShareClick(song.id)
-                    onDismissRequest()
-                }
-            )
-            OptionItem(
-                icon = Icons.Outlined.Person,
-                text = "Go to Artist",
-                onClick = { 
-                    onGoToArtistClick(song.artist)
-                    onDismissRequest()
-                }
-            )
-        }
+        SongOptionsContent(
+            song = song,
+            onFavoriteClick = onFavoriteClick,
+            onAddToPlaylistClick = onAddToPlaylistClick,
+            onDownloadClick = onDownloadClick,
+            onDeleteDownloadClick = onDeleteDownloadClick,
+            onRemoveFromPlaylistClick = onRemoveFromPlaylistClick,
+            onShareClick = onShareClick,
+            onGoToArtistClick = onGoToArtistClick,
+            onDismissRequest = onDismissRequest
+        )
     }
 }
 
 @Composable
 private fun OptionItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconRes: Int,
     text: String,
     onClick: () -> Unit,
     iconColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -165,7 +195,7 @@ private fun OptionItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = icon,
+            painter = painterResource(id = iconRes),
             contentDescription = null,
             tint = iconColor,
             modifier = Modifier.size(24.dp)

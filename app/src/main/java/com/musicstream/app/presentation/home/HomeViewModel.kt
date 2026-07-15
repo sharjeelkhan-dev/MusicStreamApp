@@ -1,14 +1,15 @@
 package com.musicstream.app.presentation.home
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musicstream.app.domain.model.User
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
-import com.musicstream.app.domain.repository.DownloadProgress
 import com.musicstream.app.domain.repository.MusicRepository
 import com.musicstream.app.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -30,7 +31,8 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val musicRepository: MusicRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -81,6 +83,12 @@ class HomeViewModel @Inject constructor(
             launch {
                 userRepository.getCurrentUser().collect { user ->
                     _uiState.update { it.copy(user = user) }
+                }
+            }
+
+            launch {
+                musicRepository.getDownloadingSongs().collect { downloading ->
+                    _uiState.update { it.copy(downloadingSongs = downloading) }
                 }
             }
 
@@ -136,9 +144,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun toggleFavorite(songId: String) {
+    fun toggleFavorite(song: Song) {
         viewModelScope.launch {
-            musicRepository.toggleFavorite(songId)
+            musicRepository.toggleFavorite(song)
         }
     }
 
@@ -174,21 +182,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun downloadSong(song: Song) {
-        viewModelScope.launch {
-            musicRepository.downloadSong(song).collect { progress ->
-                when (progress) {
-                    is DownloadProgress.Progress -> {
-                        _uiState.update { it.copy(
-                            downloadingSongs = it.downloadingSongs + (song.id to progress.percent)
-                        ) }
-                    }
-                    is DownloadProgress.Completed, is DownloadProgress.Failed -> {
-                        _uiState.update { it.copy(
-                            downloadingSongs = it.downloadingSongs - song.id
-                        ) }
-                    }
-                }
-            }
-        }
+        android.widget.Toast.makeText(context, "Download started: ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
+        com.musicstream.app.service.DownloadService.start(context, song)
     }
 }

@@ -14,18 +14,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.musicstream.app.R
 import com.musicstream.app.domain.model.Notification
 import com.musicstream.app.domain.model.NotificationType
 import com.musicstream.app.presentation.components.PremiumHeader
 import com.musicstream.app.ui.theme.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationScreen(
     viewModel: NotificationViewModel = hiltViewModel(),
@@ -33,66 +34,13 @@ fun NotificationScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    PullToRefreshBox(
-        isRefreshing = state.isRefreshing,
+    NotificationScreenContent(
+        state = state,
+        onBackClick = onBackClick,
         onRefresh = { viewModel.refresh() },
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().statusBarsPadding(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                PremiumHeader(
-                    title = "Notifications",
-                    onBackClick = onBackClick,
-                    modifier = Modifier.weight(1f)
-                )
-
-                if (state.notifications.isNotEmpty()) {
-                    TextButton(
-                        onClick = { viewModel.clearAll() },
-                        modifier = Modifier.padding(end = 24.dp)
-                    ) {
-                        Text("Clear All", fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-
-            if (state.notifications.isEmpty() && !state.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.NotificationsNone,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                            modifier = Modifier.size(80.dp)
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = "No notifications yet",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            fontSize = 16.sp
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 120.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(state.notifications) { notification ->
-                        NotificationItem(
-                            notification = notification,
-                            onClear = { viewModel.clearNotification(notification.id) }
-                        )
-                    }
-                }
-            }
-        }
-    }
+        onClearAll = { viewModel.clearAll() },
+        onClearNotification = { viewModel.clearNotification(it) }
+    )
 }
 
 @Composable
@@ -189,6 +137,128 @@ fun NotificationItem(
 @Composable
 fun NotificationScreenPreview() {
     MusicStreamTheme {
-        NotificationScreen(onBackClick = {})
+        NotificationScreenContent(
+            state = NotificationUiState(
+                notifications = listOf(
+                    Notification(
+                        id = "1",
+                        title = "New Release",
+                        message = "Diljit Dosanjh just dropped a new single!",
+                        time = "2 mins ago",
+                        type = NotificationType.NEW_RELEASE
+                    ),
+                    Notification(
+                        id = "2",
+                        title = "Playlist Updated",
+                        message = "Your 'Focus' playlist has 5 new tracks.",
+                        time = "1 hour ago",
+                        type = NotificationType.PLAYLIST_UPDATE
+                    ),
+                    Notification(
+                        id = "3",
+                        title = "Premium Offer",
+                        message = "Get 3 months of Premium for the price of 1!",
+                        time = "5 hours ago",
+                        type = NotificationType.PROMOTION
+                    )
+                ),
+                isLoading = false
+            ),
+            onBackClick = {},
+            onRefresh = {},
+            onClearAll = {},
+            onClearNotification = {}
+        )
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun NotificationScreenEmptyPreview() {
+    MusicStreamTheme {
+        NotificationScreenContent(
+            state = NotificationUiState(
+                notifications = emptyList(),
+                isLoading = false
+            ),
+            onBackClick = {},
+            onRefresh = {},
+            onClearAll = {},
+            onClearNotification = {}
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NotificationScreenContent(
+    state: NotificationUiState,
+    onBackClick: () -> Unit,
+    onRefresh: () -> Unit,
+    onClearAll: () -> Unit,
+    onClearNotification: (String) -> Unit
+) {
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().statusBarsPadding(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                PremiumHeader(
+                    title = "Notifications",
+                    onBackClick = onBackClick,
+                    modifier = Modifier.weight(1f)
+                )
+
+                if (state.notifications.isNotEmpty()) {
+                    TextButton(
+                        onClick = onClearAll,
+                        modifier = Modifier.padding(end = 24.dp)
+                    ) {
+                        Text("Clear All",
+                            fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
+            if (state.notifications.isEmpty() && !state.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            painter = painterResource
+                                (id = R.drawable.notification_alarm_buzzer_icon),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(80.dp)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = "No notifications yet",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 120.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(state.notifications) { notification ->
+                        NotificationItem(
+                            notification = notification,
+                            onClear = { onClearNotification(notification.id) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+

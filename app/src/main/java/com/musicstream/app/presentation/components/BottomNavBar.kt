@@ -30,7 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicstream.app.R
-import com.musicstream.app.ui.theme.MusicStreamTheme
+import com.musicstream.app.ui.theme.*
 
 data class BottomNavItem(
     val route: String,
@@ -53,7 +53,7 @@ fun BottomNavBar(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface, // Solid color for compatibility,
+        color = MusicStreamTheme.colors.navBarBackground, // ✅ Using theme colors
         shadowElevation = 16.dp
     ) {
         Column(
@@ -67,8 +67,8 @@ fun BottomNavBar(
                 thickness = 1.dp,
                 color = MaterialTheme
                     .colorScheme
-                    .onSurface
-                    .copy(alpha = 0.05f)
+                    .outline
+                    .copy(alpha = 0.1f)
             )
 
             Row(
@@ -82,7 +82,7 @@ fun BottomNavBar(
                     val isSelected = currentRoute.startsWith(item.route)
                     
                     val iconColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        targetValue = if (isSelected) MusicStreamTheme.colors.navBarActive else MusicStreamTheme.colors.navBarInactive,
                         animationSpec = tween(300),
                         label = "navColor"
                     )
@@ -92,7 +92,6 @@ fun BottomNavBar(
                         animationSpec = tween(300),
                         label = "navScale"
                     )
-
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier

@@ -2,67 +2,114 @@ package com.musicstream.app.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+// 0. Custom Extended Colors for App-Specific UI
+data class MusicStreamColors(
+    val navBarBackground: Color,
+    val navBarActive: Color,
+    val navBarInactive: Color,
+    val seekBarActive: Color,
+    val seekBarInactive: Color,
+    val favoriteActive: Color,
+    val favoriteInactive: Color,
+    val signOutButton: Color,
+    val featuredGradientStart: Color,
+    val featuredGradientEnd: Color
+)
+
+private val DarkAppColors = MusicStreamColors(
+    navBarBackground = DarkBackground,
+    navBarActive = PalettePrimaryRed,
+    navBarInactive = TextTertiaryDark,
+    seekBarActive = PalettePrimaryRed,
+    seekBarInactive = DarkElevated,
+    favoriteActive = FavoriteRed,
+    favoriteInactive = TextTertiaryDark,
+    signOutButton = FavoriteRed,
+    featuredGradientStart = PalettePrimaryRed,
+    featuredGradientEnd = PaletteDarkBlue
+)
+
+private val LightAppColors = MusicStreamColors(
+    navBarBackground = LightSurface,
+    navBarActive = PalettePrimaryRed,
+    navBarInactive = InactiveGrey,
+    seekBarActive = PalettePrimaryRed,
+    seekBarInactive = LightElevated,
+    favoriteActive = FavoriteRed,
+    favoriteInactive = InactiveGrey,
+    signOutButton = FavoriteRed,
+    featuredGradientStart = PalettePrimaryRed,
+    featuredGradientEnd = PaletteDarkBlue
+)
+
+val LocalMusicStreamColors = staticCompositionLocalOf { DarkAppColors }
+
+object MusicStreamTheme {
+    val colors: MusicStreamColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalMusicStreamColors.current
+}
+
+// 1. Dark Mode Color Scheme
 private val DarkColorScheme = darkColorScheme(
-    primary = Color.White,
-    onPrimary = Color.Black,
-    secondary = AccentOrange,
-    onSecondary = Color.White,
-    tertiary = AccentPink,
+    primary = PalettePrimaryRed,
+    onPrimary = TextPrimaryDark,
+    secondary = PaletteDarkBlue,
+    onSecondary = TextPrimaryDark,
+    tertiary = FavoriteRed,
     background = DarkBackground,
-    onBackground = TextPrimary,
+    onBackground = TextPrimaryDark,
     surface = DarkSurface,
-    onSurface = TextPrimary,
+    onSurface = TextPrimaryDark,
     surfaceVariant = DarkCardSurface,
-    onSurfaceVariant = TextSecondary,
-    outline = DarkElevated,
-    error = AccentRed,
-    onError = Color.White
+    onSurfaceVariant = TextSecondaryDark,
+    outline = PaletteGrey
 )
 
+// 2. Light Mode Color Scheme
 private val LightColorScheme = lightColorScheme(
-    primary = Color.Black,
+    primary = PalettePrimaryRed,
     onPrimary = Color.White,
-    secondary = AccentOrange,
+    secondary = PaletteDarkBlue,
     onSecondary = Color.White,
-    tertiary = AccentPink,
-    background = Color(0xFFF8F8FC),
-    onBackground = Color.Black,
-    surface = Color.White,
-    onSurface = Color.Black,
-    surfaceVariant = Color(0xFFEEEEF4),
-    onSurfaceVariant = Color.Black,
-    outline = Color(0xFFDDDDE5),
-    error = AccentRed,
-    onError = Color.White
+    tertiary = FavoriteRed,
+    background = LightBackground,
+    onBackground = TextPrimaryLight,
+    surface = LightSurface,
+    onSurface = TextPrimaryLight,
+    surfaceVariant = LightCardSurface,
+    onSurfaceVariant = TextSecondaryLight,
+    outline = InactiveGrey
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MusicStreamTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val appColors = if (darkTheme) DarkAppColors else LightAppColors
 
-    val rippleConfiguration = RippleConfiguration(
-        color = Color.Gray
-    )
-
-    val view = LocalView.current
+    // Automatically setting status bar colors based on theme choice
+    val view = androidx.compose.ui.platform.LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // We don't set status/nav bar colors here as enableEdgeToEdge() handles it,
-            // but we MUST control the icon appearance (light/dark icons).
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = appColors.navBarBackground.toArgb()
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = !darkTheme
                 isAppearanceLightNavigationBars = !darkTheme
@@ -70,9 +117,7 @@ fun MusicStreamTheme(
         }
     }
 
-    CompositionLocalProvider(
-        LocalRippleConfiguration provides rippleConfiguration
-    ) {
+    CompositionLocalProvider(LocalMusicStreamColors provides appColors) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

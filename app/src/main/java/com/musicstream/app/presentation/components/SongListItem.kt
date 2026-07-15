@@ -1,4 +1,5 @@
 package com.musicstream.app.presentation.components
+
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -32,8 +33,9 @@ fun SongListItem(
     modifier: Modifier = Modifier,
     showThumbnail: Boolean = true,
     onSongClick: (Song) -> Unit = {},
-    onFavoriteClick: (String) -> Unit = {},
+    onFavoriteClick: (Song) -> Unit = {},
     onDownloadClick: (Song) -> Unit = {},
+    onAddClick: (Song) -> Unit = {}, // Connected with the "+" button event
     onMoreClick: (Song) -> Unit = {},
     onLongClick: (Song) -> Unit = {},
     downloadProgress: Int? = null,
@@ -61,108 +63,130 @@ fun SongListItem(
     ) {
         Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(24.dp))
-                .combinedClickable(
-                    onClick = { onSongClick(song) },
-                    onLongClick = { onLongClick(song) }
-                )
+                .fillMaxWidth()
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Thumbnail (Optional)
-            if (showThumbnail) {
-                if (song.coverUrl.isNotEmpty()) {
-                    AsyncImage(
-                        model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
-                            .data(song.coverUrl)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(gradient),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.audio_tune_icon),
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.7f),
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-            } else {
-                // If no thumbnail, add some padding to center content better
-                Spacer(modifier = Modifier.width(12.dp))
-            }
-
-            // Title and artist
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = if (showThumbnail) Alignment.Start else Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = song.title,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = if (showThumbnail) TextAlign.Start else TextAlign.Center
-                )
-                Text(
-                    text = song.artist,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = if (showThumbnail) TextAlign.Start else TextAlign.Center
-                )
-            }
-
-            // Controls (Plus and Play/Pause like the image)
-            IconButton(
-                onClick = { onMoreClick(song) },
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.plus_line_icon),
-                    contentDescription = "Add",
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(4.dp))
-
-            IconButton(
-                onClick = {
-                    if (isPlaying) onPlayPauseClick() else onSongClick(song)
-                },
+            // --- ZONE 1: Song Playing Clickable Area ---
+            Row(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(if (isPlaying) AccentPurple else Color.Transparent)
-            ) {
-                Icon(
-                    painter = painterResource(
-                        id = if (isPlaying) R.drawable.pause_button_icon
-                        else R.drawable.play_button_icon
+                    .weight(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .combinedClickable(
+                        onClick = { onSongClick(song) },
+                        onLongClick = { onLongClick(song) }
                     ),
-                    contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = if (isPlaying) Color.White else MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(if (isPlaying) 20.dp else 28.dp)
-                )
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (showThumbnail) {
+                    if (song.coverUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                                .data(song.coverUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(gradient),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.audio_tune_icon),
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.7f),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                } else {
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = if (showThumbnail) Alignment.Start else Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = song.title,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = if (showThumbnail) TextAlign.Start else TextAlign.Center
+                    )
+                    Text(
+                        text = song.artist,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = if (showThumbnail) TextAlign.Start else TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // --- ZONE 2: Isolate Actions Buttons Area ---
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (song.localPath != null) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.check_mark_line_icon),
+                        contentDescription = "Downloaded",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+
+                // Plus Button mapped cleanly to onAddClick action
+                IconButton(
+                    onClick = { onAddClick(song) },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.plus_line_icon),
+                        contentDescription = "Add",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(4.dp))
+
+                IconButton(
+                    onClick = {
+                        if (isPlaying) onPlayPauseClick() else onSongClick(song)
+                    },
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(if (isPlaying) MaterialTheme.colorScheme.primary else Color.Transparent)
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            id = if (isPlaying) R.drawable.pause_button_icon
+                            else R.drawable.play_button_icon
+                        ),
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        tint = if (isPlaying) Color.White else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(if (isPlaying) 20.dp else 28.dp)
+                    )
+                }
             }
         }
     }
@@ -174,8 +198,9 @@ fun WideSongListItem(
     song: Song,
     modifier: Modifier = Modifier,
     onSongClick: (Song) -> Unit = {},
-    onFavoriteClick: (String) -> Unit = {},
+    onFavoriteClick: (Song) -> Unit = {},
     onDownloadClick: (Song) -> Unit = {},
+    onAddClick: (Song) -> Unit = {},
     onMoreClick: (Song) -> Unit = {},
     onLongClick: (Song) -> Unit = {},
     downloadProgress: Int? = null,
@@ -188,6 +213,7 @@ fun WideSongListItem(
         onSongClick = onSongClick,
         onFavoriteClick = onFavoriteClick,
         onDownloadClick = onDownloadClick,
+        onAddClick = onAddClick,
         onMoreClick = onMoreClick,
         onLongClick = onLongClick,
         downloadProgress = downloadProgress,

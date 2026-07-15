@@ -1,29 +1,30 @@
 package com.musicstream.app.presentation.components
-
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -31,49 +32,112 @@ import coil.request.ImageRequest
 import com.musicstream.app.R
 import com.musicstream.app.data.MockData
 import com.musicstream.app.domain.model.Song
-import com.musicstream.app.ui.theme.AccentPurple
-import com.musicstream.app.ui.theme.MusicStreamTheme
+import com.musicstream.app.ui.theme.*
+import kotlin.math.roundToInt
 
 @Composable
 fun StackedFeaturedCards(
     songs: List<Song>,
+    currentIndex: Int,
+    onIndexChange: (Int) -> Unit,
     currentPlayingSong: Song? = null,
     isPlaying: Boolean = false,
     onSongClick: (Song) -> Unit,
-    onFavoriteClick: (String) -> Unit,
+    onFavoriteClick: (Song) -> Unit,
     onTogglePlayPause: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    
+    // Smooth reset when swiping ends
+    val animatedOffsetX by animateFloatAsState(
+        targetValue = offsetX,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "swipeOffset"
+    )
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(300.dp)
-            .offset(x = 10.dp, y = (-30).dp)
-            .padding(horizontal = 24.dp),
+            .height(320.dp)
+            .offset(y = (-30).dp)
+            .padding(horizontal = 24.dp)
+            .pointerInput(songs.size, currentIndex) { // ADD currentIndex to keys
+                detectHorizontalDragGestures(
+                    onDragCancel = { offsetX = 0f },
+                    onDragEnd = {
+                        // SENSITIVITY FIX: Lower threshold for easier swiping
+                        if (offsetX > 120) {
+                            if (currentIndex > 0) {
+                                onIndexChange(currentIndex - 1)
+                            }
+                        } else if (offsetX < -120) {
+                            if (currentIndex < (songs.size - 1)) {
+                                onIndexChange(currentIndex + 1)
+                            }
+                        }
+                        offsetX = 0f
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        offsetX += dragAmount
+                    }
+                )
+            },
         contentAlignment = Alignment.Center
     ) {
-        val cards = songs.take(3)
-        
-        cards.asReversed().forEachIndexed { index, song ->
-            val actualIndex = cards.size - 1 - index
-            val isFrontCard = actualIndex == cards.size - 1
+        // We show up to 3 cards in the stack
+        val stackSize = 3
+        val visibleRange = songs.indices.filter { 
+            (it >= currentIndex) && (it < currentIndex + stackSize)
+        }.reversed()
+
+        visibleRange.forEach { index ->
+            val song = songs[index]
+            val relativeIndex = index - currentIndex
+            val isFrontCard = relativeIndex == 0
             val isCurrentSong = currentPlayingSong?.id == song.id
+
+            // Animate properties based on relative index
+            val rotation by animateFloatAsState(
+                targetValue = when (relativeIndex) {
+                    0 -> 0f
+                    1 -> -7f
+                    else -> -15f
+                },
+                animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
+                label = "rotation"
+            )
             
-            val rotation = when (actualIndex) {
-                0 -> -15f
-                1 -> -7f
-                else -> 4f
-            }
-            val offsetX = when (actualIndex) {
-                0 -> (-45).dp
-                1 -> (-20).dp
-                else -> 10.dp
-            }
-            val offsetY = when (actualIndex) {
-                0 -> 30.dp
-                1 -> 15.dp
-                else -> 0.dp
-            }
+            val cardOffsetX by animateDpAsState(
+                targetValue = when (relativeIndex) {
+                    0 -> 0.dp
+                    1 -> (-25).dp
+                    else -> (-50).dp
+                },
+                animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
+                label = "offsetX"
+            )
+            
+            val cardOffsetY by animateDpAsState(
+                targetValue = when (relativeIndex) {
+                    0 -> 0.dp
+                    1 -> 15.dp
+                    else -> 30.dp
+                },
+                animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
+                label = "offsetY"
+            )
+
+            val scale by animateFloatAsState(
+                targetValue = when (relativeIndex) {
+                    0 -> 1f
+                    1 -> 0.92f
+                    else -> 0.85f
+                },
+                animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
+                label = "scale"
+            )
 
             FeaturedStackCard(
                 song = song,
@@ -82,11 +146,23 @@ fun StackedFeaturedCards(
                 onClick = { 
                     if (isCurrentSong) onTogglePlayPause() else onSongClick(song)
                 },
-                onFavoriteClick = { onFavoriteClick(song.id) },
+                onFavoriteClick = { onFavoriteClick(song) },
                 isFrontCard = isFrontCard,
                 modifier = Modifier
-                    .offset(x = offsetX, y = offsetY)
-                    .rotate(rotation)
+                    .offset { 
+                        if (isFrontCard) {
+                            IntOffset(animatedOffsetX.roundToInt(), (kotlin.math.abs(animatedOffsetX) * 0.1f).roundToInt())
+                        } else {
+                            IntOffset(0, 0)
+                        }
+                    }
+                    .offset(x = cardOffsetX, y = cardOffsetY)
+                    .graphicsLayer {
+                        rotationZ = rotation + (if(isFrontCard) animatedOffsetX * 0.05f else 0f)
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = if (relativeIndex >= stackSize) 0f else 1f
+                    }
                     .fillMaxHeight(0.85f)
                     .aspectRatio(0.82f)
             )
@@ -112,7 +188,7 @@ fun FeaturedStackCard(
         elevation = CardDefaults.cardElevation(defaultElevation = if (isFrontCard) 12.dp else 4.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Background Image (Blurred for artistic effect like FeaturedCard)
+            // Background Image (Blurred for artistic effect)
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(song.coverUrl)
@@ -207,11 +283,28 @@ fun FeaturedStackCard(
                             Surface(
                                 modifier = Modifier.size(36.dp),
                                 shape = CircleShape,
-                                color = AccentPurple
+                                color = Color.Transparent
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                listOf(
+                                                    MusicStreamTheme.colors.featuredGradientStart,
+                                                    MusicStreamTheme.colors.featuredGradientEnd
+                                                )
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
                                     Icon(
-                                        imageVector = if (isCurrentSong && isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                        painter = painterResource(
+                                            id = if (isCurrentSong && isPlaying)
+                                                R.drawable.pause_button_icon 
+                                            else
+                                                R.drawable.play_button_icon  
+                                        ),
                                         contentDescription = null,
                                         tint = Color.White,
                                         modifier = Modifier.size(20.dp)
@@ -229,24 +322,21 @@ fun FeaturedStackCard(
                     }
                 } else {
                     // Background Card Circle Play Button
-                    Surface(
-                        modifier = Modifier.size(36.dp),
-                        shape = CircleShape,
-                        color = AccentPurple.copy(alpha = 0.8f),
-                        onClick = onClick
+                    Box(
+                        modifier = Modifier.align(Alignment.End),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = if (isCurrentSong && isPlaying)
-                                    Icons.Default.Pause else
-                                        Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                                    .offset(x = if (isCurrentSong && isPlaying)
-                                        0.dp else 1.dp)
-                            )
-                        }
+                        Icon(
+                            painter = painterResource(
+                                id = if (isCurrentSong && isPlaying)
+                                    R.drawable.pause_button_icon 
+                                else
+                                    R.drawable.play_button_icon  
+                            ),
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
             }
@@ -260,14 +350,14 @@ fun FeaturedStackCard(
                         .offset(x = 10.dp, y = (-10).dp)
                         .size(54.dp),
                     shape = CircleShape,
-                    color = Color(0xFFFFD54F).copy(alpha = 0.95f),
+                    color = MusicStreamTheme.colors.favoriteActive.copy(alpha = 0.2f),
                     shadowElevation = 8.dp
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Favorite,
                             contentDescription = "Favorite",
-                            tint = Color(0xFFEF5350),
+                            tint = MusicStreamTheme.colors.favoriteActive,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -280,6 +370,7 @@ fun FeaturedStackCard(
 @Preview(showBackground = true)
 @Composable
 fun StackedFeaturedCardsPreview() {
+    var index by remember { mutableIntStateOf(0) }
     MusicStreamTheme {
         Box(
             modifier = Modifier
@@ -290,33 +381,11 @@ fun StackedFeaturedCardsPreview() {
         ) {
             StackedFeaturedCards(
                 songs = MockData.trendingSongs,
+                currentIndex = index,
+                onIndexChange = { index = it },
                 onSongClick = {},
                 onFavoriteClick = {},
                 onTogglePlayPause = {}
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun FeaturedStackCardPreview() {
-    MusicStreamTheme {
-        Box(
-            modifier = Modifier
-                .padding(24.dp)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            FeaturedStackCard(
-                song = MockData.featuredSong,
-                isCurrentSong = false,
-                isPlaying = false,
-                onClick = {},
-                onFavoriteClick = {},
-                isFrontCard = true,
-                modifier = Modifier
-                    .width(240.dp)
-                    .height(300.dp)
             )
         }
     }

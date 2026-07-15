@@ -1,5 +1,4 @@
 package com.musicstream.app.presentation.library
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,13 +17,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.MusicNote
@@ -40,7 +37,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -70,12 +66,15 @@ import com.musicstream.app.domain.model.Song
 import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
 import com.musicstream.app.presentation.components.SongListItem
 import com.musicstream.app.presentation.components.SongOptionsBottomSheet
-import com.musicstream.app.ui.theme.AccentPurple
-import com.musicstream.app.ui.theme.FavoriteRed
+import com.musicstream.app.ui.theme.*
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Brush
 import com.musicstream.app.ui.theme.Gradients
 import com.musicstream.app.ui.theme.MusicStreamTheme
+import kotlinx.coroutines.yield
 
 @Composable
 fun LibraryScreen(
@@ -112,7 +111,7 @@ fun LibraryContent(
     onCreatePlaylist: (String) -> Unit,
     onDeletePlaylist: (String) -> Unit,
     onRemoveSongFromPlaylist: (String, String) -> Unit,
-    onToggleFavorite: (String) -> Unit,
+    onToggleFavorite: (Song) -> Unit,
     onDownloadSong: (Song) -> Unit,
     onDeleteDownload: (String) -> Unit,
     addSongToPlaylist: (String, String) -> Unit,
@@ -120,7 +119,6 @@ fun LibraryContent(
     onGoToArtist: (String) -> Unit = {},
     onRefresh: () -> Unit = {}
 ) {
-    val scrollState = rememberScrollState()
     var showCreateDialog by remember { mutableStateOf(false) }
     var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
     var songToRemoveFromPlaylist by remember { mutableStateOf<Pair<Playlist, Song>?>(null) }
@@ -130,8 +128,9 @@ fun LibraryContent(
 
     if (playlistToDelete != null) {
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = { playlistToDelete = null },
             containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(28.dp),
             icon = {
                 Icon(
                     imageVector = Icons.Default.DeleteSweep,
@@ -145,7 +144,9 @@ fun LibraryContent(
                     text = "Delete Playlist",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             },
             text = {
@@ -163,29 +164,30 @@ fun LibraryContent(
                         onDeletePlaylist(playlistToDelete!!.id)
                         playlistToDelete = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = FavoriteRed),
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MusicStreamTheme.colors.favoriteActive),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Delete", fontWeight = FontWeight.Bold)
+                    Text("Delete", fontWeight = FontWeight.Bold, color = Color.White)
                 }
             },
             dismissButton = {
-                OutlinedButton(
-                    onClick = { },
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                TextButton(
+                    onClick = { playlistToDelete = null },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
+                    Text("Cancel", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            },
-            shape = RoundedCornerShape(28.dp)
+            }
         )
     }
 
     if (songToRemoveFromPlaylist != null) {
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = { songToRemoveFromPlaylist = null },
             containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(28.dp),
             icon = {
                 Icon(
                     imageVector = Icons.Default.RemoveCircleOutline,
@@ -199,7 +201,9 @@ fun LibraryContent(
                     text = "Remove Song",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             },
             text = {
@@ -217,22 +221,22 @@ fun LibraryContent(
                         onRemoveSongFromPlaylist(songToRemoveFromPlaylist!!.first.id, songToRemoveFromPlaylist!!.second.id)
                         songToRemoveFromPlaylist = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = FavoriteRed),
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MusicStreamTheme.colors.favoriteActive),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Remove", fontWeight = FontWeight.Bold)
+                    Text("Remove", fontWeight = FontWeight.Bold, color = Color.White)
                 }
             },
             dismissButton = {
-                OutlinedButton(
-                    onClick = { },
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                TextButton(
+                    onClick = { songToRemoveFromPlaylist = null },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
+                    Text("Cancel", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            },
-            shape = RoundedCornerShape(28.dp)
+            }
         )
     }
 
@@ -257,11 +261,11 @@ fun LibraryContent(
         val context = androidx.compose.ui.platform.LocalContext.current
         SongOptionsBottomSheet(
             song = selectedSongForOptions,
-            onDismissRequest = { 
-                selectedSongForOptions = null 
+            onDismissRequest = {
+                selectedSongForOptions = null
             },
-            onFavoriteClick = { songId ->
-                onToggleFavorite(songId)
+            onFavoriteClick = { song ->
+                onToggleFavorite(song)
                 selectedSongForOptions = null
             },
             onAddToPlaylistClick = { songId ->
@@ -269,7 +273,7 @@ fun LibraryContent(
                 selectedSongForOptions = null
             },
             onDownloadClick = { song ->
-                onDownloadSong(song) 
+                onDownloadSong(song)
                 selectedSongForOptions = null
             },
             onDeleteDownloadClick = { songId ->
@@ -287,7 +291,9 @@ fun LibraryContent(
                 if (songToShare != null) {
                     val sendIntent: android.content.Intent = android.content.Intent().apply {
                         action = android.content.Intent.ACTION_SEND
-                        putExtra(android.content.Intent.EXTRA_TEXT, "Check out this song '${songToShare.title}' by ${songToShare.artist} on Music Stream!")
+                        putExtra(android.content.Intent.EXTRA_TEXT,
+                            "Check out this song '${songToShare.title}'" +
+                                    " by ${songToShare.artist} on Music Stream!")
                         type = "text/plain"
                     }
                     val shareIntent = android.content.Intent.createChooser(sendIntent, null)
@@ -296,7 +302,7 @@ fun LibraryContent(
                 selectedSongForOptions = null
             },
             onGoToArtistClick = { artistName ->
-                onGoToArtist(artistName) 
+                onGoToArtist(artistName)
                 selectedSongForOptions = null
             }
         )
@@ -313,20 +319,6 @@ fun LibraryContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         "Create New Playlist",
@@ -338,16 +330,12 @@ fun LibraryContent(
             },
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        "Give your playlist a name to get started.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
                     OutlinedTextField(
                         value = newPlaylistName,
                         onValueChange = { newPlaylistName = it },
-                        placeholder = { Text("Playlist Name", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                        placeholder = { Text("Playlist Name",
+                            color = MaterialTheme.colorScheme
+                                .onSurfaceVariant.copy(alpha = 0.6f)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -396,195 +384,209 @@ fun LibraryContent(
         modifier = Modifier.fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
         ) {
             // Title and Subtitle (Premium Style)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 12.dp)
-            ) {
-                Text(
-                    text = "Your Library",
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-1).sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Tab Chips (Premium Filter Style)
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().offset(y = (-20).dp),
-                contentPadding = PaddingValues(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items(LibraryTab.entries.toTypedArray()) { tab ->
-                    val isSelected = state.selectedTab == tab
-                    val tabName = if (tab == LibraryTab.Songs)
-                        "New Songs" else tab.name
-                    
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onTabSelect(tab) },
-                        label = { 
-                            Text(
-                                text = tabName,
-                                color = if (isSelected) Color.White else Color.Black,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 20.dp)
-                            ) 
-                        },
-                        shape = RoundedCornerShape(30.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = AccentPurple,
-                            selectedLabelColor = Color.White,
-                            containerColor = Color.White.copy(alpha = 0.9f),
-                            labelColor = Color.Black
-                        ),
-                        border = if (isSelected) null else
-                            FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = false,
-                            borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                        )
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        text = "Your Library",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-1).sp
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            item { Spacer(modifier = Modifier.height(16.dp)) }
 
-            // Content Area
-            Column(modifier = Modifier.fillMaxWidth().offset(y = (-30).dp)) {
-                // Global Downloads Status (Visible across all tabs)
-                val downloadingSongsList = state.downloadingSongsList
-                val progressMap = state.downloadingSongs
-                
-                if (downloadingSongsList.isNotEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp)
-                    ) {
-                        Text(
-                            text = "Active Downloads",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 24.dp,
-                                vertical = 8.dp)
-                        )
+            // Tab Chips (Premium Filter Style)
+            item {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().offset(y = (-20).dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(LibraryTab.entries.toTypedArray()) { tab ->
+                        val isSelected = state.selectedTab == tab
+                        val tabName = if (tab == LibraryTab.Songs)
+                            "New Songs" else tab.name
                         
-                        downloadingSongsList.forEach { song ->
-                            val index = downloadingSongsList.indexOf(song)
-                            SongListItem(
-                                song = song,
-                                onSongClick = { onPlaySongs(downloadingSongsList, index) },
-                                onFavoriteClick = { onToggleFavorite(song.id) },
-                                onDownloadClick = { onDownloadSong(it) },
-                                onMoreClick = { selectedSongForOptions = it },
-                                downloadProgress = progressMap[song.id]
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onTabSelect(tab) },
+                            label = { 
+                                Text(
+                                    text = tabName,
+                                    color = if (isSelected) Color.White else Color.Black,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 20.dp)
+                                ) 
+                            },
+                            shape = RoundedCornerShape(30.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = if (isSelected) null else
+                                FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = false,
+                                borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                             )
-                        }
-                        
-                        HorizontalDivider(
-                            modifier = Modifier.padding(top = 16.dp, start = 24.dp, end = 24.dp),
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
                         )
                     }
                 }
+            }
 
-                when (state.selectedTab) {
-                    LibraryTab.Playlists -> {
-                        // Create Playlist Card
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+
+            // Global Downloads Status (Visible across all tabs)
+            val downloadingSongsList = state.downloadingSongsList
+            val progressMap = state.downloadingSongs
+
+            if (downloadingSongsList.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Active Downloads",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                    )
+                }
+
+                items(
+                    items = downloadingSongsList,
+                    key = { it.id }
+                ) { song ->
+                    val index = downloadingSongsList.indexOf(song)
+                    SongListItem(
+                        song = song,
+                        onSongClick = { onPlaySongs(downloadingSongsList, index) },
+                        onFavoriteClick = { onToggleFavorite(song) },
+                        onDownloadClick = { onDownloadSong(it) },
+                        onAddClick = { selectedSongForOptions = it },
+                        downloadProgress = progressMap[song.id]
+                    )
+                }
+
+                item {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(top = 16.dp, start = 24.dp, end = 24.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                    )
+                }
+            }
+
+            // Content Area based on Selected Tab
+            when (state.selectedTab) {
+                LibraryTab.Playlists -> {
+                    item {
                         CreatePlaylistCard(onClick = { showCreateDialog = true })
-
                         Spacer(modifier = Modifier.height(12.dp))
-                        
                         Text(
                             text = "Your Playlists",
                             color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 24.dp)
+                            modifier = Modifier.padding(horizontal = 24.dp).offset(y = (-15).dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
+                    }
 
-                        // Playlist List
-                        state.playlists.forEach { playlist ->
-                            PlaylistListItem(
-                                playlist = playlist,
-                                onClick = { onPlaylistSelect(playlist) },
-                                onDeleteClick = { playlistToDelete = playlist }
+                    items(
+                        items = state.playlists,
+                        key = { it.id }
+                    ) { playlist ->
+                        PlaylistListItem(
+                            playlist = playlist,
+                            onClick = { onPlaylistSelect(playlist) },
+                            onDeleteClick = { playlistToDelete = playlist }
+                        )
+                    }
+                }
+
+                LibraryTab.Songs -> {
+                    if (state.songs.isEmpty()) {
+                        item { EmptyState("No songs found",
+                            "Try searching for some music") }
+                    } else {
+                        itemsIndexed(
+                            items = state.songs,
+                            key = { _, song -> song.id }
+                        ) { index, song ->
+                            SongListItem(
+                                song = song,
+                                modifier = Modifier.offset(y = (-30).dp),
+                                onSongClick = { onPlaySongs(state.songs, index) },
+                                onFavoriteClick = { onToggleFavorite(song) },
+                                onDownloadClick = { onDownloadSong(it) },
+                                onAddClick = { selectedSongForOptions = it },
+                                downloadProgress = state.downloadingSongs[song.id]
                             )
                         }
                     }
+                }
 
-                    LibraryTab.Songs -> {
-                        if (state.songs.isEmpty()) {
-                            EmptyState("No songs found", "Try searching for some music")
-                        } else {
-                            state.songs.forEach { song ->
-                                val index = state.songs.indexOf(song)
-                                SongListItem(
-                                    song = song,
-                                    onSongClick = { onPlaySongs(state.songs, index) },
-                                    onFavoriteClick = { onToggleFavorite(song.id) },
-                                    onDownloadClick = { onDownloadSong(it) },
-                                    onMoreClick = { selectedSongForOptions = it },
-                                    downloadProgress = state.downloadingSongs[song.id]
-                                )
-                            }
-                        }
-                    }
-
-
-                    LibraryTab.Downloads -> {
-                        val allDownloads = (state.downloadingSongsList + state.downloads).distinctBy { it.id }
-                        if (allDownloads.isEmpty()) {
-                            EmptyState("No downloads yet", "Downloaded songs will appear here")
-                        } else {
+                LibraryTab.Downloads -> {
+                    val allDownloads = (state.downloadingSongsList + state.downloads).distinctBy { it.id }
+                    if (allDownloads.isEmpty()) {
+                        item { EmptyState("No downloads yet", "Downloaded songs will appear here") }
+                    } else {
+                        item {
                             Text(
                                 text = "${allDownloads.size} songs downloaded",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 24.dp)
+                                modifier = Modifier.padding(horizontal = 24.dp).offset(y = (-25).dp)
                             )
-                            allDownloads.forEach { song ->
-                                val index = allDownloads.indexOf(song)
-                                SongListItem(
-                                    song = song,
-                                    onSongClick = { onPlaySongs(allDownloads, index) },
-                                    onFavoriteClick = { onToggleFavorite(song.id) },
-                                    onMoreClick = { selectedSongForOptions = it },
-                                    downloadProgress = state.downloadingSongs[song.id]
-                                )
-                            }
+                        }
+                        itemsIndexed(
+                            items = allDownloads,
+                            key = { _, song -> song.id }
+                        ) { index, song ->
+                            SongListItem(
+                                modifier = Modifier.offset(y = (-20).dp),
+                                song = song,
+                                onSongClick = { onPlaySongs(allDownloads, index) },
+                                onFavoriteClick = { onToggleFavorite(song) },
+                                onDownloadClick = { onDownloadSong(it) },
+                                onAddClick = { selectedSongForOptions = it },
+                                downloadProgress = state.downloadingSongs[song.id]
+                            )
                         }
                     }
                 }
             }
             
             // Bottom spacer for edge-to-edge
-            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-            Spacer(Modifier.height(70.dp))
+            item {
+                Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+                Spacer(Modifier.height(70.dp))
+            }
         }
     }
 }
+
 @Composable
 private fun CreatePlaylistCard(onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
+            .offset(y = (-20).dp)
+            .padding(horizontal = 24.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -606,10 +608,10 @@ private fun CreatePlaylistCard(onClick: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Add,
+                    painter = painterResource(id = R.drawable.plus_line_icon),
                     contentDescription = "Create Playlist",
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(25.dp)
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
@@ -650,11 +652,10 @@ private fun PlaylistListItem(
         Gradients.trendingOrange,
         Gradients.trendingPurple
     )
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp).offset(y = (-30).dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -666,19 +667,58 @@ private fun PlaylistListItem(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Replace your old Box artwork block with this premium 3D Mini-Stack Artwork
             Box(
                 modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(gradients[playlist.gradientIndex % gradients.size]),
-                contentAlignment = Alignment.Center
+                    .size(68.dp)
+                    .padding(end = 6.dp, bottom = 6.dp),
+                contentAlignment = Alignment.BottomStart
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.audio_tune_icon),
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.8f),
-                    modifier = Modifier.size(32.dp)
-                )
+                val currentGradient = gradients[playlist.gradientIndex % gradients.size]
+                val density = LocalDensity.current
+
+                for (i in 2 downTo 0) {
+                    val offsetX = (i * 4.5f).dp
+                    val offsetY = (-i * 3.5f).dp
+                    val rotationAngle = (i * 3.5f)
+                    val layerAlpha = if (i == 0) 1f else 0.5f
+
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .graphicsLayer {
+                                translationX = with(density) { offsetX.toPx() }
+                                translationY = with(density) { offsetY.toPx() }
+                                rotationZ = rotationAngle
+                                alpha = layerAlpha
+                            }
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(currentGradient),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Content elements inside the front card only
+                        if (i == 0) {
+                            // Subtle bottom-to-top gradient shadow for layout contrast
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f))
+                                        )
+                                    )
+                            )
+
+                            // Central high-contrast music logo icon
+                            Icon(
+                                painter = painterResource(id = R.drawable.audio_tune_icon),
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.9f),
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+                    }
+                }
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -697,7 +737,7 @@ private fun PlaylistListItem(
                     fontWeight = FontWeight.Medium
                 )
             }
-            
+
             IconButton(
                 onClick = onDeleteClick,
                 modifier = Modifier.size(40.dp)
@@ -709,7 +749,7 @@ private fun PlaylistListItem(
                     modifier = Modifier.size(20.dp)
                 )
             }
-            
+
             Icon(
                 imageVector = Icons.Filled.ChevronRight,
                 contentDescription = null,

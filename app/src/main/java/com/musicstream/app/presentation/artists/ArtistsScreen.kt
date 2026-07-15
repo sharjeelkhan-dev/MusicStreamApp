@@ -1,15 +1,16 @@
 package com.musicstream.app.presentation.artists
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -37,7 +38,9 @@ fun ArtistsScreen(
     playerViewModel: com.musicstream.app.presentation.player.PlayerViewModel = hiltViewModel(),
     onArtistClick: (String) -> Unit = {},
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    // Added Boolean flag callback to notify parent if the current item is liked
+    onSongOptionsClick: (Song, Boolean) -> Unit = { _, _ -> }
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val playerState by playerViewModel.uiState.collectAsStateWithLifecycle()
@@ -51,10 +54,16 @@ fun ArtistsScreen(
         onBackClick = onBackClick,
         currentPlayingSong = playerState.currentSong,
         isPlaying = playerState.isPlaying,
-        onTogglePlayPause = { playerViewModel.togglePlayPause() }
+        onTogglePlayPause = { playerViewModel.togglePlayPause() },
+        // Fixed: Check if song exists in favorite list dynamically
+        onSongOptionsClick = { song ->
+            val isCurrentSongLiked = state.favoriteSongs.any { it.id == song.id }
+            onSongOptionsClick(song, isCurrentSongLiked)
+        }
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArtistsScreenContent(
     state: ArtistsUiState,
@@ -65,7 +74,8 @@ fun ArtistsScreenContent(
     onBackClick: () -> Unit = {},
     currentPlayingSong: Song? = null,
     isPlaying: Boolean = false,
-    onTogglePlayPause: () -> Unit = {}
+    onTogglePlayPause: () -> Unit = {},
+    onSongOptionsClick: (Song) -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -73,97 +83,54 @@ fun ArtistsScreenContent(
             .background(MaterialTheme.colorScheme.background)
     ) {
         if (state.isShowingLikedSongs) {
-            // Liked Songs Header (Centered Style like image)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
+            PremiumHeader(
+                title = "Liked Songs",
+                onBackClick = onToggleLikedSongs,
+                modifier = Modifier.statusBarsPadding()
+            )
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().offset(y = (-10).dp),
+                contentPadding = PaddingValues(bottom = 120.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Card(
-                        modifier = Modifier.size(48.dp),
-                        shape = CircleShape,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        onClick = onToggleLikedSongs
-                    ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-                    Spacer(Modifier.width(16.dp))
-                    Text(
-                        text = "Liked Songs",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                items(
+                    items = state.favoriteSongs,
+                    key = { it.id }
+                ) { song ->
+                    val index = state.favoriteSongs.indexOf(song)
+                    val isSongPlaying = currentPlayingSong?.id == song.id && isPlaying
+
+                    SongListItem(
+                        song = song,
+                        showThumbnail = true,
+                        onSongClick = { onPlaySongs(state.favoriteSongs, index) },
+                        isPlaying = isSongPlaying,
+                        onPlayPauseClick = {
+                            if (currentPlayingSong?.id == song.id) onTogglePlayPause()
+                            else onPlaySongs(state.favoriteSongs, index)
+                        },
+                        onAddClick = { onSongOptionsClick(it) }
                     )
                 }
-            }
 
-            // Liked Songs List (Vertical)
-            Box(modifier = Modifier.fillMaxSize().offset(y = (-15).dp)) {
-                androidx.compose.foundation.lazy.LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 120.dp)
-                ) {
-                    items(state.favoriteSongs.size) { index ->
-                        val song = state.favoriteSongs[index]
-                        val isSongPlaying = currentPlayingSong?.id == song.id && isPlaying
-                        SongListItem(
-                            song = song,
-                            showThumbnail = true,
-                            onSongClick = { onPlaySongs(state.favoriteSongs, index) },
-                            isPlaying = isSongPlaying,
-                            onPlayPauseClick = {
-                                if (currentPlayingSong?.id == song.id) onTogglePlayPause()
-                                else onPlaySongs(state.favoriteSongs, index)
-                            }
-                        )
-                    }
-                    
-                    if (state.favoriteSongs.isEmpty()) {
-                        item {
-                            Box(modifier = Modifier.fillMaxWidth().padding(64.dp), contentAlignment = Alignment.Center) {
-                                Text("No liked songs yet ❤️", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                if (state.favoriteSongs.isEmpty()) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(64.dp), contentAlignment = Alignment.Center) {
+                            Text("No liked songs yet ❤️", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
             }
         } else {
-            // Artists Browser UI
             PremiumHeader(
-                title = "Browse",
+                title = "Artists",
                 onBackClick = onBackClick,
                 modifier = Modifier.statusBarsPadding()
             )
-
-            // Filter Chips
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth().offset(y = (-30).dp)
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                FilterChip(
-                    selected = state.selectedFilter == "All",
-                    onClick = { onFilterChange("All") },
-                    label = { Text("All Artists") },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = AccentPurple,
-                        selectedLabelColor = Color.White
-                    ),
-                    border = null
-                )
-            }
-
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize().offset(y = (-25).dp),
-                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 120.dp),
+                modifier = Modifier.fillMaxSize().offset(y = (-16).dp),
+                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 120.dp, top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -201,10 +168,7 @@ fun ArtistGridItem(
             .height(82.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.surface
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -249,10 +213,7 @@ fun ArtistsScreenPreview() {
     MusicStreamTheme {
         ArtistsScreenContent(
             state = ArtistsUiState(
-                artists = listOf(
-                    Artist("1", "The Weeknd"),
-                    Artist("2", "Dua Lipa")
-                ),
+                artists = listOf(Artist("1", "The Weeknd"), Artist("2", "Dua Lipa")),
                 favoriteSongs = emptyList()
             )
         )

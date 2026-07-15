@@ -6,52 +6,61 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.musicstream.app.R
 import com.musicstream.app.ui.theme.MusicStreamTheme
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun AuthScreen(
-    onLoginClick: (String, String) -> Unit,
-    onSignUpClick: (String, String, String) -> Unit,
-    isEmailRegistered: suspend (String) -> Boolean = { false }
+    viewModel: AuthViewModel = hiltViewModel(),
+    onLoginSuccess: () -> Unit,
 ) {
-    AuthContent(onLoginClick, onSignUpClick, isEmailRegistered)
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    LaunchedEffect(state.isLoginSuccessful) {
+        if (state.isLoginSuccessful) {
+            onLoginSuccess()
+        }
+    }
+
+    AuthContent(
+        state = state,
+        onLoginClick = { email, password -> viewModel.login(email, password) },
+        onSignUpClick = { name, email, password -> viewModel.signUp(name, email, password) },
+        onClearMessages = { viewModel.clearMessages() }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthContent(
+    state: AuthUiState,
     onLoginClick: (String, String) -> Unit,
     onSignUpClick: (String, String, String) -> Unit,
-    isEmailRegistered: suspend (String) -> Boolean
+    onClearMessages: () -> Unit
 ) {
     var isLoginMode by remember { mutableStateOf(true) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     val scope = rememberCoroutineScope()
 
     val nameInteractionSource = remember { MutableInteractionSource() }
@@ -62,10 +71,10 @@ fun AuthContent(
     val isEmailFocused by emailInteractionSource.collectIsFocusedAsState()
     val isPasswordFocused by passwordInteractionSource.collectIsFocusedAsState()
 
-    LaunchedEffect(message) {
-        if (message != null) {
+    LaunchedEffect(state.error, state.successMessage) {
+        if (state.error != null || state.successMessage != null) {
             delay(3000)
-            message = null
+            onClearMessages()
         }
     }
 
@@ -96,7 +105,7 @@ fun AuthContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(Icons.Rounded.MusicNote, null, Modifier.size(80.dp), MaterialTheme.colorScheme.primary)
+            Icon(painter = painterResource(id = R.drawable.audio_tune_icon), null, Modifier.size(80.dp), MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(16.dp))
             Text(
                 text = "MusicStream",
@@ -119,7 +128,7 @@ fun AuthContent(
                     textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
                     label = { Text("Full Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     placeholder = if (!isNameFocused) { { Text("Enter your full name") } } else null,
-                    modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) message = null },
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) onClearMessages() },
                     leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     shape = RoundedCornerShape(12.dp), singleLine = true, colors = fieldColors,
                     interactionSource = nameInteractionSource
@@ -132,7 +141,7 @@ fun AuthContent(
                 textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
                 label = { Text("Email Address", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 placeholder = if (!isEmailFocused) { { Text("Enter your email") } } else null,
-                modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) message = null },
+                modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) onClearMessages() },
                 leadingIcon = { Icon(Icons.Default.Email, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 shape = RoundedCornerShape(12.dp), singleLine = true, colors = fieldColors,
                 interactionSource = emailInteractionSource
@@ -144,7 +153,7 @@ fun AuthContent(
                 textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
                 label = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 placeholder = if (!isPasswordFocused) { { Text("Password") } } else null,
-                modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) message = null },
+                modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) onClearMessages() },
                 leadingIcon = { Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(12.dp), singleLine = true, colors = fieldColors,
@@ -165,10 +174,18 @@ fun AuthContent(
                 }
             } else { Spacer(Modifier.height(24.dp)) }
 
-            message?.let { (text, isError) ->
+            if (state.error != null) {
                 Text(
-                    text = text,
-                    color = if (isError) MaterialTheme.colorScheme.error else Color(0xFF4CAF50),
+                    text = state.error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+            if (state.successMessage != null) {
+                Text(
+                    text = state.successMessage,
+                    color = Color(0xFF4CAF50),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -177,28 +194,17 @@ fun AuthContent(
             Button(
                 onClick = {
                     if (email.isBlank() || password.isBlank() || (!isLoginMode && name.isBlank())) {
-                        message = "Please enter your email and password" to true
+                        // Normally we'd handle this in ViewModel, but for simple validation here:
+                        // viewModel.showError("...")
                     } else {
-                        scope.launch {
-                            val registered = isEmailRegistered(email)
-                            if (isLoginMode) {
-                                if (!registered) {
-                                    message = "Email not registered. Please Sign Up." to true
-                                } else {
-                                    onLoginClick(email, password)
-                                }
-                            } else {
-                                if (registered) {
-                                    message = "Email already registered. Please Login." to true
-                                } else {
-                                    onSignUpClick(name, email, password)
-                                    isLoginMode = true
-                                    message = "Registration successful! Please Login." to false
-                                }
-                            }
+                        if (isLoginMode) {
+                            onLoginClick(email, password)
+                        } else {
+                            onSignUpClick(name, email, password)
                         }
                     }
                 },
+                enabled = !state.isLoading,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -206,7 +212,15 @@ fun AuthContent(
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Text(if (isLoginMode) "Login" else "Create Account", style = MaterialTheme.typography.titleMedium)
+                if (state.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                } else {
+                    Text(
+                        text = if (isLoginMode) "Login" else "Create Account",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
             }
 
             Spacer(Modifier.height(24.dp))
@@ -247,7 +261,7 @@ fun AuthContent(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.clickable {
                         isLoginMode = !isLoginMode
-                        message = null
+                        onClearMessages()
                     }
                 )
             }
@@ -260,9 +274,10 @@ fun AuthContent(
 fun AuthScreenPreview() {
     MusicStreamTheme {
         AuthContent(
+            state = AuthUiState(),
             onLoginClick = { _, _ -> },
             onSignUpClick = { _, _, _ -> },
-            isEmailRegistered = { false }
+            onClearMessages = {}
         )
     }
 }

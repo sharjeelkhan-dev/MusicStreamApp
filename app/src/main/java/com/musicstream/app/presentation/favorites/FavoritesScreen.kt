@@ -4,11 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -18,6 +20,7 @@ import com.musicstream.app.domain.model.Song
 import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
 import com.musicstream.app.presentation.components.PremiumHeader
 import com.musicstream.app.presentation.components.SongListItem
+import com.musicstream.app.presentation.components.SongOptionsBottomSheet
 import com.musicstream.app.ui.theme.*
 
 @Composable
@@ -37,6 +40,8 @@ fun FavoritesScreen(
         onFavoriteClick = { viewModel.toggleFavorite(it) },
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
         onCreatePlaylist = { viewModel.createPlaylist(it) },
+        onDownloadSong = { viewModel.downloadSong(it) },
+        onDeleteDownload = { viewModel.deleteDownload(it) },
         onRefresh = viewModel::refresh,
         currentPlayingSong = playerState.currentSong,
         isPlaying = playerState.isPlaying,
@@ -50,44 +55,59 @@ fun FavoritesContent(
     state: FavoritesUiState,
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onBackClick: () -> Unit = {},
-    onFavoriteClick: (String) -> Unit = {},
+    onFavoriteClick: (Song) -> Unit = {},
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
     onCreatePlaylist: (String) -> Unit = {},
+    onDownloadSong: (Song) -> Unit = {},
+    onDeleteDownload: (String) -> Unit = {},
     onRefresh: () -> Unit = {},
     currentPlayingSong: Song? = null,
     isPlaying: Boolean = false,
     onTogglePlayPause: () -> Unit = {}
 ) {
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
+    var selectedSongForOptions by remember { mutableStateOf<Song?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
 
     if (showCreateDialog) {
         AlertDialog(
-            onDismissRequest = { showCreateDialog = false },
+            onDismissRequest = {
+                showCreateDialog = false
+                selectedSongIdForPlaylist = null
+            },
             containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text("New Playlist") },
+            title = { Text("New Playlist", fontWeight = FontWeight.Bold) },
             text = {
                 OutlinedTextField(
                     value = newPlaylistName,
                     onValueChange = { newPlaylistName = it },
                     label = { Text("Playlist Name") },
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp)
                 )
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         if (newPlaylistName.isNotBlank()) {
                             onCreatePlaylist(newPlaylistName)
                             newPlaylistName = ""
                             showCreateDialog = false
+                            selectedSongIdForPlaylist = null
                         }
-                    }
-                ) { Text("Create") }
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Create")
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateDialog = false }) { Text("Cancel") }
+                TextButton(onClick = {
+                    showCreateDialog = false
+                    selectedSongIdForPlaylist = null
+                })
+                { Text("Cancel") }
             }
         )
     }
@@ -100,10 +120,51 @@ fun FavoritesContent(
                 selectedSongIdForPlaylist = null
             },
             onCreatePlaylistClick = {
-                selectedSongIdForPlaylist = null
                 showCreateDialog = true
             },
             onDismissRequest = { selectedSongIdForPlaylist = null }
+        )
+    }
+
+    if (selectedSongForOptions != null) {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        SongOptionsBottomSheet(
+            song = selectedSongForOptions!!,
+            onDismissRequest = {
+                selectedSongForOptions = null
+            },
+            onFavoriteClick = { song: Song ->
+                onFavoriteClick(song)
+                selectedSongForOptions = null
+            },
+            onAddToPlaylistClick = { songId: String ->
+                selectedSongIdForPlaylist = songId
+                selectedSongForOptions = null
+            },
+            onDownloadClick = { song: Song ->
+                onDownloadSong(song)
+                selectedSongForOptions = null
+            },
+
+            // ❌ DONO KO NULL KIYA TAAMI FAVORITES VIEW MEIN HIDE HO JAYEIN
+            onDeleteDownloadClick = null,
+            onRemoveFromPlaylistClick = null,
+
+            onShareClick = { _: String ->
+                selectedSongForOptions?.let { songToShare ->
+                    val sendIntent: android.content.Intent = android.content.Intent().apply {
+                        action = android.content.Intent.ACTION_SEND
+                        putExtra(android.content.Intent.EXTRA_TEXT, "Check out this song '${songToShare.title}' by ${songToShare.artist} on Music Stream!")
+                        type = "text/plain"
+                    }
+                    val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+                    context.startActivity(shareIntent)
+                }
+                selectedSongForOptions = null
+            },
+            onGoToArtistClick = { _: String ->
+                selectedSongForOptions = null
+            }
         )
     }
 
@@ -128,12 +189,18 @@ fun FavoritesContent(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 120.dp)
                 ) {
-                    itemsIndexed(state.songs) { index, song ->
+                    itemsIndexed(
+                        items = state.songs,
+                        key = { _, song -> song.id }
+                    ) { index, song ->
                         val isSongPlaying = currentPlayingSong?.id == song.id && isPlaying
                         SongListItem(
                             song = song,
                             onSongClick = { onPlaySongs(state.songs, index) },
-                            onMoreClick = { selectedSongIdForPlaylist = it.id },
+                            onFavoriteClick = { onFavoriteClick(song) },
+                            onDownloadClick = { onDownloadSong(it) },
+                            onAddClick = { selectedSongForOptions = it },
+                            downloadProgress = state.downloadingSongs[song.id],
                             isPlaying = isSongPlaying,
                             onPlayPauseClick = {
                                 if (currentPlayingSong?.id == song.id) onTogglePlayPause()

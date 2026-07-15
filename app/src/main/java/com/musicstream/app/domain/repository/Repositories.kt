@@ -20,8 +20,9 @@ interface MusicRepository {
     fun getFavorites(): Flow<List<Song>>
     fun getDownloads(): Flow<List<Song>>
     fun getSongById(songId: String): Flow<Song?>
+    suspend fun getYouTubeAudioStreamUrl(videoId: String): String?
     fun getSongsForPlaylist(playlistId: String): Flow<List<Song>>
-    suspend fun toggleFavorite(songId: String)
+    suspend fun toggleFavorite(song: Song)
     suspend fun createPlaylist(name: String)
     suspend fun deletePlaylist(playlistId: String)
     suspend fun deleteAllPlaylists()
@@ -31,6 +32,7 @@ interface MusicRepository {
     suspend fun addToRecentlyPlayed(song: Song)
     suspend fun addLocalSong(song: Song)
     suspend fun downloadSong(song: Song): Flow<DownloadProgress>
+    fun getDownloadingSongs(): Flow<Map<String, Int>>
 }
 
 sealed class DownloadProgress {

@@ -1,12 +1,13 @@
 package com.musicstream.app.presentation.trending
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
-import com.musicstream.app.domain.repository.DownloadProgress
 import com.musicstream.app.domain.repository.MusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,7 +22,8 @@ data class TrendingUiState(
 
 @HiltViewModel
 class TrendingViewModel @Inject constructor(
-    private val musicRepository: MusicRepository
+    private val musicRepository: MusicRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrendingUiState())
@@ -35,11 +37,13 @@ class TrendingViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 musicRepository.getTrendingSongs(),
-                musicRepository.getPlaylists()
-            ) { trendingSongs, playlists ->
+                musicRepository.getPlaylists(),
+                musicRepository.getDownloadingSongs()
+            ) { trendingSongs, playlists, downloading ->
                 TrendingUiState(
                     songs = trendingSongs,
                     playlists = playlists,
+                    downloadingSongs = downloading,
                     isLoading = false,
                     isRefreshing = false
                 )
@@ -58,9 +62,9 @@ class TrendingViewModel @Inject constructor(
         }
     }
 
-    fun toggleFavorite(songId: String) {
+    fun toggleFavorite(song: Song) {
         viewModelScope.launch {
-            musicRepository.toggleFavorite(songId)
+            musicRepository.toggleFavorite(song)
         }
     }
 
@@ -76,22 +80,15 @@ class TrendingViewModel @Inject constructor(
         }
     }
 
-    fun downloadSong(song: Song) {
+    fun deleteDownload(songId: String) {
         viewModelScope.launch {
-            musicRepository.downloadSong(song).collect { progress ->
-                when (progress) {
-                    is DownloadProgress.Progress -> {
-                        _uiState.update { it.copy(
-                            downloadingSongs = it.downloadingSongs + (song.id to progress.percent)
-                        ) }
-                    }
-                    is DownloadProgress.Completed, is DownloadProgress.Failed -> {
-                        _uiState.update { it.copy(
-                            downloadingSongs = it.downloadingSongs - song.id
-                        ) }
-                    }
-                }
-            }
+            musicRepository.deleteDownload(songId)
+            loadData()
         }
+    }
+
+    fun downloadSong(song: Song) {
+        android.widget.Toast.makeText(context, "Download started: ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
+        com.musicstream.app.service.DownloadService.start(context, song)
     }
 }

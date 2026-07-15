@@ -19,6 +19,7 @@ fun TrendingRow(
     songs: List<Song>,
     onSongClick: (Song) -> Unit,
     onLongClick: (Song) -> Unit = {},
+    onDownloadClick: (Song) -> Unit = {},
     downloadingSongs: Map<String, Int> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
@@ -40,7 +41,10 @@ fun TrendingRow(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        itemsIndexed(songs) { index, song ->
+        itemsIndexed(
+            items = songs,
+            key = { _, song -> song.id }
+        ) { index, song ->
             TrendingCard(
                 title = song.title,
                 artist = song.artist,
@@ -48,6 +52,7 @@ fun TrendingRow(
                 coverUrl = song.coverUrl,
                 onClick = { onSongClick(song) },
                 onLongClick = { onLongClick(song) },
+                onDownloadClick = { onDownloadClick(song) },
                 downloadProgress = downloadingSongs[song.id],
                 isDownloaded = song.localPath != null,
                 modifier = Modifier.width(180.dp) // Adjusted width to show cards side-by-side

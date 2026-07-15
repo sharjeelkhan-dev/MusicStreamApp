@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musicstream.app.domain.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,7 +26,13 @@ class EqualizerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(EqualizerUiState())
     val uiState = _uiState.asStateFlow()
 
+    private val saveJobs = mutableMapOf<String, Job>()
+
     init {
+        loadSettings()
+    }
+
+    private fun loadSettings() {
         viewModelScope.launch {
             combine(
                 settingsRepository.getEqualizerPreset(),
@@ -45,27 +53,59 @@ class EqualizerViewModel @Inject constructor(
     }
 
     fun setPreset(preset: String) {
+        // Immediate UI feedback
+        _uiState.update { it.copy(currentPreset = preset) }
+        
+        // Immediate persistence for presets to trigger Service sync
         viewModelScope.launch {
             settingsRepository.setEqualizerPreset(preset)
         }
     }
 
     fun setBassBoost(level: Int) {
-        viewModelScope.launch {
+        // Immediate UI feedback
+        _uiState.update { it.copy(bassBoost = level) }
+        
+        // Debounce actual persistence for smoothness
+        debounceSave("bass_boost") {
             settingsRepository.setBassBoostLevel(level)
         }
     }
 
     fun setVirtualizer(level: Int) {
-        viewModelScope.launch {
+        // Immediate UI feedback
+        _uiState.update { it.copy(virtualizer = level) }
+        
+        debounceSave("virtualizer") {
             settingsRepository.setVirtualizerLevel(level)
         }
     }
 
     fun setBandLevel(band: Int, level: Int) {
-        viewModelScope.launch {
+        // Optimistic UI update
+        val updatedBands = _uiState.value.bandLevels.toMutableMap().apply {
+            put(band, level)
+        }
+        
+        _uiState.update { 
+            it.copy(
+                bandLevels = updatedBands,
+                currentPreset = "Custom"
+            ) 
+        }
+        
+        // Debounce band changes
+        debounceSave("band_$band") {
             settingsRepository.setEqualizerPreset("Custom")
             settingsRepository.setEqualizerBandLevel(band, level)
+        }
+    }
+
+    private fun debounceSave(key: String, action: suspend () -> Unit) {
+        saveJobs[key]?.cancel()
+        saveJobs[key] = viewModelScope.launch {
+            delay(150) // Balanced delay for responsiveness vs database overhead
+            action()
         }
     }
 }

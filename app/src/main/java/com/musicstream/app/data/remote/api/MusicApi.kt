@@ -11,6 +11,11 @@ interface MusicApi {
         @Query("limit") limit: Int = 50
     ): SaavnSearchResponseDto
 
+    @GET("songs")
+    suspend fun getSongDetails(
+        @Query("id") id: String
+    ): SaavnSearchResponseDto
+
     @GET("modules")
     suspend fun getTrending(
         @Query("language") language: String = "hindi,punjabi,english"

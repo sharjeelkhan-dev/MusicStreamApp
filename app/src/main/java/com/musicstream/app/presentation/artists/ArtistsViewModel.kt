@@ -48,9 +48,9 @@ class ArtistsViewModel @Inject constructor(
         _uiState.update { it.copy(isShowingLikedSongs = !it.isShowingLikedSongs) }
     }
 
-    fun toggleFavorite(songId: String) {
+    fun toggleFavorite(song: Song) {
         viewModelScope.launch {
-            musicRepository.toggleFavorite(songId)
+            musicRepository.toggleFavorite(song)
         }
     }
 

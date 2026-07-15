@@ -22,7 +22,8 @@ data class DownloadsUiState(
 
 @HiltViewModel
 class DownloadsViewModel @Inject constructor(
-    private val musicRepository: MusicRepository
+    private val musicRepository: MusicRepository,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DownloadsUiState())
@@ -43,22 +44,29 @@ class DownloadsViewModel @Inject constructor(
     private fun loadData() {
         // Collect Downloads
         musicRepository.getDownloads()
-            .onEach { downloads -> 
-                _uiState.update { it.copy(songs = downloads, isLoading = false) } 
+            .onEach { downloads ->
+                _uiState.update { it.copy(songs = downloads, isLoading = false) }
+            }
+            .launchIn(viewModelScope)
+
+        // Observe downloading songs
+        musicRepository.getDownloadingSongs()
+            .onEach { downloading ->
+                _uiState.update { it.copy(downloadingSongs = downloading) }
             }
             .launchIn(viewModelScope)
 
         // Also get playlists for "Add to playlist" functionality
         musicRepository.getPlaylists()
-            .onEach { playlists -> 
-                _uiState.update { it.copy(playlists = playlists) } 
+            .onEach { playlists ->
+                _uiState.update { it.copy(playlists = playlists) }
             }
             .launchIn(viewModelScope)
     }
 
-    fun toggleFavorite(songId: String) {
+    fun toggleFavorite(song: Song) {
         viewModelScope.launch {
-            musicRepository.toggleFavorite(songId)
+            musicRepository.toggleFavorite(song)
         }
     }
 
@@ -81,25 +89,7 @@ class DownloadsViewModel @Inject constructor(
     }
 
     fun downloadSong(song: Song) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(
-                downloadingSongsList = (it.downloadingSongsList + song).distinctBy { s -> s.id }
-            ) }
-            musicRepository.downloadSong(song).collect { progress ->
-                when (progress) {
-                    is DownloadProgress.Progress -> {
-                        _uiState.update { it.copy(
-                            downloadingSongs = it.downloadingSongs + (song.id to progress.percent)
-                        ) }
-                    }
-                    is DownloadProgress.Completed, is DownloadProgress.Failed -> {
-                        _uiState.update { it.copy(
-                            downloadingSongs = it.downloadingSongs - song.id,
-                            downloadingSongsList = it.downloadingSongsList.filter { s -> s.id != song.id }
-                        ) }
-                    }
-                }
-            }
-        }
+        android.widget.Toast.makeText(context, "Download started: ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
+        com.musicstream.app.service.DownloadService.start(context, song)
     }
 }

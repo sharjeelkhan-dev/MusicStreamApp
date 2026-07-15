@@ -1,5 +1,5 @@
 package com.musicstream.app.presentation.search
-
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,7 +10,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,12 +28,15 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.musicstream.app.R
 import com.musicstream.app.data.MockData
 import com.musicstream.app.domain.model.Genre
-import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
 import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
 import com.musicstream.app.presentation.components.SongListItem
@@ -59,8 +61,14 @@ fun SearchScreen(
         onToggleFavorite = { viewModel.toggleFavorite(it) },
         onCreatePlaylist = { viewModel.createPlaylist(it) },
         onAddSongToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
+        onDownloadSong = { viewModel.downloadSong(it) },
+        onDeleteDownload = { viewModel.deleteDownload(it) },
+        onGoToArtist = onGoToArtist,
         onClearHistory = { viewModel.clearHistory() },
-        onDeleteHistoryItem = { viewModel.deleteHistoryItem(it) }
+        onDeleteHistoryItem = { viewModel.deleteHistoryItem(it) },
+        currentPlayingSong = playerState.currentSong,
+        isPlaying = playerState.isPlaying,
+        onTogglePlayPause = { playerViewModel.togglePlayPause() }
     )
 }
 
@@ -71,7 +79,7 @@ fun SearchContent(
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onRefresh: () -> Unit = {},
     onQueryChange: (String) -> Unit = {},
-    onToggleFavorite: (String) -> Unit = {},
+    onToggleFavorite: (Song) -> Unit = {},
     onCreatePlaylist: (String) -> Unit = {},
     onAddSongToPlaylist: (String, String) -> Unit = { _, _ -> },
     onDownloadSong: (Song) -> Unit = {},
@@ -81,7 +89,8 @@ fun SearchContent(
     isPlaying: Boolean = false,
     onTogglePlayPause: () -> Unit = {},
     onClearHistory: () -> Unit = {},
-    onDeleteHistoryItem: (String) -> Unit = {}
+    onDeleteHistoryItem: (String) -> Unit = {},
+    initialFocused: Boolean = false
 ) {
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
     var selectedSongForOptions by remember { mutableStateOf<Song?>(null) }
@@ -133,7 +142,7 @@ fun SearchContent(
     if (selectedSongIdForPlaylist != null) {
         PlaylistSelectionBottomSheet(
             playlists = state.playlists,
-            onPlaylistSelected = { playlist: Playlist ->
+            onPlaylistSelected = { playlist ->
                 onAddSongToPlaylist(playlist.id, selectedSongIdForPlaylist!!)
                 selectedSongIdForPlaylist = null
             },
@@ -148,31 +157,30 @@ fun SearchContent(
     }
 
     if (selectedSongForOptions != null) {
-        val context = androidx.compose.ui.platform.LocalContext.current
+        val context = LocalContext.current
         SongOptionsBottomSheet(
             song = selectedSongForOptions!!,
             onDismissRequest = { 
                 selectedSongForOptions = null 
             },
-            onFavoriteClick = { songId ->
-                onToggleFavorite(songId)
+            onFavoriteClick = { song: Song ->
+                onToggleFavorite(song)
                 selectedSongForOptions = null
             },
-            onAddToPlaylistClick = { songId ->
+            onAddToPlaylistClick = { songId: String ->
                 selectedSongIdForPlaylist = songId
                 selectedSongForOptions = null
             },
-            onDownloadClick = { song ->
+            onDownloadClick = { song: Song ->
                 onDownloadSong(song)
                 selectedSongForOptions = null
             },
-            onDeleteDownloadClick = { songId ->
+            onDeleteDownloadClick = { songId: String ->
                 onDeleteDownload(songId)
                 selectedSongForOptions = null
             },
-            onShareClick = { _ ->
-                val songToShare = selectedSongForOptions
-                if (songToShare != null) {
+            onShareClick = { _: String ->
+                selectedSongForOptions?.let { songToShare ->
                     val sendIntent: android.content.Intent = android.content.Intent().apply {
                         action = android.content.Intent.ACTION_SEND
                         putExtra(android.content.Intent.EXTRA_TEXT, "Check out this song '${songToShare.title}' by ${songToShare.artist} on Music Stream!")
@@ -183,11 +191,19 @@ fun SearchContent(
                 }
                 selectedSongForOptions = null
             },
-            onGoToArtistClick = { artistName ->
+            onGoToArtistClick = { artistName: String ->
                 onGoToArtist(artistName)
                 selectedSongForOptions = null
             }
         )
+    }
+
+    var isSearchBarFocused by remember { mutableStateOf(initialFocused) }
+    val focusManager = LocalFocusManager.current
+
+    BackHandler(enabled = isSearchBarFocused) {
+        focusManager.clearFocus()
+        isSearchBarFocused = false
     }
 
     Box(
@@ -220,65 +236,212 @@ fun SearchContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Search Bar (Redesigned as Modern White Card)
-            Card(
+            // Search Bar Area with Dropdown logic
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = (-15).dp)
                     .padding(horizontal = 24.dp)
-                    .height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    .zIndex(10f) // Keep search bar and dropdown above content
             ) {
-                Row(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.magnifying_glass_icon),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(14.dp))
-                    BasicTextField(
-                        value = state.query,
-                        onValueChange = { onQueryChange(it) },
-                        textStyle = TextStyle(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
+                Column {
+                    // Search Bar
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset(y = (-20).dp)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
                         ),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        decorationBox = { innerTextField ->
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                if (state.query.isEmpty()) {
-                                    Text(
-                                        text = "Search songs, artists, albums...",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                        fontSize = 16.sp
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                    if (state.query.isNotEmpty()) {
-                        IconButton(
-                            onClick = { onQueryChange("") },
-                            modifier = Modifier.size(28.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                painter = painterResource(id = R.drawable.recycle_bin_line_icon),
-                                contentDescription = "Clear",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.size(18.dp)
+                                painter = painterResource(id = R.drawable.magnifying_glass_icon),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(24.dp)
                             )
+                            Spacer(modifier = Modifier.width(14.dp))
+                            BasicTextField(
+                                value = state.query,
+                                onValueChange = { onQueryChange(it) },
+                                textStyle = TextStyle(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .onFocusChanged { isSearchBarFocused = it.isFocused },
+                                decorationBox = { innerTextField ->
+                                    Box(modifier = Modifier.fillMaxWidth()) {
+                                        if (state.query.isEmpty()) {
+                                            Text(
+                                                text = "Search songs, artists, albums...",
+                                                color = MaterialTheme.colorScheme
+                                                    .onSurfaceVariant.copy(alpha = 0.6f),
+                                                fontSize = 16.sp
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                },
+                                singleLine = true
+                            )
+                            if (state.query.isNotEmpty()) {
+                                IconButton(
+                                    onClick = { onQueryChange("") },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.close_line_icon),
+                                        contentDescription = "Clear",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Dropdown History Overlay (Visible when focused and query is empty)
+                if (isSearchBarFocused && state.query.isBlank() && state.searchHistory.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset(y = 44.dp) // Overlay below the search bar
+                            .graphicsLayer {
+                                clip = true
+                                shape = RoundedCornerShape(24.dp)
+                                shadowElevation = 20f
+                            },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme
+                                .colorScheme.surface.copy(alpha = 0.98f)
+                        ),
+                        elevation = CardDefaults
+                            .cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(vertical = 3.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 3.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Recent searches",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                TextButton(onClick = onClearHistory) {
+                                    Text(
+                                        "Clear All",
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.offset(x = 8.dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            state.searchHistory.take(6).forEach { historyQuery ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .offset(y = (-15).dp)
+                                        .clickable { 
+                                            onQueryChange(historyQuery)
+                                            focusManager.clearFocus()
+                                            isSearchBarFocused = false
+                                        }
+                                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Image or Icon based on query (mocking the rich look)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        val mockImageUrl = when {
+                                            historyQuery.contains("Singh", true) || historyQuery.contains("Dosanjh", true) -> "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=100"
+                                            historyQuery.contains("Rock", true) -> "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=100"
+                                            historyQuery.contains("Pop", true) -> "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=100"
+                                            else -> null
+                                        }
+
+                                        if (mockImageUrl != null) {
+                                            AsyncImage(
+                                                model = mockImageUrl,
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            val iconRes = when {
+                                                historyQuery.contains("Song", true) || historyQuery.length > 15 -> R.drawable.music_song_file_icon
+                                                historyQuery.any { it.isUpperCase() } -> R.drawable.audio_tune_icon
+                                                else -> R.drawable.history_line_icon
+                                            }
+                                            Icon(
+                                                painter = painterResource(id = iconRes),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = historyQuery,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1
+                                        )
+                                        val typeLabel = when {
+                                            historyQuery.contains("Pop", true) || historyQuery.contains("Rock", true) -> "Genre"
+                                            historyQuery.contains("Singh", true) || historyQuery.contains("Dosanjh", true) -> "Artist"
+                                            else -> "Song"
+                                        }
+                                        Text(
+                                            text = typeLabel,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = { onDeleteHistoryItem(historyQuery) },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.close_line_icon),
+                                            contentDescription = "Remove",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -287,69 +450,6 @@ fun SearchContent(
             Spacer(modifier = Modifier.height(32.dp))
 
             if (state.query.isBlank()) {
-                // Section: Recent Searches (New)
-                if (state.searchHistory.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 26.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "RECENT SEARCHES",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 1.2.sp
-                        )
-                        TextButton(onClick = onClearHistory) {
-                            Text("Clear All", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-
-                    Column(
-                        modifier = Modifier.padding(horizontal = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        state.searchHistory.take(5).forEach { historyQuery ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onQueryChange(historyQuery) }
-                                    .padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.clock_line_icon),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(
-                                    text = historyQuery,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 15.sp,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                IconButton(
-                                    onClick = { onDeleteHistoryItem(historyQuery) },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.recycle_bin_line_icon),
-                                        contentDescription = "Remove",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-
                 // Section: Explore Genres
                 Text(
                     text = "EXPLORE GENRES",
@@ -357,10 +457,10 @@ fun SearchContent(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 1.2.sp,
-                    modifier = Modifier.padding(horizontal = 26.dp).offset(y = (-30).dp)
+                    modifier = Modifier.padding(horizontal = 26.dp).offset(y = (-40).dp)
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Genre Grid (Redesigned)
                 GenreGrid(
@@ -377,7 +477,7 @@ fun SearchContent(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 1.2.sp,
-                    modifier = Modifier.padding(horizontal = 26.dp).offset(y = (-33).dp)
+                    modifier = Modifier.padding(horizontal = 26.dp).offset(y = (-50).dp)
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -386,7 +486,7 @@ fun SearchContent(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .offset(y = (-40).dp)
+                            .offset(y = (-50).dp)
                             .padding(horizontal = 24.dp, vertical = 6.dp),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
@@ -422,12 +522,7 @@ fun SearchContent(
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.weight(1f))
-                            Icon(
-                                painter = painterResource(id = R.drawable.music_player_repeat_symbol_icon),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-                                modifier = Modifier.size(18.dp)
-                            )
+                            
                         }
                     }
                 }
@@ -448,7 +543,7 @@ fun SearchContent(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Search,
+                            painter = painterResource(id = R.drawable.no_search_result_icon),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
                             modifier = Modifier.size(64.dp)
@@ -464,25 +559,28 @@ fun SearchContent(
                 } else {
                     state.searchResults.forEachIndexed { index, song ->
                         val isSongPlaying = currentPlayingSong?.id == song.id && isPlaying
-                        SongListItem(
-                            song = song,
-                            showThumbnail = true,
-                            onSongClick = { 
-                                onPlaySongs(state.searchResults, index) 
-                            },
-                            onFavoriteClick = { onToggleFavorite(it) },
-                            onDownloadClick = { onDownloadSong(it) },
-                            onMoreClick = { selectedSongForOptions = it },
-                            downloadProgress = state.downloadingSongs[song.id],
-                            isPlaying = isSongPlaying,
-                            onPlayPauseClick = {
-                                if (currentPlayingSong?.id == song.id) {
-                                    onTogglePlayPause()
-                                } else {
-                                    onPlaySongs(state.searchResults, index)
+                        key(song.id) {
+                            SongListItem(
+                                song = song,
+                                modifier = Modifier.offset(y = (-35).dp),
+                                showThumbnail = true,
+                                onSongClick = { 
+                                    onPlaySongs(state.searchResults, index) 
+                                },
+                                onFavoriteClick = { onToggleFavorite(song) },
+                                onDownloadClick = { onDownloadSong(it) },
+                                onAddClick = { selectedSongForOptions = it },
+                                downloadProgress = state.downloadingSongs[song.id],
+                                isPlaying = isSongPlaying,
+                                onPlayPauseClick = {
+                                    if (currentPlayingSong?.id == song.id) {
+                                        onTogglePlayPause()
+                                    } else {
+                                        onPlaySongs(state.searchResults, index)
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
@@ -508,7 +606,7 @@ private fun GenreGrid(
     ) {
         genres.chunked(2).forEach { row ->
             Row(
-                modifier = Modifier.fillMaxWidth().offset(y = (-27).dp),
+                modifier = Modifier.fillMaxWidth().offset(y = (-40).dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 row.forEach { genre ->
@@ -535,7 +633,8 @@ private fun GenreGrid(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .background(MaterialTheme
+                                    .colorScheme.surfaceVariant)
                         ) {
                             // Genre Image background
                             AsyncImage(
@@ -595,14 +694,48 @@ private fun GenreGrid(
 
 @Preview(showBackground = true, backgroundColor = 0xFFF8F8FC)
 @Composable
-fun SearchScreenPreview() {
+fun SearchContentPreview() {
     MusicStreamTheme {
         SearchContent(
             state = SearchUiState(
                 genres = MockData.genres,
                 trendingSearches = MockData.trendingSearches,
+                searchHistory = listOf("Arijit Singh", "Rock Music", "Diljit Dosanjh", "Latest Pop Hits"),
                 playlists = MockData.playlists
             )
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF8F8FC)
+@Composable
+fun SearchContentWithResultsPreview() {
+    MusicStreamTheme {
+        SearchContent(
+            state = SearchUiState(
+                query = "song",
+                searchResults = MockData.trendingSongs,
+                genres = MockData.genres,
+                trendingSearches = MockData.trendingSearches,
+                playlists = MockData.playlists,
+                downloadingSongs = mapOf(MockData.trendingSongs[0].id to 45)
+            )
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF8F8FC, name = "Search History Dropdown")
+@Composable
+fun SearchHistoryDropdownPreview() {
+    MusicStreamTheme {
+        SearchContent(
+            state = SearchUiState(
+                genres = MockData.genres,
+                trendingSearches = MockData.trendingSearches,
+                searchHistory = listOf("Arijit Singh", "Rock Music", "Diljit Dosanjh", "Latest Pop Hits"),
+                playlists = MockData.playlists
+            ),
+            initialFocused = true
         )
     }
 }

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -35,7 +36,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -54,7 +54,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -87,7 +86,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.musicstream.app.R
 import com.musicstream.app.domain.model.Song
-import com.musicstream.app.ui.theme.MusicStreamTheme
+import com.musicstream.app.util.SongQuotes
+import com.musicstream.app.ui.theme.*
 
 @SuppressLint("QueryPermissionsNeeded")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,7 +106,7 @@ fun PlayerScreen(
     var showQueue by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) } // Add state for History
     val sheetState = rememberModalBottomSheetState()
-    
+
     PlayerContent(
         state = state,
         songColor = songColor,
@@ -118,7 +118,7 @@ fun PlayerScreen(
         onToggleShuffle = { viewModel.toggleShuffle() },
         onToggleRepeat = { viewModel.toggleRepeat() },
         onPlaybackSpeedChange = { viewModel.setPlaybackSpeed(it) },
-        onFavoriteClick = { songId -> viewModel.toggleFavorite(songId) },
+        onFavoriteClick = { song -> viewModel.toggleFavorite(song) },
         onQueueClick = { showQueue = true },
         onHistoryClick = { showHistory = true }, // Pass callback
         onShareClick = {
@@ -142,7 +142,13 @@ fun PlayerScreen(
                 context.startActivity(intent)
             }
         },
-        onAddToPlaylist = { playlistId, songId -> viewModel.addSongToPlaylist(playlistId, songId) },
+        // PlayerScreen.kt mein PlayerContent call karte waqt:
+        onAddToPlaylist = { playlistId, song ->
+            viewModel.addSongToPlaylist(playlistId, song)
+        },
+        onDownloadClick = { song ->
+            homeViewModel.downloadSong(song)
+        },
         onSetSleepTimer = { viewModel.setSleepTimer(it) },
         onGoToArtist = { artistName ->
             onBackClick()
@@ -156,8 +162,8 @@ fun PlayerScreen(
 
     if (showQueue) {
         ModalBottomSheet(
-            onDismissRequest = { 
-                if (showQueue) showQueue = false 
+            onDismissRequest = {
+                if (showQueue) showQueue = false
             },
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.surface,
@@ -348,26 +354,26 @@ fun PlayerContent(
     onToggleShuffle: () -> Unit,
     onToggleRepeat: () -> Unit,
     onPlaybackSpeedChange: (Float) -> Unit,
-    onFavoriteClick: (String) -> Unit,
+    onFavoriteClick: (Song) -> Unit,
     onQueueClick: () -> Unit,
     onHistoryClick: () -> Unit, // Add this
     onShareClick: () -> Unit,
     onEqualizerClick: () -> Unit,
-    onAddToPlaylist: (String, String) -> Unit,
+    onAddToPlaylist: (String, Song) -> Unit,
+    onDownloadClick: (Song) -> Unit,
     onSetSleepTimer: (Int) -> Unit,
     onGoToArtist: (String) -> Unit,
     onGoToAlbum: (String) -> Unit
 ) {
     // Silence unused parameter warnings
     SideEffect {
-        onToggleShuffle
-        onToggleRepeat
         onPlaybackSpeedChange
         onFavoriteClick
         onQueueClick
         onShareClick
         onEqualizerClick
         onGoToAlbum
+        onDownloadClick
     }
     var showMoreMenu by remember { mutableStateOf(false) }
     var showPlaylistDialog by remember { mutableStateOf(false) }
@@ -375,15 +381,16 @@ fun PlayerContent(
 
     if (showPlaylistDialog) {
         AlertDialog(
-            onDismissRequest = { },
-            title = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface) },
+            onDismissRequest = { showPlaylistDialog = false },
+            title = { Text("Add to Playlist", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
             text = {
                 LazyColumn {
                     itemsIndexed(state.playlists) { _, playlist ->
                         ListItem(
                             headlineContent = { Text(playlist.name, color = MaterialTheme.colorScheme.onSurface) },
                             modifier = Modifier.clickable {
-                                state.currentSong?.id?.let { onAddToPlaylist(playlist.id, it) }
+                                state.currentSong?.let { onAddToPlaylist(playlist.id, it) }
+                                showPlaylistDialog = false
                             },
                             leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, tint = MaterialTheme.colorScheme.onSurface) },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
@@ -392,8 +399,8 @@ fun PlayerContent(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { }) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
+                TextButton(onClick = { showPlaylistDialog = false }) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -402,8 +409,8 @@ fun PlayerContent(
 
     if (showSleepTimerDialog) {
         AlertDialog(
-            onDismissRequest = { },
-            title = { Text("Sleep Timer", color = MaterialTheme.colorScheme.onSurface) },
+            onDismissRequest = { showSleepTimerDialog = false },
+            title = { Text("Sleep Timer", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     val timers = listOf(
@@ -419,6 +426,7 @@ fun PlayerContent(
                             headlineContent = { Text(label, color = MaterialTheme.colorScheme.onSurface) },
                             modifier = Modifier.clickable {
                                 onSetSleepTimer(minutes)
+                                showSleepTimerDialog = false
                             },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                         )
@@ -426,8 +434,8 @@ fun PlayerContent(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { }) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
+                TextButton(onClick = { showSleepTimerDialog = false }) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -451,7 +459,7 @@ fun PlayerContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.8f)
-                    .blur(60.dp)
+                    .blur(10.dp)
             )
             // Gradient overlay to fade bottom into background
             Box(
@@ -475,6 +483,7 @@ fun PlayerContent(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             // Top Bar
             Row(
                 modifier = Modifier
@@ -483,40 +492,69 @@ fun PlayerContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = onBackClick,
+
+                Card(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.05f))
+                        .padding(horizontal = 3.dp, vertical = 6.dp), // Aapka Card modifier
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.Black,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.05f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
 
                 Box {
                     Row {
-                        IconButton(
-                            onClick = onHistoryClick,
+                        Card(
                             modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.05f))
+                                .padding(horizontal = 3.dp, vertical = 6.dp), // Aapka Card modifier
+                            shape = RoundedCornerShape(28.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.History,
-                                contentDescription = "History",
-                                tint = Color.Black,
-                                modifier = Modifier.size(24.dp)
-                            )
+                            IconButton(
+                                onClick = onHistoryClick,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.05f))
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.history_line_icon),
+                                    contentDescription = "History",
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
-                        
                         Spacer(modifier = Modifier.width(8.dp))
-
+                        Card(
+                            modifier = Modifier
+                                .padding(horizontal = 3.dp, vertical = 6.dp), // Aapka Card modifier
+                            shape = RoundedCornerShape(28.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                        )
+                        {
                         IconButton(
                             onClick = { showMoreMenu = true },
                             modifier = Modifier
@@ -527,46 +565,54 @@ fun PlayerContent(
                             Icon(
                                 imageVector = Icons.Default.MoreHoriz,
                                 contentDescription = "More",
-                                tint = Color.Black,
+                                tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
                     }
+                    }
                     DropdownMenu(
                         expanded = showMoreMenu,
                         onDismissRequest = { showMoreMenu = false },
-                        containerColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.surface
                     ) {
-                        val menuItemColors = MenuDefaults.itemColors(
-                            textColor = Color.Black,
-                            leadingIconColor = Color.Black
-                        )
+                        val onSurface = MaterialTheme.colorScheme.onSurface
                         DropdownMenuItem(
-                            text = { Text("Add to Playlist") },
-                            onClick = { 
+                            text = { Text("Add to Playlist", color = onSurface) },
+                            onClick = {
                                 showMoreMenu = false
                                 showPlaylistDialog = true
                             },
-                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
-                            colors = menuItemColors
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd,
+                                null, tint = onSurface) },
                         )
                         DropdownMenuItem(
-                            text = { Text("Sleep Timer") },
-                            onClick = { 
+                            text = { Text("Sleep Timer", color = onSurface) },
+                            onClick = {
                                 showMoreMenu = false
                                 showSleepTimerDialog = true
                             },
-                            leadingIcon = { Icon(Icons.Default.Timer, null) },
-                            colors = menuItemColors
+                            leadingIcon = { Icon(Icons.Default.Timer,
+                                null, tint = onSurface) },
                         )
                         DropdownMenuItem(
-                            text = { Text("Go to Artist") },
-                            onClick = { 
+                            text = { Text("Download", color = onSurface) },
+                            onClick = {
+                                showMoreMenu = false
+                                state.currentSong?.let { onDownloadClick(it) }
+                            },
+                            leadingIcon = { Icon(painter = painterResource(id = R.drawable.round_line_bottom_arrow_icon),
+                                null, tint = onSurface, modifier = Modifier.size(20.dp)) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Go to Artist", color = onSurface) },
+                            onClick = {
                                 showMoreMenu = false
                                 state.currentSong?.artist?.let { onGoToArtist(it) }
                             },
-                            leadingIcon = { Icon(Icons.Default.Person, null) },
-                            colors = menuItemColors
+                            leadingIcon = {
+                                Icon(Icons.Default.Person,
+                                null, tint = onSurface) },
                         )
                     }
                 }
@@ -594,9 +640,9 @@ fun PlayerContent(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 8.dp)
                 )
-                
+
                 Text(
-                    text = "A limitless soundscape driving your vibe beyond every horizon. 🎧",
+                    text = SongQuotes.getQuoteForSong(song),
                     color = onBackgroundColor.copy(alpha = 0.5f),
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center,
@@ -637,9 +683,9 @@ fun PlayerContent(
                             fontWeight = FontWeight.Medium
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Waveform visualizer with seeking capability
                     Box(
                         modifier = Modifier
@@ -663,6 +709,22 @@ fun PlayerContent(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Shuffle Button
+                        IconButton(
+                            onClick = onToggleShuffle,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(if (state.isShuffleOn) songColor.copy(alpha = 0.1f) else Color.Transparent)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.music_player_shuffle_symbol_icon),
+                                contentDescription = "Shuffle",
+                                tint = if (state.isShuffleOn) songColor else onBackgroundColor.copy(alpha = 0.6f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
                         IconButton(
                             onClick = onPreviousSong,
                             modifier = Modifier
@@ -672,7 +734,7 @@ fun PlayerContent(
                         ) {
                             Icon(painter = painterResource(id = R.drawable.reset_update_icon),
                                 null,
-                                tint = onBackgroundColor.copy(alpha = 0.6f),
+                                tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(24.dp))
                         }
 
@@ -703,13 +765,53 @@ fun PlayerContent(
                         ) {
                             Icon(painter = painterResource(id = R.drawable.forward_restore_icon),
                                 null,
-                                tint = onBackgroundColor.copy(alpha = 0.6f),
+                                tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(24.dp))
+                        }
+
+                        // Repeat Button
+                        IconButton(
+                            onClick = onToggleRepeat,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(if (state.repeatMode != RepeatMode.OFF) songColor.copy(alpha = 0.1f) else Color.Transparent)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.music_player_repeat_symbol_icon),
+                                    contentDescription = "Repeat",
+                                    tint = if (state.repeatMode != RepeatMode.OFF)
+                                        songColor else onBackgroundColor.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                if (state.repeatMode == RepeatMode.ONE) {
+                                    // Mask the center of the icon to place the '1'
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = CircleShape,
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .align(Alignment.Center)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = "1",
+                                                color = songColor,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.offset(y = (-4).dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(40.dp))
         }
     }
@@ -756,7 +858,7 @@ fun VisualizerBars(
                     ),
                     label = "barHeight"
                 )
-                
+
                 // Generate a pseudo-random base height
                 val baseHeight = when(index % 10) {
                     0 -> 15f
@@ -767,16 +869,19 @@ fun VisualizerBars(
                     5 -> 30f
                     else -> 20f
                 }
-                
+
                 val finalHeight = if (isPlaying) (baseHeight * heightScale).coerceAtLeast(10f) else baseHeight * 0.5f
                 val isPlayed = (index.toFloat() / barCount) <= progress
-                
+
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .height(finalHeight.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(if (isPlayed) songColor else Color.Black.copy(alpha = 0.1f))
+                        .background(
+                            if (isPlayed) MusicStreamTheme.colors.seekBarActive
+                            else MusicStreamTheme.colors.seekBarInactive
+                        )
                 )
             }
         }
@@ -806,8 +911,10 @@ fun PlayerScreenPreview() {
                 ),
                 isPlaying = true,
                 progress = 0.6f,
-                currentPosition = 352000 * 6 / 10,
-                duration = 352000
+                currentPosition = 211200,
+                duration = 352000,
+                isShuffleOn = true,
+                repeatMode = RepeatMode.ONE
             ),
             songColor = Color(0xFF9162FF),
             onBackClick = {},
@@ -818,15 +925,94 @@ fun PlayerScreenPreview() {
             onToggleShuffle = {},
             onToggleRepeat = {},
             onPlaybackSpeedChange = {},
-            onFavoriteClick = {},
+            onFavoriteClick = { _ -> },
             onQueueClick = {},
             onShareClick = {},
             onEqualizerClick = {},
             onAddToPlaylist = { _, _ -> },
+            onDownloadClick = {},
             onSetSleepTimer = {},
             onGoToArtist = {},
             onGoToAlbum = {},
             onHistoryClick = {}
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PlayerScreenDarkPreview() {
+    MusicStreamTheme(darkTheme = true) {
+        PlayerContent(
+            state = PlayerUiState(
+                currentSong = Song(
+                    id = "2",
+                    title = "Midnight City",
+                    artist = "Urban Night",
+                    streamUrl = "",
+                    coverUrl = "",
+                    duration = 240000
+                ),
+                isPlaying = false,
+                progress = 0.3f,
+                currentPosition = 72000,
+                duration = 240000,
+                isShuffleOn = false,
+                repeatMode = RepeatMode.ALL
+            ),
+            songColor = Color(0xFF00C853),
+            onBackClick = {},
+            onTogglePlayPause = {},
+            onNextSong = {},
+            onPreviousSong = {},
+            onSeekTo = {},
+            onToggleShuffle = {},
+            onToggleRepeat = {},
+            onPlaybackSpeedChange = {},
+            onFavoriteClick = { _ -> },
+            onQueueClick = {},
+            onShareClick = {},
+            onEqualizerClick = {},
+            onAddToPlaylist = { _, _ -> },
+            onDownloadClick = {},
+            onSetSleepTimer = {},
+            onGoToArtist = {},
+            onGoToAlbum = {},
+            onHistoryClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun QueueListPreview() {
+    MusicStreamTheme {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            QueueList(
+                queue = listOf(
+                    Song("1", "Endless Journey", "Echo Coast", coverUrl = ""),
+                    Song("2", "Midnight City", "Urban Night", coverUrl = ""),
+                    Song("3", "Sunlight", "Morning Dew", coverUrl = "")
+                ),
+                currentIndex = 1,
+                onSongClick = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun HistoryListPreview() {
+    MusicStreamTheme {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            HistoryList(
+                songs = listOf(
+                    Song("1", "Old Memories", "Classic Band", coverUrl = ""),
+                    Song("2", "Yesterday", "The Retro", coverUrl = "")
+                ),
+                onSongClick = {}
+            )
+        }
     }
 }

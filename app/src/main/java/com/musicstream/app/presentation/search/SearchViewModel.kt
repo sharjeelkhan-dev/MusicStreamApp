@@ -31,7 +31,8 @@ data class SearchUiState(
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val musicRepository: MusicRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUiState(
@@ -68,15 +69,17 @@ class SearchViewModel @Inject constructor(
                 musicRepository.getGenres(),
                 musicRepository.getTrendingSearches(),
                 musicRepository.getSearchHistory(),
-                musicRepository.getPlaylists()
-            ) { genres, searches, history, playlists ->
+                musicRepository.getPlaylists(),
+                musicRepository.getDownloadingSongs()
+            ) { genres, searches, history, playlists, downloading ->
                 _uiState.update {
                     it.copy(
                         greeting = greeting,
                         genres = genres,
                         trendingSearches = searches,
                         searchHistory = history,
-                        playlists = playlists
+                        playlists = playlists,
+                        downloadingSongs = downloading
                     )
                 }
             }.collect()
@@ -132,9 +135,9 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    fun toggleFavorite(songId: String) {
+    fun toggleFavorite(song: Song) {
         viewModelScope.launch {
-            musicRepository.toggleFavorite(songId)
+            musicRepository.toggleFavorite(song)
         }
     }
 
@@ -161,21 +164,7 @@ class SearchViewModel @Inject constructor(
     }
 
     fun downloadSong(song: Song) {
-        viewModelScope.launch {
-            musicRepository.downloadSong(song).collect { progress ->
-                when (progress) {
-                    is DownloadProgress.Progress -> {
-                        _uiState.update { it.copy(
-                            downloadingSongs = it.downloadingSongs + (song.id to progress.percent)
-                        ) }
-                    }
-                    is DownloadProgress.Completed, is DownloadProgress.Failed -> {
-                        _uiState.update { it.copy(
-                            downloadingSongs = it.downloadingSongs - song.id
-                        ) }
-                    }
-                }
-            }
-        }
+        android.widget.Toast.makeText(context, "Download started: ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
+        com.musicstream.app.service.DownloadService.start(context, song)
     }
 }

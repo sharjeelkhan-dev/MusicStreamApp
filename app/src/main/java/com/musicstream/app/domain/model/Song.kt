@@ -1,5 +1,9 @@
 package com.musicstream.app.domain.model
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
 data class Song(
     val id: String,
     val title: String,
@@ -13,7 +17,7 @@ data class Song(
     val isExplicit: Boolean = false,
     val playCount: Long = 0L,
     val gradientIndex: Int = 0 // for gradient thumb selection
-) {
+) : Parcelable {
     val durationFormatted: String
         get() {
             val totalSeconds = duration / 1000

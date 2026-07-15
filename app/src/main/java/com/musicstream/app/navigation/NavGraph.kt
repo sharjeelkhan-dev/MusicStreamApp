@@ -1,4 +1,5 @@
 package com.musicstream.app.navigation
+
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -30,6 +31,7 @@ fun NavGraph(
     navController: NavHostController,
     playerViewModel: PlayerViewModel,
     mainViewModel: MainViewModel,
+    onSongOptionsClick: (Song, Boolean) -> Unit, // Sahi callback registered hai
     songColor: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> }
@@ -49,6 +51,8 @@ fun NavGraph(
                 }
             )
         }
+
+        // 🚨 FIXED CONFIGURATION FOR HOME SCREEN:
         composable(Screen.Home.route) {
             HomeScreen(
                 onPlaySongs = onPlaySongs,
@@ -60,17 +64,20 @@ fun NavGraph(
                 onPlaylistClick = { playlist ->
                     navController.navigate(Screen.Playlist.createRoute(playlist.id))
                 },
-                onDownloadsClick = { 
+                onDownloadsClick = {
                     navController.navigate(Screen.Library.createRoute(tab = "downloads"))
                 },
                 onGoToArtist = { _ ->
-                    navController.navigate(Screen.Search.route) // Reuse search for now
+                    navController.navigate(Screen.Search.route)
                 },
                 onGoToPlayer = {
                     navController.navigate(Screen.Player.route)
-                }
+                },
+                // ✅ CONFIGURATION LINK FIXED: Is line ke jodne se dialogue sheet event pass hona start ho jayega.
+                onSongOptionsClick = onSongOptionsClick
             )
         }
+
         composable(Screen.Trending.route) {
             TrendingScreen(
                 onPlaySongs = onPlaySongs,
@@ -110,7 +117,7 @@ fun NavGraph(
             SearchScreen(
                 onPlaySongs = onPlaySongs,
                 onGoToArtist = { _ ->
-                    navController.navigate(Screen.Search.route) // Reuse search for now
+                    navController.navigate(Screen.Search.route)
                 }
             )
         }
@@ -130,19 +137,22 @@ fun NavGraph(
                     navController.navigate(Screen.Playlist.createRoute(playlist.id))
                 },
                 onGoToArtist = { _ ->
-                    navController.navigate(Screen.Search.route) // Reuse search for now
+                    navController.navigate(Screen.Search.route)
                 }
             )
         }
+
         composable(Screen.Artists.route) {
             ArtistsScreen(
                 onArtistClick = { _ ->
-                    navController.navigate(Screen.Search.route) // Search for artist
+                    navController.navigate(Screen.Search.route)
                 },
                 onPlaySongs = onPlaySongs,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onSongOptionsClick = onSongOptionsClick
             )
         }
+
         composable(Screen.MediaTools.route) {
             MediaToolsScreen(
                 onPlaySongs = onPlaySongs,
@@ -156,24 +166,16 @@ fun NavGraph(
             )
         }
         composable(Screen.Profile.route) {
-            ProfileScreen()
+            ProfileScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
         composable(Screen.Login.route) {
             AuthScreen(
-                onLoginClick = { email, _ ->
-                    // Save user info and handle login
-                    mainViewModel.updateUser(User(id = java.util.UUID.randomUUID().toString(), name = email.substringBefore("@"), email = email))
+                onLoginSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
-                },
-                onSignUpClick = { name, email, _ ->
-                    // Just save user info but DO NOT navigate to Home.
-                    // The AuthScreen will handle switching to Log in mode.
-                    mainViewModel.updateUser(User(id = java.util.UUID.randomUUID().toString(), name = name, email = email))
-                },
-                isEmailRegistered = { email ->
-                    mainViewModel.isEmailRegistered(email)
                 }
             )
         }
@@ -183,10 +185,9 @@ fun NavGraph(
                 songColor = songColor,
                 onBackClick = { navController.popBackStack() },
                 onGoToArtist = { _ ->
-                    navController.navigate(Screen.Search.route) // Reuse search for now
+                    navController.navigate(Screen.Search.route)
                 },
                 onGoToAlbum = { _ ->
-                    // For now, navigate to search with album name or a placeholder
                     navController.navigate(Screen.Search.route)
                 }
             )

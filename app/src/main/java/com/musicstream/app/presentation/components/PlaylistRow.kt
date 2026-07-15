@@ -38,7 +38,7 @@ fun PlaylistRow(
         horizontalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         if (showDownloads) {
-            item {
+            item(key = "downloads_playlist") {
                 PlaylistCard(
                     name = "Downloads",
                     songCount = downloadCount,
@@ -48,7 +48,10 @@ fun PlaylistRow(
             }
         }
 
-        items(playlists) { playlist ->
+        items(
+            items = playlists,
+            key = { it.id }
+        ) { playlist ->
             PlaylistCard(
                 name = playlist.name,
                 songCount = playlist.songCount,

@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -27,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.musicstream.app.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.musicstream.app.ui.theme.MusicStreamTheme
+import com.musicstream.app.ui.theme.*
 
 /**
  * Entry point for MediaToolsScreen.
@@ -167,15 +168,25 @@ fun MediaToolsContent(
                             .padding(horizontal = 24.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(
-                            onClick = onBackClick,
-                            modifier = Modifier.size(48.dp).offset(x = (-35).dp,y = (-5).dp)
+                        Card(
+                            modifier = Modifier.size(48.dp)
+                                .offset(x = (-35).dp, y = (-3).dp),
+                            shape = CircleShape,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            onClick = onBackClick
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
+                            Box(modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
                         
                         Spacer(modifier = Modifier.width(8.dp))
@@ -197,14 +208,14 @@ fun MediaToolsContent(
                                 title = "Video to Audio",
                                 description = "Extract high-quality audio from video files (MP4, MKV to MP3, WAV)",
                                 iconRes = R.drawable.dvd_disk_icon,
-                                color = Color(0xFFE91E63),
+                                color = MaterialTheme.colorScheme.tertiary,
                                 onClick = onVideoToAudio
                             ),
                             ToolItem(
                                 title = "Audio Converter",
                                 description = "Convert between different audio formats (FLAC to MP3, AAC to WAV)",
                                 iconRes = R.drawable.service_tools_icon,
-                                color = Color(0xFF9C27B0),
+                                color = MaterialTheme.colorScheme.secondary,
                                 onClick = onAudioConverter
                             )
                         )
@@ -219,21 +230,21 @@ fun MediaToolsContent(
                                 title = "Equalizer & FX",
                                 description = "Advanced 10-band equalizer with bass boost and 3D reverb",
                                 iconRes = R.drawable.filters_icon,
-                                color = Color(0xFF2196F3),
+                                color = MaterialTheme.colorScheme.primary,
                                 onClick = onEqualizer
                             ),
                             ToolItem(
                                 title = "Volume Booster",
                                 description = "Safely boost volume levels for quiet recordings",
                                 iconRes = R.drawable.speaker_icon,
-                                color = Color(0xFF00BCD4),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                                 onClick = onVolumeBooster
                             ),
                             ToolItem(
                                 title = "Noise Reducer",
                                 description = "Remove background hiss and noise from your audio",
                                 iconRes = R.drawable.bell_silent_icon,
-                                color = Color(0xFF4CAF50),
+                                color = MaterialTheme.colorScheme.secondary,
                                 onClick = onNoiseReducer
                             )
                         )
@@ -248,14 +259,14 @@ fun MediaToolsContent(
                                 title = "ID3 Tag Editor",
                                 description = "Edit song titles, artists, albums, and album artwork",
                                 iconRes = R.drawable.folder_edit_icon,
-                                color = Color(0xFFFF9800),
+                                color = MaterialTheme.colorScheme.primary,
                                 onClick = onTagEditor
                             ),
                             ToolItem(
                                 title = "Lyrics Finder",
                                 description = "Automatically find and embed lyrics into your audio files",
                                 iconRes = R.drawable.music_song_file_icon,
-                                color = Color(0xFFFFC107),
+                                color = MaterialTheme.colorScheme.secondary,
                                 onClick = onLyricsFinder
                             )
                         )

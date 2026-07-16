@@ -16,18 +16,41 @@
 <summary><b>✨ View Interface Design (Click to Expand)</b></summary>
 <br/>
 <table width="100%">
+  <!-- Row 1 -->
   <tr>
-    <td width="33.3%" align="center">
-      <img src="https://github.com/user-attachments/assets/b7221718-5b21-4b03-8c5d-4052fbd0b487" width="100%" alt="Screen 1 (Splash/Home)" />
-      <sub><b>Dynamic UI Home</b></sub>
+    <td width="33.3%" align="center" valign="top">
+      <img src="https://github.com/user-attachments/assets/059e1545-8280-43cd-b7a1-bbf82effc153" width="100%" alt="Screen 1" />
+      <br/><sub><b>Interface View 1</b></sub>
     </td>
-    <td width="33.3%" align="center">
-      <img src="https://github.com/user-attachments/assets/88d00193-695e-4713-b450-014b26e70ca4" width="100%" alt="Screen 2 (Player)" />
-      <sub><b>Now Playing & EQ</b></sub>
+    <td width="33.3%" align="center" valign="top">
+      <img src="https://github.com/user-attachments/assets/bf6ef10e-c6ce-4399-92b4-5f5c646f2326" width="100%" alt="Screen 2" />
+      <br/><sub><b>Interface View 2</b></sub>
     </td>
-    <td width="33.3%" align="center">
-      <img src="https://github.com/user-attachments/assets/8c816a1b-0fa2-40d0-bf6c-4bcee829c79b" width="100%" alt="Screen 3 (Library)" />
-      <sub><b>Offline Downloads</b></sub>
+    <td width="33.3%" align="center" valign="top">
+      <img src="https://github.com/user-attachments/assets/608880b5-5372-4e15-aeb1-53495a607458" width="100%" alt="Screen 3" />
+      <br/><sub><b>Interface View 3</b></sub>
+    </td>
+  </tr>
+  <!-- Row 2 -->
+  <tr>
+    <td width="33.3%" align="center" valign="top">
+      <img src="https://github.com/user-attachments/assets/6d38e30d-73a4-41d4-a32f-c1be15c5ed0b" width="100%" alt="Screen 4" />
+      <br/><sub><b>Interface View 4</b></sub>
+    </td>
+    <td width="33.3%" align="center" valign="top">
+      <img src="https://github.com/user-attachments/assets/d269bf7d-3595-4e99-8f00-961720d245c5" width="100%" alt="Screen 5" />
+      <br/><sub><b>Interface View 5</b></sub>
+    </td>
+    <td width="33.3%" align="center" valign="top">
+      <img src="https://github.com/user-attachments/assets/d43af71c-d0ef-4d10-bd34-a3095119949d" width="100%" alt="Screen 6" />
+      <br/><sub><b>Interface View 6</b></sub>
+    </td>
+  </tr>
+  <!-- Row 3 -->
+  <tr>
+    <td width="33.3%" align="center" valign="top">
+      <img src="https://github.com/user-attachments/assets/295d4d7e-6ac7-405a-beb1-9080eb0e7540" width="100%" alt="Screen 7" />
+      <br/><sub><b>Interface View 7</b></sub>
     </td>
   </tr>
 </table>
@@ -46,4 +69,4 @@
 
 1. **Clone the Repository:**
    ```bash
-   git clone [https://github.com/sharjeelkhan-dev/MusicStream.git](https://github.com/sha
+   git clone https://github.com/sharjeelkhan-dev/MusicStream.git

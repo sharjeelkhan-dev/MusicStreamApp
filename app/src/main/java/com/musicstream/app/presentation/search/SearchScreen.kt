@@ -270,9 +270,7 @@ fun SearchContent(
                             BasicTextField(
                                 value = state.query,
                                 onValueChange = { onQueryChange(it) },
-                                textStyle = TextStyle(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 16.sp,
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
                                     fontWeight = FontWeight.Medium
                                 ),
                                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),

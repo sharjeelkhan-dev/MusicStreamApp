@@ -125,7 +125,7 @@ fun AuthContent(
             if (!isLoginMode) {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
-                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
+                    textStyle = MaterialTheme.typography.bodyLarge,
                     label = { Text("Full Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     placeholder = if (!isNameFocused) { { Text("Enter your full name") } } else null,
                     modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) onClearMessages() },
@@ -138,7 +138,7 @@ fun AuthContent(
 
             OutlinedTextField(
                 value = email, onValueChange = { email = it },
-                textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
+                textStyle = MaterialTheme.typography.bodyLarge,
                 label = { Text("Email Address", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 placeholder = if (!isEmailFocused) { { Text("Enter your email") } } else null,
                 modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) onClearMessages() },
@@ -150,7 +150,7 @@ fun AuthContent(
 
             OutlinedTextField(
                 value = password, onValueChange = { password = it },
-                textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
+                textStyle = MaterialTheme.typography.bodyLarge,
                 label = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 placeholder = if (!isPasswordFocused) { { Text("Password") } } else null,
                 modifier = Modifier.fillMaxWidth().onFocusChanged { if (it.isFocused) onClearMessages() },

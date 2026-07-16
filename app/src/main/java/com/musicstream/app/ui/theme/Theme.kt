@@ -2,15 +2,17 @@ package com.musicstream.app.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
 
@@ -30,7 +32,7 @@ data class MusicStreamColors(
 
 private val DarkAppColors = MusicStreamColors(
     navBarBackground = DarkBackground,
-    navBarActive = PalettePrimaryRed,
+    navBarActive = PalettePrimaryRed, // Maps to BDC3C7
     navBarInactive = TextTertiaryDark,
     seekBarActive = PalettePrimaryRed,
     seekBarInactive = DarkElevated,
@@ -61,6 +63,11 @@ object MusicStreamTheme {
         @Composable
         @ReadOnlyComposable
         get() = LocalMusicStreamColors.current
+
+    val typography: androidx.compose.material3.Typography
+        @Composable
+        @ReadOnlyComposable
+        get() = MaterialTheme.typography
 }
 
 // 1. Dark Mode Color Scheme
@@ -117,11 +124,17 @@ fun MusicStreamTheme(
         }
     }
 
-    CompositionLocalProvider(LocalMusicStreamColors provides appColors) {
-        MaterialTheme(
-            colorScheme = colorScheme,
-            typography = Typography,
-            content = content
-        )
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = Typography // Ensure this matches your custom Typography object in Type.kt
+    ) {
+        CompositionLocalProvider(
+            LocalMusicStreamColors provides appColors,
+            LocalTextStyle provides Typography.bodyLarge
+        ) {
+            ProvideTextStyle(value = Typography.bodyLarge) {
+                content()
+            }
+        }
     }
 }

@@ -1,56 +1,49 @@
 # 🎵 MusicStream
+![Android](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white) ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white) ![Media3](https://img.shields.io/badge/Media3-ExoPlayer-blue?style=for-the-badge&logo=google&logoColor=white)
 
-**MusicStream** is a high-performance, feature-rich Android music application built using modern Android development practices. It provides a seamless streaming experience by integrating multiple music sources, advanced audio effects, and offline capabilities.
+> A high-performance, feature-rich Android music application built with Jetpack Compose and Clean Architecture, designed to deliver an uninterrupted, premium streaming experience.
 
-## ✨ Key Features
+| Subsystem | Technical Execution Architecture |
+| :--- | :--- |
+| **🚀 Dual-Engine Streaming** | Seamlessly combines search results and streams from YouTube (via Piped/NewPipe Extractor) and Saavn for a massive global library. |
+| **🎧 Pro Audio Pipeline** | Fully powered by **Android Media3 (ExoPlayer)** with native integration of high-quality audio formats and custom audio sessions. |
+| **🎚️ Advanced Audio FX** | Built-in high-fidelity Equalizer, Bass Boost, and Virtualizer components for dynamic, personalized sound engineering. |
+| **📥 Offline Downloader** | Robust offline downloading system featuring precise download progress tracking, background threading, and offline playback. |
+| **🎨 Palette Dynamic Themes** | Material 3 interface that dynamically extracts prominent colors from the playing track's album art to recolor the entire app UI. |
+| **🛠️ Resilient Networking** | Custom proxy rotation logic with a built-in failover mechanism across multiple Piped instances to guarantee zero-downtime streaming. |
 
-- **🚀 Dual Streaming Engine:** Combines results from YouTube (via NewPipe/Piped) and Saavn for a massive global library.
-- **🎧 Pro Audio Experience:** Powered by **Media3 (ExoPlayer)** with support for high-quality audio formats.
-- **🎚️ Advanced Audio FX:** Built-in Equalizer, Bass Boost, and Virtualizer for personalized sound.
-- **📥 Offline Downloads:** Robust downloading system with progress tracking and offline playback support.
-- **🔍 Smart Search:** Lightning-fast search with debouncing and history management.
-- **🎨 Dynamic Theming:** Material 3 UI that dynamically adapts its color scheme based on the current track's album art using the Palette API.
-- **🛠️ Resilient Networking:** Custom Piped instance rotation and proxy logic to ensure high uptime for YouTube streams.
-- **📁 Playlist Management:** Create, manage, and curate your own music collections.
+<details>
+<summary><b>✨ View Interface Design (Click to Expand)</b></summary>
+<br/>
+<table width="100%">
+  <tr>
+    <td width="33.3%" align="center">
+      <img src="https://github.com/user-attachments/assets/b7221718-5b21-4b03-8c5d-4052fbd0b487" width="100%" alt="Screen 1 (Splash/Home)" />
+      <sub><b>Dynamic UI Home</b></sub>
+    </td>
+    <td width="33.3%" align="center">
+      <img src="https://github.com/user-attachments/assets/88d00193-695e-4713-b450-014b26e70ca4" width="100%" alt="Screen 2 (Player)" />
+      <sub><b>Now Playing & EQ</b></sub>
+    </td>
+    <td width="33.3%" align="center">
+      <img src="https://github.com/user-attachments/assets/8c816a1b-0fa2-40d0-bf6c-4bcee829c79b" width="100%" alt="Screen 3 (Library)" />
+      <sub><b>Offline Downloads</b></sub>
+    </td>
+  </tr>
+</table>
+</details>
 
-## 🛠️ Tech Stack
+---
 
-*   **UI:** Jetpack Compose (100% Declarative UI)
-*   **Architecture:** Clean Architecture + MVVM (Model-View-ViewModel)
-*   **Asynchronous:** Kotlin Coroutines & Flow
-*   **Dependency Injection:** Hilt
-*   **Networking:** Retrofit & OkHttp (with custom Interceptors)
-*   **Database:** Room (SQLite)
-*   **Media Handling:** Android Media3 (ExoPlayer/Session)
-*   **Image Loading:** Coil
-*   **Extraction:** NewPipe Extractor (Custom Piped-integrated Implementation)
+## 🚀 Setup & Installation
 
-## 🏗️ Architecture
+### 📋 Prerequisites
+*   Android Studio Ladybug (or newer)
+*   JDK 17 or higher
+*   Android SDK 26 (Android 8.0) or higher
 
-The project follows the **Clean Architecture** pattern to ensure testability and scalability:
+### 🛠️ Step-by-Step Installation
 
-- **Data Layer:** Handles API calls, local database (Room), and repository implementations.
-- **Domain Layer:** Contains business logic, Models, and Repository Interfaces.
-- **Presentation Layer:** Jetpack Compose UI, ViewModels, and UI State management.
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Android Studio Ladybug or newer.
-- JDK 17+
-- Android SDK 26 (Android 8.0) or higher.
-
-### Installation
-1. Clone the repository:
+1. **Clone the Repository:**
    ```bash
-   git clone https://github.com/yourusername/music-stream-app.git
-   ```
-2. Open the project in Android Studio.
-3. Sync Project with Gradle Files.
-4. Run the app on an emulator or a physical device.
-
-## 🛡️ Privacy & Reliability
-MusicStream focuses on user privacy. It uses Piped instances to proxy YouTube requests, ensuring that your listening habits are not directly tracked while bypassing regional restrictions and IP-based blocking.
-
-## 📜 Disclaimer
-This project is for educational purposes only. The music content provided is sourced from public APIs and web extractors. Please respect the copyright of the artists and platforms.
+   git clone [https://github.com/sharjeelkhan-dev/MusicStream.git](https://github.com/sha

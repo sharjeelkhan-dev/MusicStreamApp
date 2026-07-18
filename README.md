@@ -1,5 +1,5 @@
 # 🎵 MusicStream
-![Android](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white) ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white) ![Media3](https://img.shields.io/badge/Media3-ExoPlayer-blue?style=for-the-badge&logo=google&logoColor=white)
+![Status](https://img.shields.io/badge/Code-181717?style=for-the-badge&logo=github&logoColor=white) ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white) ![Media3](https://img.shields.io/badge/Media3-ExoPlayer-blue?style=for-the-badge&logo=google&logoColor=white)
 
 > A high-performance, feature-rich Android music application built with Jetpack Compose and Clean Architecture, designed to deliver an uninterrupted, premium streaming experience.
 

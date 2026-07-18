@@ -58,15 +58,9 @@
 
 ---
 
-## 🚀 Setup & Installation
+## 🛠 Setup & Installation
 
 ### 📋 Prerequisites
 *   Android Studio Ladybug (or newer)
 *   JDK 17 or higher
 *   Android SDK 26 (Android 8.0) or higher
-
-### 🛠️ Step-by-Step Installation
-
-1. **Clone the Repository:**
-   ```bash
-   git clone https://github.com/sharjeelkhan-dev/MusicStream.git

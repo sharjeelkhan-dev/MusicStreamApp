@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
-import com.musicstream.app.domain.repository.DownloadProgress
 import com.musicstream.app.domain.repository.MusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*

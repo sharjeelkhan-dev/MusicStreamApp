@@ -12,7 +12,6 @@ import com.musicstream.app.presentation.library.LibraryScreen
 import com.musicstream.app.presentation.profile.ProfileScreen
 import com.musicstream.app.presentation.player.PlayerScreen
 import com.musicstream.app.presentation.player.PlayerViewModel
-import com.musicstream.app.domain.model.User
 import com.musicstream.app.presentation.MainViewModel
 import com.musicstream.app.presentation.notifications.NotificationScreen
 import com.musicstream.app.presentation.recently_played.RecentlyPlayedScreen
@@ -20,7 +19,6 @@ import com.musicstream.app.presentation.favorites.FavoritesScreen
 import com.musicstream.app.presentation.trending.TrendingScreen
 import com.musicstream.app.presentation.auth.AuthScreen
 import com.musicstream.app.presentation.splash.SplashScreen
-import com.musicstream.app.presentation.library.DownloadsScreen
 import com.musicstream.app.presentation.library.PlaylistScreen
 import com.musicstream.app.presentation.artists.ArtistsScreen
 import com.musicstream.app.presentation.media_tools.MediaToolsScreen
@@ -31,7 +29,7 @@ fun NavGraph(
     navController: NavHostController,
     playerViewModel: PlayerViewModel,
     mainViewModel: MainViewModel,
-    onSongOptionsClick: (Song, Boolean) -> Unit, // Sahi callback registered hai
+    onSongOptionsClick: (Song, Boolean) -> Unit,
     songColor: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> }
@@ -52,7 +50,6 @@ fun NavGraph(
             )
         }
 
-        // 🚨 FIXED CONFIGURATION FOR HOME SCREEN:
         composable(Screen.Home.route) {
             HomeScreen(
                 onPlaySongs = onPlaySongs,
@@ -73,7 +70,6 @@ fun NavGraph(
                 onGoToPlayer = {
                     navController.navigate(Screen.Player.route)
                 },
-                // ✅ CONFIGURATION LINK FIXED: Is line ke jodne se dialogue sheet event pass hona start ho jayega.
                 onSongOptionsClick = onSongOptionsClick
             )
         }
@@ -101,12 +97,13 @@ fun NavGraph(
                 onBackClick = { navController.popBackStack() }
             )
         }
+
         composable(Screen.Downloads.route) {
-            DownloadsScreen(
-                onPlaySongs = onPlaySongs,
-                onBackClick = { navController.popBackStack() }
-            )
+            navController.navigate(Screen.Library.createRoute(tab = "downloads")) {
+                popUpTo(Screen.Downloads.route) { inclusive = true }
+            }
         }
+
         composable(Screen.Playlist.route) {
             PlaylistScreen(
                 onBackClick = { navController.popBackStack() },

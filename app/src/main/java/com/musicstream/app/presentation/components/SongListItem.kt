@@ -1,7 +1,5 @@
 package com.musicstream.app.presentation.components
 
-import coil.compose.AsyncImage
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -14,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -21,10 +20,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.musicstream.app.domain.model.Song
-import com.musicstream.app.data.MockData
-import com.musicstream.app.ui.theme.*
+import coil.compose.AsyncImage
 import com.musicstream.app.R
+import com.musicstream.app.data.MockData
+import com.musicstream.app.domain.model.Song
+import com.musicstream.app.ui.theme.*
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -35,7 +35,7 @@ fun SongListItem(
     onSongClick: (Song) -> Unit = {},
     onFavoriteClick: (Song) -> Unit = {},
     onDownloadClick: (Song) -> Unit = {},
-    onAddClick: (Song) -> Unit = {}, // Connected with the "+" button event
+    onAddClick: (Song) -> Unit = {},
     onMoreClick: (Song) -> Unit = {},
     onLongClick: (Song) -> Unit = {},
     downloadProgress: Int? = null,
@@ -73,7 +73,9 @@ fun SongListItem(
                     .weight(1f)
                     .clip(RoundedCornerShape(16.dp))
                     .combinedClickable(
-                        onClick = { onSongClick(song) },
+                        onClick = {
+                            if (isPlaying) onPlayPauseClick() else onSongClick(song)
+                        },
                         onLongClick = { onLongClick(song) }
                     ),
                 verticalAlignment = Alignment.CenterVertically
@@ -139,7 +141,7 @@ fun SongListItem(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // --- ZONE 2: Isolate Actions Buttons Area ---
+            // --- ZONE 2: Isolated Action Buttons Area ---
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -170,12 +172,15 @@ fun SongListItem(
 
                 IconButton(
                     onClick = {
-                        if (isPlaying) onPlayPauseClick() else onSongClick(song)
+                        onPlayPauseClick()
                     },
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(if (isPlaying) MaterialTheme.colorScheme.primary else Color.Transparent)
+                        .background(
+                            if (isPlaying) MaterialTheme.colorScheme.primary
+                            else Color.Transparent
+                        )
                 ) {
                     Icon(
                         painter = painterResource(
@@ -183,7 +188,7 @@ fun SongListItem(
                             else R.drawable.play_button_icon
                         ),
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = if (isPlaying) Color.White else MaterialTheme.colorScheme.onSurface,
+                        tint = if (isPlaying) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(if (isPlaying) 20.dp else 28.dp)
                     )
                 }
@@ -210,6 +215,7 @@ fun WideSongListItem(
     SongListItem(
         song = song,
         modifier = modifier,
+        showThumbnail = true,
         onSongClick = onSongClick,
         onFavoriteClick = onFavoriteClick,
         onDownloadClick = onDownloadClick,

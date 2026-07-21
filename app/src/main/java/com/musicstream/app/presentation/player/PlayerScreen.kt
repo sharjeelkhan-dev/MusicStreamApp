@@ -72,7 +72,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -447,10 +446,7 @@ fun PlayerContent(
     val backgroundColor = MaterialTheme.colorScheme.background
     val onBackgroundColor = MaterialTheme.colorScheme.onBackground
 
-    var swipeOffsetX by remember { mutableFloatStateOf(0f) }
-    var swipeOffsetY by remember { mutableFloatStateOf(0f) }
-
-    // User seeking interaction state to prevent UI stutter / jump while scrubbing visualizer bars
+    // User seeking interaction state
     var isUserSeeking by remember { mutableStateOf(false) }
     var userSeekPosition by remember { mutableFloatStateOf(0f) }
 
@@ -465,29 +461,6 @@ fun PlayerContent(
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundColor)
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragEnd = {
-                        if (swipeOffsetX < -250) {
-                            onNextSong()
-                        } else if (swipeOffsetX > 250) {
-                            onPreviousSong()
-                        } else if (swipeOffsetY > 300) {
-                            onStopMusic()
-                            onBackClick()
-                        }
-                        swipeOffsetX = 0f
-                        swipeOffsetY = 0f
-                    },
-                    onDrag = { change, dragAmount ->
-                        if (kotlin.math.abs(swipeOffsetX) > 50 || kotlin.math.abs(swipeOffsetY) > 50) {
-                            change.consume()
-                        }
-                        swipeOffsetX += dragAmount.x
-                        swipeOffsetY += dragAmount.y
-                    }
-                )
-            }
     ) {
         state.currentSong?.let { song ->
             AsyncImage(
@@ -517,12 +490,7 @@ fun PlayerContent(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 24.dp)
-                .graphicsLayer {
-                    translationX = swipeOffsetX * 0.4f
-                    translationY = (swipeOffsetY * 0.4f).coerceAtLeast(0f)
-                    alpha = 1f - (swipeOffsetY / 1500f).coerceIn(0f, 1f)
-                },
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
@@ -669,11 +637,17 @@ fun PlayerContent(
                         }
                         IconButton(onClick = onToggleRepeat, modifier = Modifier.size(48.dp).clip(CircleShape).background(if (state.repeatMode != RepeatMode.OFF) songColor.copy(alpha = 0.1f) else Color.Transparent)) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(painter = painterResource(id = R.drawable.music_player_repeat_symbol_icon), contentDescription = "Repeat", tint = if (state.repeatMode != RepeatMode.OFF) songColor else onBackgroundColor.copy(alpha = 0.6f), modifier = Modifier.size(24.dp))
+                                Icon(painter = painterResource(id = R.drawable.music_player_repeat_symbol_icon),
+                                    contentDescription = "Repeat",
+                                    tint = if (state.repeatMode != RepeatMode.OFF) songColor
+                                    else onBackgroundColor.copy(alpha = 0.6f), modifier = Modifier.size(24.dp))
                                 if (state.repeatMode == RepeatMode.ONE) {
-                                    Surface(color = MaterialTheme.colorScheme.surface, shape = CircleShape, modifier = Modifier.size(16.dp).align(Alignment.Center)) {
+                                    Surface(color = MaterialTheme.colorScheme.surface,
+                                        shape = CircleShape, modifier = Modifier.size(16.dp).align(Alignment.Center)) {
                                         Box(contentAlignment = Alignment.Center) {
-                                            Text(text = "1", color = songColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.offset(y = (-4).dp))
+                                            Text(text = "1", color = songColor,
+                                                fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center)
                                         }
                                     }
                                 }

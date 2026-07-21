@@ -25,6 +25,7 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class MusicPlayerManager @Inject constructor(
@@ -41,7 +42,6 @@ class MusicPlayerManager @Inject constructor(
 
     private var pendingAction: (() -> Unit)? = null
 
-    // Seek lock flag taaki background tracker position overwrite na kare
     private var isSeeking = false
     private var seekLockJob: Job? = null
 
@@ -84,7 +84,7 @@ class MusicPlayerManager @Inject constructor(
 
     private fun updateStateFromController() {
         val controller = mediaController ?: return
-        if (isSeeking) return // Agar user seek kar raha hai toh background state update ignore karein
+        if (isSeeking) return
 
         val currentIndex = controller.currentMediaItemIndex
 
@@ -116,7 +116,7 @@ class MusicPlayerManager @Inject constructor(
             return
         }
 
-        val targetQueue = if (queue.isNotEmpty()) queue else listOf(song)
+        val targetQueue = queue.ifEmpty { listOf(song) }
         val index = targetQueue.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
 
         _uiState.update { it.copy(queue = targetQueue, currentIndex = index, currentSong = song) }
@@ -133,7 +133,6 @@ class MusicPlayerManager @Inject constructor(
         if (controller.isPlaying) controller.pause() else controller.play()
     }
 
-    // FIXED: SeekTo with Lock to prevent immediate position overwrite by background ticks
     fun seekTo(position: Long) {
         val controller = mediaController
         if (controller == null) {
@@ -146,7 +145,6 @@ class MusicPlayerManager @Inject constructor(
 
         val dur = _uiState.value.duration.coerceAtLeast(1L)
 
-        // Instant UI update
         _uiState.update {
             it.copy(
                 currentPosition = position,
@@ -156,9 +154,8 @@ class MusicPlayerManager @Inject constructor(
 
         controller.seekTo(position)
 
-        // Lock release after a short delay to let Media3 buffer and catch up
         seekLockJob = managerScope.launch {
-            delay(400)
+            delay(400.milliseconds)
             isSeeking = false
         }
     }
@@ -242,7 +239,7 @@ class MusicPlayerManager @Inject constructor(
         sleepTimerJob = managerScope.launch {
             var timeLeft = totalMillis
             while (timeLeft > 0) {
-                delay(1000)
+                delay(1000.milliseconds)
                 timeLeft -= 1000
                 _uiState.update { it.copy(sleepTimerTimeLeft = timeLeft) }
             }
@@ -264,7 +261,7 @@ class MusicPlayerManager @Inject constructor(
                         progress = (pos.toFloat() / dur).coerceIn(0f, 1f)
                     ) }
                 }
-                delay(500)
+                delay(500.milliseconds)
             }
         }
     }
@@ -287,7 +284,7 @@ class MusicPlayerManager @Inject constructor(
             }
             streamUrl.isNotBlank() -> {
                 Log.d("MusicPlayerManager", "Streaming online via Saavn: $streamUrl")
-                Uri.parse(streamUrl)
+                streamUrl.toUri()
             }
             else -> Uri.EMPTY
         }

@@ -1,11 +1,12 @@
 package com.musicstream.app.presentation
+
 import android.content.Intent
 import android.widget.Toast
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,26 +14,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.palette.graphics.Palette
+import coil.ImageLoader
+import coil.request.ImageRequest
+import com.musicstream.app.domain.model.Song
 import com.musicstream.app.navigation.NavGraph
 import com.musicstream.app.navigation.Screen
 import com.musicstream.app.presentation.components.BottomNavBar
 import com.musicstream.app.presentation.components.SongOptionsBottomSheet
 import com.musicstream.app.presentation.player.MiniPlayerBar
 import com.musicstream.app.presentation.player.PlayerViewModel
-import coil.ImageLoader
-import coil.request.ImageRequest
-import androidx.palette.graphics.Palette
-import androidx.core.graphics.drawable.toBitmap
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.musicstream.app.domain.model.Song
 import com.musicstream.app.ui.theme.Gradients
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -63,7 +64,11 @@ fun MainApp(
     // Persistent Reactive Cache
     val colorCache = remember { mutableStateMapOf<String, Color>() }
     val currentSong = playerState.currentSong
-    val currentSongId = currentSong?.id ?: ""
+
+    // Normalize current song ID to fix Download vs Remote ID mismatch
+    val currentSongId = remember(currentSong) {
+        currentSong?.id?.replace("dl_", "")?.replace("download_", "") ?: ""
+    }
 
     // Main Color Logic
     var lastValidColor by remember { mutableStateOf(Gradients.songThumbColors[0]) }
@@ -81,7 +86,7 @@ fun MainApp(
     // Background Extraction Logic
     LaunchedEffect(currentSongId, isDark) {
         val song = currentSong ?: return@LaunchedEffect
-        if (colorCache.containsKey(song.id)) return@LaunchedEffect
+        if (colorCache.containsKey(currentSongId)) return@LaunchedEffect
 
         withContext(Dispatchers.IO) {
             try {
@@ -111,7 +116,7 @@ fun MainApp(
                         val extracted = Color(androidx.core.graphics.ColorUtils.HSLToColor(hsl))
 
                         withContext(Dispatchers.Main) {
-                            colorCache[song.id] = extracted
+                            colorCache[currentSongId] = extracted
                             lastValidColor = extracted
                         }
                     }
@@ -183,25 +188,27 @@ fun MainApp(
                         targetState = currentSongId,
                         animationSpec = tween(400),
                         label = "miniPlayerTransition"
-                    ) { songId ->
-                        val displayedSong = playerState.queue.find { it.id == songId } ?: currentSong
-                        MiniPlayerBar(
-                            song = displayedSong,
-                            isPlaying = playerState.isPlaying,
-                            progress = playerState.progress,
-                            songColor = songColor,
-                            onPlayPauseClick = { playerViewModel.togglePlayPause() },
-                            onNextClick = { playerViewModel.nextSong() },
-                            onDismiss = { playerViewModel.stopMusic() },
-                            onClick = {
-                                if (currentRoute != Screen.Player.route) {
-                                    navController.navigate(Screen.Player.route) {
-                                        launchSingleTop = true
-                                        restoreState = true
+                    ) { _ ->
+                        val displayedSong = playerState.currentSong
+                        if (displayedSong != null) {
+                            MiniPlayerBar(
+                                song = displayedSong,
+                                isPlaying = playerState.isPlaying,
+                                progress = playerState.progress,
+                                songColor = songColor,
+                                onPlayPauseClick = { playerViewModel.togglePlayPause() },
+                                onNextClick = { playerViewModel.nextSong() },
+                                onDismiss = { playerViewModel.stopMusic() },
+                                onClick = {
+                                    if (currentRoute != Screen.Player.route) {
+                                        navController.navigate(Screen.Player.route) {
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
                                     }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
 
@@ -224,7 +231,7 @@ fun MainApp(
             }
         }
 
-        // ✅ FIXED: SHARED BOTTOM SHEET WITH RECOMPOSITION AND ONLINE SYNCHRONIZATION
+        // SHARED BOTTOM SHEET WITH RECOMPOSITION AND ONLINE SYNCHRONIZATION
         if (showBottomSheet && selectedSongForSheet != null) {
             SongOptionsBottomSheet(
                 song = selectedSongForSheet?.copy(isFavorite = isSongAlreadyLiked),
@@ -235,8 +242,7 @@ fun MainApp(
                     isSongAlreadyLiked = !isSongAlreadyLiked
                     val msg = if (isSongAlreadyLiked) "Added to Liked Songs"
                     else "Removed from Favorites"
-                    Toast.makeText(context, msg,
-                        Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                 },
                 onAddToPlaylistClick = { songId ->
                     songIdForPlaylist = songId
@@ -248,7 +254,7 @@ fun MainApp(
                 },
                 onDeleteDownloadClick = null,
                 onRemoveFromPlaylistClick = null,
-                onShareClick = { songId ->
+                onShareClick = { _ ->
                     try {
                         val shareIntent = Intent().apply {
                             action = Intent.ACTION_SEND
@@ -256,13 +262,12 @@ fun MainApp(
                                 "Check out this song on MusicStream: ${selectedSongForSheet?.title} by ${selectedSongForSheet?.artist}")
                             type = "text/plain"
                         }
-                        context.startActivity(Intent.createChooser(shareIntent,
-                            "Share Track via"))
+                        context.startActivity(Intent.createChooser(shareIntent, "Share Track via"))
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
                 },
-                onGoToArtistClick = { artistName ->
+                onGoToArtistClick = { _ ->
                     navController.navigate(Screen.Artists.route) {
                         launchSingleTop = true
                     }
@@ -270,7 +275,7 @@ fun MainApp(
             )
         }
 
-        // ✅ FIXED: REAL-TIME PLAYLIST SELECTION WIDGET WITH FULL OBJECT INJECTION
+        // REAL-TIME PLAYLIST SELECTION WIDGET WITH FULL OBJECT INJECTION
         if (showPlaylistDialog && selectedSongForSheet != null) {
             AlertDialog(
                 onDismissRequest = { showPlaylistDialog = false },
@@ -286,7 +291,6 @@ fun MainApp(
                                         .fillMaxWidth()
                                         .clickable {
                                             selectedSongForSheet?.let { song ->
-                                                // Yahan confirm karein ki ViewModel function (String, Song) leta hai
                                                 playerViewModel.addSongToPlaylist(playlist.id, song)
                                             }
                                             showPlaylistDialog = false
@@ -294,9 +298,11 @@ fun MainApp(
                                         }
                                         .padding(vertical = 12.dp, horizontal = 8.dp)
                                 ) {
-                                    Text(text = playlist.name,
+                                    Text(
+                                        text = playlist.name,
                                         fontSize = 16.sp,
-                                        color = MaterialTheme.colorScheme.onSurface)
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
                             }
                         }
@@ -308,5 +314,6 @@ fun MainApp(
                     }
                 }
             )
-        }}
+        }
+    }
 }

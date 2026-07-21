@@ -55,7 +55,6 @@ class MusicRepositoryImpl @Inject constructor(
     private val downloadHttpClient: OkHttpClient,
     @ApplicationContext private val context: Context,
 ) : MusicRepository {
-
     companion object {
         private const val DEFAULT_COVER_IMAGE = "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500"
     }

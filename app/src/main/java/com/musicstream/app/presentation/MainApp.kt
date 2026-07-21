@@ -185,14 +185,13 @@ fun MainApp(
                     exit = slideOutVertically { it } + fadeOut(),
                 ) {
                     Crossfade(
-                        targetState = currentSongId,
+                        targetState = playerState.currentSong,
                         animationSpec = tween(400),
                         label = "miniPlayerTransition"
-                    ) { _ ->
-                        val displayedSong = playerState.currentSong
-                        if (displayedSong != null) {
+                    ) { song ->
+                        if (song != null) {
                             MiniPlayerBar(
-                                song = displayedSong,
+                                song = song,
                                 isPlaying = playerState.isPlaying,
                                 progress = playerState.progress,
                                 songColor = songColor,

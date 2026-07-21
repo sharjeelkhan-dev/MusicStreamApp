@@ -133,14 +133,17 @@ class MusicRepositoryImpl @Inject constructor(
                 }
             }
 
-            val finalMixedList = trendingResults.distinctBy { it.id }.shuffled()
+            val finalMixedList = trendingResults
+                .distinctBy { it.id }
+                .distinctBy { "${it.title.lowercase().trim()}_${it.artist.lowercase().trim()}" }
+                .shuffled()
 
             if (finalMixedList.isNotEmpty()) {
                 Log.d("MusicRepo", "Successfully loaded ${finalMixedList.size} diverse songs")
                 emit(finalMixedList)
             } else {
                 Log.w("MusicRepo", "All remote attempts failed, returning local Mock data")
-                emit(MockData.trendingSongs)
+                emit(MockData.trendingSongs.distinctBy { it.id })
             }
         }
 
@@ -150,19 +153,22 @@ class MusicRepositoryImpl @Inject constructor(
             favoriteDao.getAllFavorites().onStart { emit(emptyList()) }
         ) { remote, local, favorites ->
             val favIds = favorites.map { it.songId }.toSet()
-            remote.map { song ->
-                val localMatch = local.find { it.id == song.id }
-                song.copy(
-                    localPath = localMatch?.localPath,
-                    isFavorite = favIds.contains(song.id)
-                )
-            }
+            remote
+                .distinctBy { it.id }
+                .distinctBy { "${it.title.lowercase().trim()}_${it.artist.lowercase().trim()}" }
+                .map { song ->
+                    val localMatch = local.find { it.id == song.id }
+                    song.copy(
+                        localPath = localMatch?.localPath,
+                        isFavorite = favIds.contains(song.id)
+                    )
+                }
         }.flowOn(Dispatchers.IO)
     }
 
     override fun getRecentlyPlayed(): Flow<List<Song>> = songDao.getRecentlyPlayed().combine(favoriteDao.getAllFavorites()) { entities, favorites ->
         val favIds = favorites.map { it.songId }.toSet()
-        entities.map { it.toDomain().copy(isFavorite = favIds.contains(it.id)) }
+        entities.distinctBy { it.id }.map { it.toDomain().copy(isFavorite = favIds.contains(it.id)) }
     }
 
     override fun getPlaylists(): Flow<List<Playlist>> = playlistDao.getAllPlaylists().map { entities -> entities.map { it.toDomain() } }
@@ -207,20 +213,22 @@ class MusicRepositoryImpl @Inject constructor(
 
                 val saavnRes = saavnDeferred.await()
                 if (!saavnRes.isNullOrEmpty()) {
-                    emit(saavnRes)
+                    emit(saavnRes.distinctBy { it.id })
                 } else {
                     val localResults = songDao.searchSongs(query).firstOrNull()?.map { it.toDomain() } ?: emptyList()
                     if (localResults.isNotEmpty()) {
-                        emit(localResults)
+                        emit(localResults.distinctBy { it.id })
                     } else {
-                        emit(MockData.trendingSongs.filter { it.title.contains(query, ignoreCase = true) || it.artist.contains(query, ignoreCase = true) })
+                        emit(MockData.trendingSongs.filter { it.title.contains(query, ignoreCase = true) || it.artist.contains(query, ignoreCase = true) }.distinctBy { it.id })
                     }
                 }
             }
         }
         return combine(remoteFlow, songDao.getAllSongs().onStart { emit(emptyList()) }, favoriteDao.getAllFavorites().onStart { emit(emptyList()) }) { remote, local, favorites ->
             val favIds = favorites.map { it.songId }.toSet()
-            remote.map { song -> val localMatch = local.find { it.id == song.id }; song.copy(localPath = localMatch?.localPath, isFavorite = favIds.contains(song.id)) }
+            remote
+                .distinctBy { it.id }
+                .map { song -> val localMatch = local.find { it.id == song.id }; song.copy(localPath = localMatch?.localPath, isFavorite = favIds.contains(song.id)) }
         }.flowOn(Dispatchers.IO)
     }
 
@@ -278,12 +286,35 @@ class MusicRepositoryImpl @Inject constructor(
         val id = map.optString("id").ifEmpty { map.optString("songid", UUID.randomUUID().toString()) }
         val name = map.optString("name").ifEmpty { map.optString("songname", map.optString("title", "Unknown Track")) }
 
-        val primaryArtists = when {
-            map.has("primaryArtists") -> map.optString("primaryArtists")
-            map.has("singers") -> map.optString("singers")
-            map.has("artist") -> map.optString("artist")
-            else -> "Various Artists"
+        var extractedArtist = ""
+
+        if (map.has("primaryArtists") && !map.isNull("primaryArtists")) {
+            val primaryObj = map.get("primaryArtists")
+            extractedArtist = parseArtistFromAnyJson(primaryObj)
         }
+
+        if (extractedArtist.isBlank() && map.has("artists") && !map.isNull("artists")) {
+            val artistsObj = map.optJSONObject("artists")
+            if (artistsObj != null) {
+                val primaryArr = artistsObj.optJSONArray("primary")
+                extractedArtist = parseArtistFromAnyJson(primaryArr)
+            }
+        }
+
+        if (extractedArtist.isBlank()) {
+            val candidates = listOf("singers", "artist", "composer", "music")
+            for (key in candidates) {
+                if (map.has(key) && !map.isNull(key)) {
+                    val candidate = parseArtistFromAnyJson(map.get(key))
+                    if (candidate.isNotBlank()) {
+                        extractedArtist = candidate
+                        break
+                    }
+                }
+            }
+        }
+
+        val primaryArtists = extractedArtist.ifBlank { "Unknown Artist" }
 
         val imageList = mutableListOf<SaavnImageDto>()
         val imgArray = map.optJSONArray("image")
@@ -327,6 +358,28 @@ class MusicRepositoryImpl @Inject constructor(
         return SaavnSongDto(id = id, name = name, primaryArtists = primaryArtists, duration = duration, image = imageList, downloadUrl = downloadList)
     }
 
+    private fun parseArtistFromAnyJson(obj: Any?): String {
+        if (obj == null) return ""
+        return when (obj) {
+            is String -> obj
+            is JSONArray -> {
+                val names = mutableListOf<String>()
+                for (i in 0 until obj.length()) {
+                    when (val item = obj.opt(i)) {
+                        is JSONObject -> {
+                            val name = item.optString("name").ifEmpty { item.optString("title") }
+                            if (name.isNotBlank()) names.add(name)
+                        }
+                        is String -> if (item.isNotBlank()) names.add(item)
+                    }
+                }
+                names.joinToString(", ")
+            }
+            is JSONObject -> obj.optString("name").ifEmpty { obj.optString("title") }
+            else -> obj.toString()
+        }
+    }
+
     override fun getFavorites(): Flow<List<Song>> = favoriteDao.getAllFavorites().combine(songDao.getAllSongs()) { favorites, allSongs ->
         val favIds = favorites.map { it.songId }.toSet()
         allSongs.filter { favIds.contains(it.id) }.map { it.toDomain().copy(isFavorite = true) }
@@ -342,22 +395,34 @@ class MusicRepositoryImpl @Inject constructor(
             emit(localSong)
             return@flow
         }
-        if (localSong != null) emit(localSong)
+        if (localSong != null && localSong.streamUrl.isNotBlank() && localSong.streamUrl.startsWith("http")) {
+            emit(localSong)
+        }
 
         var resolved: Song? = try {
             withTimeoutOrNull(15000.milliseconds) {
                 val response = musicApi.getSongDetails(songId)
                 val songs = parseSongsFromResponse(response)
-                songs?.firstOrNull()?.toDomain()?.copy(localPath = localSong?.localPath, isFavorite = localSong?.isFavorite ?: false)
+                val fetchedSong = songs?.firstOrNull()?.toDomain()
+                // Strict check: Verify fetched song ID matches requested ID
+                if (fetchedSong != null && (fetchedSong.id == songId || fetchedSong.id.contains(songId))) {
+                    fetchedSong.copy(localPath = localSong?.localPath, isFavorite = localSong?.isFavorite ?: false)
+                } else null
             }
-        } catch (e: Exception) { null }
+        } catch (_: Exception) { null }
 
+        // Fallback resolution with exact track title & artist check
         if (resolved == null || resolved.streamUrl.isBlank() || !resolved.streamUrl.startsWith("http")) {
-            val query = (localSong?.title ?: resolved?.title ?: "").let { if (it.isNotBlank()) "$it ${localSong?.artist ?: resolved?.artist ?: ""}" else "" }
-            val scraperUrl = if (query.isNotBlank()) mp3Scraper.resolveMp3Link(query) else null
-            if (!scraperUrl.isNullOrEmpty()) {
-                val cleanUrl = scraperUrl.replace("http://", "https://")
-                resolved = (resolved ?: localSong ?: Song(id = songId, title = "Resolving...", artist = "Music Stream")).copy(streamUrl = cleanUrl)
+            val titleToUse = localSong?.title ?: resolved?.title ?: ""
+            val artistToUse = localSong?.artist ?: resolved?.artist ?: ""
+
+            if (titleToUse.isNotBlank() && artistToUse != "Unknown Artist") {
+                val strictQuery = "$titleToUse $artistToUse audio"
+                val scraperUrl = mp3Scraper.resolveMp3Link(strictQuery)
+                if (!scraperUrl.isNullOrEmpty()) {
+                    val cleanUrl = scraperUrl.replace("http://", "https://")
+                    resolved = (resolved ?: localSong ?: Song(id = songId, title = titleToUse, artist = artistToUse)).copy(streamUrl = cleanUrl)
+                }
             }
         }
         emit(resolved ?: localSong)
@@ -371,22 +436,31 @@ class MusicRepositoryImpl @Inject constructor(
     private suspend fun resolveHighQualityStream(song: Song): String? {
         return withContext(Dispatchers.IO) {
             try {
+                // Return exact URL if available
                 if (song.streamUrl.isNotBlank() && song.streamUrl.startsWith("http") && !song.streamUrl.contains("googlevideo")) {
                     return@withContext song.streamUrl.replace("http://", "https://")
                 }
-                val response = musicApi.searchSongs("${song.title} ${song.artist}", limit = 5)
-                val songs = parseSongsFromResponse(response)
-                val firstItem = songs?.firstOrNull()
 
-                if (firstItem != null) {
-                    val downloadList = extractDownloadUrls(firstItem.downloadUrl)
+                // Search with exact Title AND Artist to avoid getting audio of another song
+                val searchQuery = "${song.title} ${song.artist}".trim()
+                val response = musicApi.searchSongs(searchQuery, limit = 5)
+                val songs = parseSongsFromResponse(response)
+
+                // Match exact or closest song by title
+                val matchedItem = songs?.find {
+                    it.name.equals(song.title, ignoreCase = true)
+                } ?: songs?.firstOrNull()
+
+                if (matchedItem != null) {
+                    val downloadList = extractDownloadUrls(matchedItem.downloadUrl)
                     val bestUrl = downloadList.find { it.quality == "320kbps" }?.link
                         ?: downloadList.find { it.quality == "160kbps" }?.link
                         ?: downloadList.lastOrNull()?.link
                     if (!bestUrl.isNullOrEmpty()) return@withContext bestUrl.replace("http://", "https://")
                 }
-                mp3Scraper.resolveMp3Link("${song.title} ${song.artist}")?.replace("http://", "https://")
-            } catch (e: Exception) { null }
+
+                mp3Scraper.resolveMp3Link("$searchQuery official audio")?.replace("http://", "https://")
+            } catch (_: Exception) { null }
         }
     }
 
@@ -405,21 +479,38 @@ class MusicRepositoryImpl @Inject constructor(
         emit(DownloadProgress.Progress(0))
         _downloadingSongs.update { it + (song.id to 0) }
         try {
+            // 1. Fetch fresh song details from DB / API
             val resolvedSong = getSongById(song.id).firstOrNull() ?: song
             var dlUrl = resolvedSong.streamUrl
+
+            // 2. If direct stream URL is empty, resolve dynamically via fallback stream engines
             if (dlUrl.isBlank() || !dlUrl.startsWith("http")) {
-                dlUrl = resolveHighQualityStream(song) ?: throw Exception("No downloadable link found")
+                Log.d("MusicRepo", "Stream URL missing for download, resolving stream link dynamically...")
+                dlUrl = resolveHighQualityStream(song) ?: ""
+            }
+
+            // 3. Last fallback: Try scraper query using Exact Title + Artist
+            if (dlUrl.isBlank() || !dlUrl.startsWith("http")) {
+                val query = "${song.title} ${song.artist} audio".trim()
+                dlUrl = mp3Scraper.resolveMp3Link(query) ?: ""
+            }
+
+            if (dlUrl.isBlank() || !dlUrl.startsWith("http")) {
+                throw Exception("Download link is currently unavailable for this track.")
             }
 
             val safeUrl = dlUrl.replace("http://", "https://")
+            Log.d("MusicRepo", "Starting download using stream URL: $safeUrl")
+
             val request = Request.Builder()
                 .url(safeUrl)
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .header("Accept", "*/*")
                 .build()
 
             downloadHttpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw Exception("HTTP Error Code: ${response.code}")
-                val body = response.body ?: throw Exception("Null response body")
+                if (!response.isSuccessful) throw Exception("Server returned HTTP code: ${response.code}")
+                val body = response.body ?: throw Exception("Received empty response payload")
                 val total = body.contentLength()
                 val downloadDir = File(context.filesDir, "MusicStream").apply { if (!exists()) mkdirs() }
 
@@ -449,20 +540,27 @@ class MusicRepositoryImpl @Inject constructor(
                 if (tempFile.exists() && tempFile.length() > 0) {
                     if (finalFile.exists()) finalFile.delete()
                     if (tempFile.renameTo(finalFile)) {
-                        songDao.insertSong(resolvedSong.copy(streamUrl = safeUrl).toEntity().copy(localPath = finalFile.absolutePath))
+                        // Save verified stream link along with local path into Room DB
+                        val updatedEntity = resolvedSong.copy(
+                            streamUrl = safeUrl,
+                            localPath = finalFile.absolutePath
+                        ).toEntity()
+                        songDao.insertSong(updatedEntity)
+
                         _downloadingSongs.update { it - song.id }
                         emit(DownloadProgress.Completed)
                     } else {
-                        throw Exception("File rename operation failed")
+                        throw Exception("Failed to rename temporary file to destination path.")
                     }
                 } else {
-                    throw Exception("Downloaded file size is 0 bytes")
+                    if (tempFile.exists()) tempFile.delete()
+                    throw Exception("Downloaded file verification failed (0 bytes received).")
                 }
             }
         } catch (e: Exception) {
             _downloadingSongs.update { it - song.id }
-            Log.e("MusicRepo", "Download failed: ${e.message}")
-            emit(DownloadProgress.Failed(e.message ?: "Download failed"))
+            Log.e("MusicRepo", "Download exception for song ${song.id}: ${e.message}")
+            emit(DownloadProgress.Failed(e.message ?: "Download failed due to network error."))
         }
     }.flowOn(Dispatchers.IO)
 
@@ -496,13 +594,11 @@ class MusicRepositoryImpl @Inject constructor(
         }
     }
 
-    // Process and resolve high resolution cover image URL
     private fun resolveCoverUrl(rawUrl: String?): String {
         if (rawUrl.isNullOrBlank()) return DEFAULT_COVER_IMAGE
 
         var cleanUrl = rawUrl.trim().replace("http://", "https://")
 
-        // Format JioSaavn image size strings if present
         if (cleanUrl.contains("50x50") || cleanUrl.contains("150x150")) {
             cleanUrl = cleanUrl.replace("50x50", "500x500").replace("150x150", "500x500")
         }
@@ -526,10 +622,29 @@ class MusicRepositoryImpl @Inject constructor(
 
         val safeStreamUrl = rawStream.replace("http://", "https://")
 
-        val artistName = when (val art = this.primaryArtists) {
-            is String -> art
-            is List<*> -> art.joinToString(", ") { if (it is Map<*, *>) (it["name"] as? String) ?: "" else it.toString() }
-            else -> "Various Artists"
+        val invalidNames = listOf("various artists", "various", "<unknown>", "unknown artist", "unknown", "")
+
+        var parsedArtist = when (val art = this.primaryArtists) {
+            is String -> art.trim()
+            is List<*> -> art.mapNotNull { item ->
+                when (item) {
+                    is Map<*, *> -> (item["name"] as? String) ?: (item["title"] as? String)
+                    else -> item?.toString()
+                }
+            }.filter { it.isNotBlank() }.joinToString(", ")
+            else -> ""
+        }
+
+        parsedArtist = parsedArtist
+            .replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&#039;", "'")
+            .trim()
+
+        val finalArtist = if (parsedArtist.lowercase() in invalidNames || parsedArtist.isBlank()) {
+            "Unknown Artist"
+        } else {
+            parsedArtist
         }
 
         val durationInMs = when (val dur = this.duration) {
@@ -543,7 +658,7 @@ class MusicRepositoryImpl @Inject constructor(
         return Song(
             id = id,
             title = name ?: "Unknown Track",
-            artist = artistName,
+            artist = finalArtist,
             album = "",
             duration = durationInMs,
             coverUrl = resolveCoverUrl(rawImage),

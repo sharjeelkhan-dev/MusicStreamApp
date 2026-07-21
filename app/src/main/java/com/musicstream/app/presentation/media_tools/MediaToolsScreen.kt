@@ -30,10 +30,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.musicstream.app.ui.theme.*
 
-/**
- * Entry point for MediaToolsScreen.
- * Handles ViewModel instantiation and provides a safe fallback for Android Studio Previews.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MediaToolsScreen(
@@ -65,10 +61,7 @@ fun MediaToolsScreen(
     }
 }
 
-/**
- * Stateful version of MediaToolsScreen that takes a ViewModel.
- * This version handles side effects like file pickers and conversion completion events.
- */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MediaToolsScreen(

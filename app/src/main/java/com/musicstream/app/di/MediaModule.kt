@@ -59,9 +59,11 @@ object MediaModule {
         simpleCache: SimpleCache,
         httpDataSourceFactory: DefaultHttpDataSource.Factory
     ): CacheDataSource.Factory {
+        val upstreamFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
+
         return CacheDataSource.Factory()
             .setCache(simpleCache)
-            .setUpstreamDataSourceFactory(httpDataSourceFactory)
+            .setUpstreamDataSourceFactory(upstreamFactory)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
     }
 
@@ -82,19 +84,12 @@ object MediaModule {
             .build()
     }
 
-    // Keeping this for potential legacy or internal use if needed, but provideExoPlayer is main now
     @Provides
     @Singleton
     fun provideDefaultMediaSourceFactory(
         @ApplicationContext context: Context,
-        cache: SimpleCache
+        cacheDataSourceFactory: CacheDataSource.Factory
     ): DefaultMediaSourceFactory {
-        val upstreamFactory = DefaultDataSource.Factory(context)
-        val cacheDataSourceFactory = CacheDataSource.Factory()
-            .setCache(cache)
-            .setUpstreamDataSourceFactory(upstreamFactory)
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-
         return DefaultMediaSourceFactory(context)
             .setDataSourceFactory(cacheDataSourceFactory)
     }

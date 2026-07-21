@@ -205,7 +205,7 @@ fun MainApp(
                     }
                 }
 
-                if (isMainScreen && currentRoute != null) {
+                if (isMainScreen) {
                     BottomNavBar(
                         currentRoute = currentRoute,
                         onNavigate = { route ->
@@ -244,7 +244,7 @@ fun MainApp(
                 },
                 onDownloadClick = { song ->
                     Toast.makeText(context, "Download started: ${song.title}", Toast.LENGTH_SHORT).show()
-                    com.musicstream.app.service.DownloadService.start(context, song)
+                    com.musicstream.app.worker.AudioDownloadWorker.enqueue(context, song)
                 },
                 onDeleteDownloadClick = null,
                 onRemoveFromPlaylistClick = null,

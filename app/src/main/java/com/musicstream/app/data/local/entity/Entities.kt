@@ -13,6 +13,9 @@ data class SongEntity(
     val coverUrl: String = "",
     val streamUrl: String = "",
     val localPath: String? = null,
+    val albumId: String = "",
+    val isrc: String? = null,
+    val quality: String = "320kbps",
     val playCount: Long = 0L,
     val gradientIndex: Int = 0
 )

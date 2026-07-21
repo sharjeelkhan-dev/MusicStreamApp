@@ -80,7 +80,7 @@ fun MiniPlayerBar(
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onDragEnd = {
-                        if (kotlin.math.abs(offsetX) > 150) {
+                        if (kotlin.math.abs(offsetX) > 100) {
                             onDismiss()
                         }
                         offsetX = 0f

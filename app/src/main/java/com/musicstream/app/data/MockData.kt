@@ -58,14 +58,14 @@ object MockData {
     )
 
     val genres = listOf(
-        Genre(id = "genre_1", name = "Pop", gradientKey = "pop"),
-        Genre(id = "genre_2", name = "Hip-Hop", gradientKey = "hip-hop"),
-        Genre(id = "genre_3", name = "Punjabi", gradientKey = "punjabi"),
-        Genre(id = "genre_4", name = "Hindi", gradientKey = "hindi"),
-        Genre(id = "genre_5", name = "Rock", gradientKey = "rock"),
-        Genre(id = "genre_6", name = "Classical", gradientKey = "classical"),
-        Genre(id = "genre_7", name = "Jazz", gradientKey = "jazz"),
-        Genre(id = "genre_8", name = "Lo-fi", gradientKey = "lo-fi")
+        Genre(id = "genre_1", name = "Pop", gradientKey = "pop", string = "#E91E63"),
+        Genre(id = "genre_2", name = "Hip-Hop", gradientKey = "hip-hop", string = "#E91E63"),
+        Genre(id = "genre_3", name = "Punjabi", gradientKey = "punjabi", string = "#E91E63"),
+        Genre(id = "genre_4", name = "Hindi", gradientKey = "hindi", string = "#E91E63"),
+        Genre(id = "genre_5", name = "Rock", gradientKey = "rock", string = "#E91E63"),
+        Genre(id = "genre_6", name = "Classical", gradientKey = "classical", string = "#E91E63"),
+        Genre(id = "genre_7", name = "Jazz", gradientKey = "jazz", string = "#E91E63"),
+        Genre(id = "genre_8", name = "Lo-fi", gradientKey = "lo-fi", string = "#E91E63")
     )
 
     val trendingSearches = listOf(

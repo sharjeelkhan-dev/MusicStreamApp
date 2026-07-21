@@ -67,7 +67,6 @@ dependencies {
 
     // Hilt
     implementation(libs.hilt.android)
-    ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
 
     // Room
@@ -107,6 +106,9 @@ dependencies {
     // NewPipe Extractor
     implementation(libs.newpipe.extractor)
 
+    // Jsoup
+    implementation(libs.jsoup)
+
     // FFmpeg
     implementation(libs.ffmpeg.kit.full)
 
@@ -118,8 +120,10 @@ dependencies {
         exclude(group = "com.google.firebase", module = "protolite-well-known-types")
     }
 
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0")// Correct Group ID and Artifact Name
+    implementation("com.squareup.retrofit2:converter-scalars:2.9.0")
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
-    implementation(libs.androidx.hilt.work)
     ksp(libs.hilt.android.compiler) // reuse compiler for hilt-work
 }

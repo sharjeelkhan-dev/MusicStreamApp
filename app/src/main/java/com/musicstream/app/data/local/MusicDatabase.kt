@@ -22,7 +22,7 @@ import com.musicstream.app.data.local.entity.SearchHistoryEntity
         PlaylistSongCrossRef::class,
         SearchHistoryEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {

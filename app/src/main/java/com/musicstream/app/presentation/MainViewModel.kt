@@ -37,7 +37,7 @@ class MainViewModel @Inject constructor(
     fun downloadSong(song: Song) {
         viewModelScope.launch {
             musicRepository.addToRecentlyPlayed(song) // Ensure metadata exists
-            com.musicstream.app.service.DownloadService.start(
+            com.musicstream.app.worker.AudioDownloadWorker.enqueue(
                 context = (musicRepository as com.musicstream.app.data.repository.MusicRepositoryImpl).getContext(),
                 song = song
             )

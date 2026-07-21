@@ -1,6 +1,6 @@
 package com.musicstream.app.service
 
-import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
@@ -10,17 +10,12 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
-import androidx.media3.session.SessionResult
+import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.musicstream.app.domain.repository.MusicRepository
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.guava.future
+import java.io.File
 import javax.inject.Inject
-import androidx.core.net.toUri
 
 @AndroidEntryPoint
 class MusicPlaybackService : MediaSessionService() {
@@ -32,7 +27,6 @@ class MusicPlaybackService : MediaSessionService() {
     lateinit var musicRepository: MusicRepository
 
     private var mediaSession: MediaSession? = null
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     companion object {
         const val CUSTOM_COMMAND_TOGGLE_FAVORITE = "CUSTOM_COMMAND_TOGGLE_FAVORITE"
@@ -44,24 +38,13 @@ class MusicPlaybackService : MediaSessionService() {
 
         exoPlayer.addListener(object : Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                android.util.Log.e("MusicPlaybackService", "Player Error: ${error.message}", error)
-            }
-
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                val stateName = when(playbackState) {
-                    Player.STATE_BUFFERING -> "BUFFERING"
-                    Player.STATE_READY -> "READY"
-                    Player.STATE_ENDED -> "ENDED"
-                    Player.STATE_IDLE -> "IDLE"
-                    else -> "UNKNOWN"
-                }
-                android.util.Log.d("MusicPlaybackService", "Playback State Changed: $stateName")
+                android.util.Log.e("MusicPlaybackService", "EXOPLAYER ERROR CODE: ${error.errorCodeName}")
+                android.util.Log.e("MusicPlaybackService", "EXOPLAYER ERROR CAUSE: ${error.cause?.message}", error)
             }
         })
 
         val sessionCallback = object : MediaSession.Callback {
 
-            // 1. Controller Permissions Setup (Taaki player commands trigger ho sakein)
             @OptIn(UnstableApi::class)
             override fun onConnect(
                 session: MediaSession,
@@ -87,47 +70,42 @@ class MusicPlaybackService : MediaSessionService() {
                     .build()
             }
 
-            // 2. Dynamic Media Resolution (Asynchronous URL Retrieval for YouTube tracks)
             @OptIn(UnstableApi::class)
             override fun onAddMediaItems(
                 mediaSession: MediaSession,
                 controller: MediaSession.ControllerInfo,
                 mediaItems: MutableList<MediaItem>
             ): ListenableFuture<MutableList<MediaItem>> {
+                val updatedItems = mediaItems.map { item ->
+                    val rawUriString = item.localConfiguration?.uri?.toString() ?: ""
 
-                // Guava ListenableFuture wrapper use karke coroutine resolve karna
-                return serviceScope.future {
-                    val resolvedList = mediaItems.map { item ->
-                        val currentUri = item.localConfiguration?.uri?.toString() ?: ""
+                    // File path Extraction
+                    val cleanPath = when {
+                        rawUriString.startsWith("file://") -> rawUriString.substring(7)
+                        else -> rawUriString
+                    }
 
-                        // Agar URL YouTube format mein hai, tabhi resolution run karein
-                        if (currentUri.startsWith("youtube://") || item.mediaId.isNotEmpty() && (currentUri.isEmpty() || currentUri.startsWith("youtube://"))) {
-                            val cleanId = if (currentUri.startsWith("youtube://")) {
-                                currentUri.substringAfter("youtube://")
-                            } else {
-                                item.mediaId
-                            }
+                    val isLocalPath = cleanPath.startsWith("/data/") || cleanPath.startsWith("/storage/")
+                    val localFile = File(cleanPath)
 
-                            android.util.Log.d("MusicPlaybackService", "Resolving YouTube audio stream for: $cleanId")
-                            val directStreamUrl = musicRepository.getYouTubeAudioStreamUrl(cleanId)
+                    if (isLocalPath && localFile.exists()) {
+                        android.util.Log.d("MusicPlaybackService", "Successfully matched offline file: ${localFile.absolutePath}")
 
-                            if (!directStreamUrl.isNullOrEmpty()) {
-                                android.util.Log.d("MusicPlaybackService", "Success resolving stream: $directStreamUrl")
-                                item.buildUpon()
-                                    .setUri(directStreamUrl.toUri())
-                                    .build()
-                            } else {
-                                android.util.Log.e("MusicPlaybackService", "Resolution failed, returning fallback item")
-                                item
-                            }
-                        } else {
-                            // Local file ya pehle se resolved URL ko bypass karein
-                            item
+                        // Properly build MediaItem with MediaId & File URI
+                        item.buildUpon()
+                            .setMediaId(item.mediaId.ifEmpty { cleanPath })
+                            .setUri(Uri.fromFile(localFile))
+                            .setMediaMetadata(item.mediaMetadata)
+                            .build()
+                    } else {
+                        if (isLocalPath) {
+                            android.util.Log.e("MusicPlaybackService", "File path marked local but missing on disk: $cleanPath")
                         }
-                    }.toMutableList()
+                        item
+                    }
+                }.toMutableList()
 
-                    resolvedList
-                }
+                return Futures.immediateFuture(updatedItems)
             }
         }
 
@@ -146,7 +124,6 @@ class MusicPlaybackService : MediaSessionService() {
             release()
             mediaSession = null
         }
-        serviceScope.cancel()
         super.onDestroy()
     }
 }

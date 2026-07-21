@@ -20,7 +20,7 @@ interface MusicRepository {
     fun getFavorites(): Flow<List<Song>>
     fun getDownloads(): Flow<List<Song>>
     fun getSongById(songId: String): Flow<Song?>
-    suspend fun getYouTubeAudioStreamUrl(videoId: String): String?
+    suspend fun getYouTubeAudioStreamUrl(videoId: String, title: String? = null, artist: String? = null): String?
     fun getSongsForPlaylist(playlistId: String): Flow<List<Song>>
     suspend fun toggleFavorite(song: Song)
     suspend fun createPlaylist(name: String)

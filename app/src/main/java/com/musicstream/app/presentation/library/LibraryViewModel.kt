@@ -153,6 +153,6 @@ class LibraryViewModel @Inject constructor(
 
     fun downloadSong(song: Song) {
         android.widget.Toast.makeText(context, "Download started: ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
-        com.musicstream.app.service.DownloadService.start(context, song)
+        com.musicstream.app.worker.AudioDownloadWorker.enqueue(context, song)
     }
 }

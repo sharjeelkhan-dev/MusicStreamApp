@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "322246698327",
+    "project_id": "musicstream-f94dd",
+    "storage_bucket": "musicstream-f94dd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:322246698327:android:b745d0fbc5a12676cfca12",
+        "android_client_info": {
+          "package_name": "com.musicstream.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCn91HAtng4Kn7T72eLnrtzXOTb5RWqHQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

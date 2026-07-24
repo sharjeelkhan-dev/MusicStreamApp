@@ -1,9 +1,27 @@
+# Android Studio / IntelliJ files
+.idea/
 *.iml
-.gradle
-/local.properties
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+*.iws
+
+# Gradle files
+.gradle/
+build/
+app/build/
+gradle-app.setting
+
+# Local properties
 local.properties
+
+# Log files
+*.log
+
+# Built variants
+*.apk
+*.aar
+*.ap_
+*.dex
+app/release/
+
+# OS generated files
+.DS_Store
+Thumbs.db

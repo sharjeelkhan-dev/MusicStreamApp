@@ -24,8 +24,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
+            vcsInfo.include = false
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -42,6 +44,18 @@ android {
     buildFeatures {
         compose = true
     }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+// Room KSP Configuration to fix XTypeName/IllegalStateException issues
+ksp {
+    arg("room.generateKotlin", "true")
+    arg("room.incremental", "true")
+    arg("room.expandProjection", "true")
 }
 
 dependencies {
@@ -68,6 +82,7 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
+    ksp(libs.hilt.android.compiler) // Main Hilt Dagger Compiler
 
     // Room
     implementation(libs.room.runtime)
@@ -77,6 +92,7 @@ dependencies {
     // Retrofit + Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.moshi)
+    implementation("com.squareup.retrofit2:converter-scalars:2.11.0")
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.okhttp.dnsoverhttps)
@@ -120,10 +136,13 @@ dependencies {
         exclude(group = "com.google.firebase", module = "protolite-well-known-types")
     }
 
-    implementation("androidx.hilt:hilt-work:1.2.0")
-    ksp("androidx.hilt:hilt-compiler:1.2.0")// Correct Group ID and Artifact Name
-    implementation("com.squareup.retrofit2:converter-scalars:2.9.0")
-    // WorkManager
+    // WorkManager & Hilt Work Integration
     implementation(libs.androidx.work.runtime.ktx)
-    ksp(libs.hilt.android.compiler) // reuse compiler for hilt-work
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0") // AndroidX Hilt Compiler for WorkManager
+
+    // Google Credential Manager
+    implementation("androidx.credentials:credentials:1.6.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.2.0")
 }

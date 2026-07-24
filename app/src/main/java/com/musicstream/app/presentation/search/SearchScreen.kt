@@ -1,4 +1,5 @@
 package com.musicstream.app.presentation.search
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,11 +19,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.AlertDialog
@@ -64,6 +66,7 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.musicstream.app.R
 import com.musicstream.app.data.MockData
@@ -191,8 +194,8 @@ fun SearchContent(
         val context = LocalContext.current
         SongOptionsBottomSheet(
             song = selectedSongForOptions!!,
-            onDismissRequest = { 
-                selectedSongForOptions = null 
+            onDismissRequest = {
+                selectedSongForOptions = null
             },
             onFavoriteClick = { song: Song ->
                 onToggleFavorite(song)
@@ -242,277 +245,282 @@ fun SearchContent(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        val scrollState = rememberScrollState()
-        
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Header (Premium Style)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 12.dp)
-            ) {
-                Text(
-                    text = "Browse",
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-1).sp
-                )
+            // Header
+            item(key = "header") {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        text = "Browse",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-1).sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Search Bar Area with Dropdown logic
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .zIndex(10f)
-            ) {
-                Column {
-                    // Search Bar
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .offset(y = (-20).dp)
-                            .height(56.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.magnifying_glass_icon),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(14.dp))
-                            BasicTextField(
-                                value = state.query,
-                                onValueChange = { onQueryChange(it) },
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface // Yeh line text color ko dark/light mode ke mutabiq fix kar degi
-                                ),
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .onFocusChanged { isSearchBarFocused = it.isFocused },
-                                decorationBox = { innerTextField ->
-                                    Box(modifier = Modifier.fillMaxWidth()) {
-                                        if (state.query.isEmpty()) {
-                                            Text(
-                                                text = "Search songs, artists, albums...",
-                                                color = MaterialTheme.colorScheme
-                                                    .onSurfaceVariant.copy(alpha = 0.6f),
-                                                fontSize = 16.sp
-                                            )
-                                        }
-                                        innerTextField()
-                                    }
-                                },
-                                singleLine = true
-                            )
-                            if (state.query.isNotEmpty()) {
-                                IconButton(
-                                    onClick = { onQueryChange("") },
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.close_line_icon),
-                                        contentDescription = "Clear",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Dropdown History Overlay (Visible when focused and query is empty)
-                if (isSearchBarFocused && state.query.isBlank() && state.searchHistory.isNotEmpty()) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .offset(y = 44.dp) // Overlay below the search bar
-                            .graphicsLayer {
-                                clip = true
-                                shape = RoundedCornerShape(24.dp)
-                                shadowElevation = 20f
-                            },
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme
-                                .colorScheme.surface.copy(alpha = 0.98f)
-                        ),
-                        elevation = CardDefaults
-                            .cardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Column(
+            // Search Bar & Overlay Box
+            item(key = "search_bar_section") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .zIndex(10f)
+                ) {
+                    Column {
+                        Card(
                             modifier = Modifier
-                                .padding(vertical = 3.dp)
+                                .fillMaxWidth()
+                                .offset(y = (-20).dp)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 3.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "Recent searches",
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
+                                Icon(
+                                    painter = painterResource(id = R.drawable.magnifying_glass_icon),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(24.dp)
                                 )
-                                TextButton(onClick = onClearHistory) {
-                                    Text(
-                                        "Clear All",
-                                        fontSize = 12.sp,
-                                        modifier = Modifier.offset(x = 8.dp),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-
-                            state.searchHistory.take(6).forEach { historyQuery ->
-                                Row(
+                                Spacer(modifier = Modifier.width(14.dp))
+                                BasicTextField(
+                                    value = state.query,
+                                    onValueChange = { onQueryChange(it) },
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .offset(y = (-15).dp)
-                                        .clickable { 
-                                            onQueryChange(historyQuery)
-                                            focusManager.clearFocus()
-                                            isSearchBarFocused = false
-                                        }
-                                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    // Image or Icon based on query (mocking the rich look)
-                                    Box(
-                                        modifier = Modifier
-                                            .size(52.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        val mockImageUrl = when {
-                                            historyQuery.contains("Singh", true) || historyQuery.contains("Dosanjh", true) -> "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=100"
-                                            historyQuery.contains("Rock", true) -> "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=100"
-                                            historyQuery.contains("Pop", true) -> "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=100"
-                                            else -> null
-                                        }
-
-                                        if (mockImageUrl != null) {
-                                            AsyncImage(
-                                                model = mockImageUrl,
-                                                contentDescription = null,
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        } else {
-                                            val iconRes = when {
-                                                historyQuery.contains("Song", true) || historyQuery.length > 15 -> R.drawable.music_song_file_icon
-                                                historyQuery.any { it.isUpperCase() } -> R.drawable.audio_tune_icon
-                                                else -> R.drawable.history_line_icon
+                                        .weight(1f)
+                                        .onFocusChanged { isSearchBarFocused = it.isFocused },
+                                    decorationBox = { innerTextField ->
+                                        Box(modifier = Modifier.fillMaxWidth()) {
+                                            if (state.query.isEmpty()) {
+                                                Text(
+                                                    text = "Search songs, artists, albums...",
+                                                    color = MaterialTheme.colorScheme
+                                                        .onSurfaceVariant.copy(alpha = 0.6f),
+                                                    fontSize = 16.sp
+                                                )
                                             }
-                                            Icon(
-                                                painter = painterResource(id = iconRes),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(22.dp)
-                                            )
+                                            innerTextField()
                                         }
-                                    }
-                                    
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = historyQuery,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.SemiBold,
-                                            maxLines = 1
-                                        )
-                                        val typeLabel = when {
-                                            historyQuery.contains("Pop", true) || historyQuery.contains("Rock", true) -> "Genre"
-                                            historyQuery.contains("Singh", true) || historyQuery.contains("Dosanjh", true) -> "Artist"
-                                            else -> "Song"
-                                        }
-                                        Text(
-                                            text = typeLabel,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
-
+                                    },
+                                    singleLine = true
+                                )
+                                if (state.query.isNotEmpty()) {
                                     IconButton(
-                                        onClick = { onDeleteHistoryItem(historyQuery) },
-                                        modifier = Modifier.size(32.dp)
+                                        onClick = { onQueryChange("") },
+                                        modifier = Modifier.size(28.dp)
                                     ) {
                                         Icon(
                                             painter = painterResource(id = R.drawable.close_line_icon),
-                                            contentDescription = "Remove",
+                                            contentDescription = "Clear",
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(18.dp)
                                         )
                                     }
                                 }
                             }
                         }
                     }
+
+                    if (isSearchBarFocused && state.query.isBlank() && state.searchHistory.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .offset(y = 44.dp)
+                                .graphicsLayer {
+                                    clip = true
+                                    shape = RoundedCornerShape(24.dp)
+                                    shadowElevation = 20f
+                                },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme
+                                    .colorScheme.surface.copy(alpha = 0.98f)
+                            ),
+                            elevation = CardDefaults
+                                .cardElevation(defaultElevation = 8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .padding(vertical = 3.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp, vertical = 3.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Recent searches",
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    TextButton(onClick = onClearHistory) {
+                                        Text(
+                                            "Clear All",
+                                            fontSize = 12.sp,
+                                            modifier = Modifier.offset(x = 8.dp),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                state.searchHistory.take(6).forEach { historyQuery ->
+                                    key(historyQuery) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .offset(y = (-15).dp)
+                                                .clickable {
+                                                    onQueryChange(historyQuery)
+                                                    focusManager.clearFocus()
+                                                    isSearchBarFocused = false
+                                                }
+                                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(52.dp)
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                val mockImageUrl = when {
+                                                    historyQuery.contains("Singh", true) || historyQuery.contains("Dosanjh", true) -> "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=100"
+                                                    historyQuery.contains("Rock", true) -> "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=100"
+                                                    historyQuery.contains("Pop", true) -> "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=100"
+                                                    else -> null
+                                                }
+
+                                                if (mockImageUrl != null) {
+                                                    AsyncImage(
+                                                        model = ImageRequest.Builder(LocalContext.current)
+                                                            .data(mockImageUrl)
+                                                            .memoryCachePolicy(CachePolicy.ENABLED)
+                                                            .diskCachePolicy(CachePolicy.ENABLED)
+                                                            .build(),
+                                                        contentDescription = null,
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        contentScale = ContentScale.Crop
+                                                    )
+                                                } else {
+                                                    val iconRes = when {
+                                                        historyQuery.contains("Song", true) || historyQuery.length > 15 -> R.drawable.music_song_file_icon
+                                                        historyQuery.any { it.isUpperCase() } -> R.drawable.audio_tune_icon
+                                                        else -> R.drawable.history_line_icon
+                                                    }
+                                                    Icon(
+                                                        painter = painterResource(id = iconRes),
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(22.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.width(16.dp))
+
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = historyQuery,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    maxLines = 1
+                                                )
+                                                val typeLabel = when {
+                                                    historyQuery.contains("Pop", true) || historyQuery.contains("Rock", true) -> "Genre"
+                                                    historyQuery.contains("Singh", true) || historyQuery.contains("Dosanjh", true) -> "Artist"
+                                                    else -> "Song"
+                                                }
+                                                Text(
+                                                    text = typeLabel,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
+
+                                            IconButton(
+                                                onClick = { onDeleteHistoryItem(historyQuery) },
+                                                modifier = Modifier.size(32.dp)
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.close_line_icon),
+                                                    contentDescription = "Remove",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+                Spacer(modifier = Modifier.height(32.dp))
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
+            // Main Content Area
             if (state.query.isBlank()) {
-                // Section: Explore Genres
-                Text(
-                    text = "EXPLORE GENRES",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.2.sp,
-                    modifier = Modifier.padding(horizontal = 26.dp).offset(y = (-40).dp)
-                )
+                item(key = "explore_genres_title") {
+                    Text(
+                        text = "EXPLORE GENRES",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.2.sp,
+                        modifier = Modifier.padding(horizontal = 26.dp).offset(y = (-40).dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                item(key = "genre_grid") {
+                    GenreGrid(
+                        genres = state.genres,
+                        onGenreClick = { onQueryChange(it) }
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
 
-                // Genre Grid (Redesigned)
-                GenreGrid(
-                    genres = state.genres,
-                    onGenreClick = { onQueryChange(it) }
-                )
+                item(key = "trending_searches_title") {
+                    Text(
+                        text = "TRENDING SEARCHES",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.2.sp,
+                        modifier = Modifier.padding(horizontal = 26.dp).offset(y = (-50).dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Section: Trending Searches
-                Text(
-                    text = "TRENDING SEARCHES",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.2.sp,
-                    modifier = Modifier.padding(horizontal = 26.dp).offset(y = (-50).dp)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                state.trendingSearches.forEach { search ->
+                items(
+                    items = state.trendingSearches,
+                    key = { "trending_$it" }
+                ) { search ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -526,8 +534,7 @@ fun SearchContent(
                         onClick = { onQueryChange(search) }
                     ) {
                         Row(
-                            modifier = Modifier
-                                .padding(16.dp),
+                            modifier = Modifier.padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
@@ -552,73 +559,82 @@ fun SearchContent(
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.weight(1f))
-                            
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                item(key = "bottom_space_blank") {
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
             } else {
-                // Search Results
                 if (state.isSearching) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(64.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    item(key = "search_loading") {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(64.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 } else if (state.searchResults.isEmpty()) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(64.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.no_search_result_icon),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "No results found",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                } else {
-                    state.searchResults.forEachIndexed { index, song ->
-                        val isSongPlaying = currentPlayingSong?.id == song.id && isPlaying
-                        key(song.id) {
-                            SongListItem(
-                                song = song,
-                                modifier = Modifier.offset(y = (-35).dp),
-                                showThumbnail = true,
-                                onSongClick = { 
-                                    onPlaySongs(state.searchResults, index) 
-                                },
-                                onFavoriteClick = { onToggleFavorite(song) },
-                                onDownloadClick = { onDownloadSong(it) },
-                                onAddClick = { selectedSongForOptions = it },
-                                downloadProgress = state.downloadingSongs[song.id],
-                                isPlaying = isSongPlaying,
-                                onPlayPauseClick = {
-                                    if (currentPlayingSong?.id == song.id) {
-                                        onTogglePlayPause()
-                                    } else {
-                                        onPlaySongs(state.searchResults, index)
-                                    }
-                                }
+                    item(key = "search_empty") {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(64.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.no_search_result_icon),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "No results found",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
+                } else {
+                    itemsIndexed(
+                        items = state.searchResults,
+                        key = { _, song -> song.id }
+                    ) { index, song ->
+                        val isSongPlaying = currentPlayingSong?.id == song.id && isPlaying
+                        SongListItem(
+                            song = song,
+                            modifier = Modifier.offset(y = (-35).dp),
+                            showThumbnail = true,
+                            onSongClick = {
+                                onPlaySongs(state.searchResults, index)
+                            },
+                            onFavoriteClick = { onToggleFavorite(song) },
+                            onDownloadClick = { onDownloadSong(it) },
+                            onAddClick = { selectedSongForOptions = it },
+                            downloadProgress = state.downloadingSongs[song.id],
+                            isPlaying = isSongPlaying,
+                            onPlayPauseClick = {
+                                if (currentPlayingSong?.id == song.id) {
+                                    onTogglePlayPause()
+                                } else {
+                                    onPlaySongs(state.searchResults, index)
+                                }
+                            }
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                item(key = "bottom_space_results") {
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
             }
-            
-            // Bottom spacer for edge-to-edge
-            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-            Spacer(Modifier.height(100.dp))
+
+            // Bottom Insets Padding
+            item(key = "bottom_navigation_padding") {
+                Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+                Spacer(Modifier.height(100.dp))
+            }
         }
     }
 }
@@ -628,89 +644,93 @@ private fun GenreGrid(
     genres: List<Genre>,
     onGenreClick: (String) -> Unit
 ) {
+    val genreChunks = remember(genres) { genres.chunked(2) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        genres.chunked(2).forEach { row ->
+        genreChunks.forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth().offset(y = (-40).dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 row.forEach { genre ->
-                    val imageUrl = when {
-                        genre.name.contains("pop", ignoreCase = true) -> "https://images.unsplash.com/photo-1548778052-311f4bc2b502?q=80&w=687"
-                        genre.name.contains("hip-hop", ignoreCase = true) || genre.name.contains("rap", ignoreCase = true) -> "https://plus.unsplash.com/premium_photo-1710107447132-063440229ee4?q=80&w=687"
-                        genre.name.contains("punjabi", ignoreCase = true) -> "https://images.unsplash.com/photo-1554772593-cc0206eee02b?q=80&w=687"
-                        genre.name.contains("hindi", ignoreCase = true) || genre.name.contains("bollywood", ignoreCase = true) -> "https://images.unsplash.com/photo-1524230507669-5ff97982bb5e?q=80&w=664"
-                        genre.name.contains("rock", ignoreCase = true) -> "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?q=80&w=800"
-                        genre.name.contains("classical", ignoreCase = true) -> "https://images.unsplash.com/photo-1526142684086-7ebd69df27a5?q=80&w=1170"
-                        genre.name.contains("jazz", ignoreCase = true) -> "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=800"
-                        genre.name.contains("lo-fi", ignoreCase = true) || genre.name.contains("focus", ignoreCase = true) -> "https://images.unsplash.com/photo-1712507123246-476b08ae363f?q=80&w=1175"
-                        else -> "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=800"
-                    }
+                    key(genre.name) {
+                        val imageUrl = remember(genre.name) {
+                            when {
+                                genre.name.contains("pop", ignoreCase = true) -> "https://images.unsplash.com/photo-1548778052-311f4bc2b502?q=80&w=687"
+                                genre.name.contains("hip-hop", ignoreCase = true) || genre.name.contains("rap", ignoreCase = true) -> "https://plus.unsplash.com/premium_photo-1710107447132-063440229ee4?q=80&w=687"
+                                genre.name.contains("punjabi", ignoreCase = true) -> "https://images.unsplash.com/photo-1554772593-cc0206eee02b?q=80&w=687"
+                                genre.name.contains("hindi", ignoreCase = true) || genre.name.contains("bollywood", ignoreCase = true) -> "https://images.unsplash.com/photo-1524230507669-5ff97982bb5e?q=80&w=664"
+                                genre.name.contains("rock", ignoreCase = true) -> "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?q=80&w=800"
+                                genre.name.contains("classical", ignoreCase = true) -> "https://images.unsplash.com/photo-1526142684086-7ebd69df27a5?q=80&w=1170"
+                                genre.name.contains("jazz", ignoreCase = true) -> "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=800"
+                                genre.name.contains("lo-fi", ignoreCase = true) || genre.name.contains("focus", ignoreCase = true) -> "https://images.unsplash.com/photo-1712507123246-476b08ae363f?q=80&w=1175"
+                                else -> "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=800"
+                            }
+                        }
 
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(110.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        onClick = { onGenreClick(genre.name) }
-                    ) {
-                        Box(
+                        Card(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme
-                                    .colorScheme.surfaceVariant)
+                                .weight(1f)
+                                .height(110.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                            onClick = { onGenreClick(genre.name) }
                         ) {
-                            // Genre Image background
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(imageUrl)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop,
-                                error = painterResource(id = R.drawable.music_song_file_icon),
-                                placeholder = painterResource(id = R.drawable.music_song_file_icon)
-                            )
-
-                            // Gradient Overlay (Darker at bottom for text readability)
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.Black.copy(alpha = 0.2f),
-                                                Color.Black.copy(alpha = 0.6f)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(imageUrl)
+                                        .memoryCachePolicy(CachePolicy.ENABLED)
+                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                        .crossfade(false)
+                                        .build(),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    error = painterResource(id = R.drawable.music_song_file_icon),
+                                    placeholder = painterResource(id = R.drawable.music_song_file_icon)
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(
+                                                    Color.Black.copy(alpha = 0.2f),
+                                                    Color.Black.copy(alpha = 0.6f)
+                                                )
                                             )
                                         )
-                                    )
-                            )
+                                )
 
-                            // Subtle icon background (Optional, keeping it for style)
-                            Icon(
-                                painter = painterResource(id = R.drawable.audio_tune_icon),
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.15f),
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .align(Alignment.BottomEnd)
-                                    .offset(x = 20.dp, y = 20.dp)
-                            )
-                            
-                            Text(
-                                text = genre.name,
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                modifier = Modifier.padding(16.dp).align(Alignment.TopStart)
-                            )
+                                Icon(
+                                    painter = painterResource(id = R.drawable.audio_tune_icon),
+                                    contentDescription = null,
+                                    tint = Color.White.copy(alpha = 0.15f),
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .align(Alignment.BottomEnd)
+                                        .offset(x = 20.dp, y = 20.dp)
+                                )
+
+                                Text(
+                                    text = genre.name,
+                                    color = Color.White,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(16.dp).align(Alignment.TopStart)
+                                )
+                            }
                         }
                     }
                 }

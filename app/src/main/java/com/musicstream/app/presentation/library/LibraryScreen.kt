@@ -56,9 +56,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -89,7 +91,6 @@ fun LibraryScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val playerState by playerViewModel.uiState.collectAsStateWithLifecycle()
 
-    // Pass central player state fallback values
     val activePlayingSongId = playerState.currentSong?.id ?: currentPlayingSongId
     val activeIsPlaying = playerState.isPlaying || isPlaying
 
@@ -143,17 +144,29 @@ fun LibraryContent(
     var selectedSongIdForPlaylist by remember { mutableStateOf<String?>(null) }
     var selectedSongForOptions by remember { mutableStateOf<Song?>(null) }
 
-    // Helper function for safe playback matching
-    fun isSongCurrentlyPlaying(song: Song): Boolean {
-        if (!isPlaying || currentPlayingSongId == null) return false
-        return song.id == currentPlayingSongId ||
-                song.title.equals(currentPlayingSongId, ignoreCase = true) ||
-                song.id.contains(currentPlayingSongId, ignoreCase = true) ||
-                currentPlayingSongId.contains(song.id, ignoreCase = true) ||
-                (song.localPath != null && currentPlayingSongId.contains(
-                    song.localPath,
-                    ignoreCase = true
-                ))
+    val tabs = remember { LibraryTab.entries.toTypedArray() }
+
+    // DOWNLOADED SONGS FILTERING IS PLACED HERE (Composable Scope Outside LazyColumn)
+    val downloadedOnly = remember(state.downloads, state.downloadingSongsList) {
+        state.downloads.filter { downloadedSong ->
+            state.downloadingSongsList.none { it.id == downloadedSong.id }
+        }
+    }
+
+    val isSongCurrentlyPlaying: (Song) -> Boolean = remember(isPlaying, currentPlayingSongId) {
+        { song ->
+            if (!isPlaying || currentPlayingSongId == null) false
+            else {
+                song.id == currentPlayingSongId ||
+                        song.title.equals(currentPlayingSongId, ignoreCase = true) ||
+                        song.id.contains(currentPlayingSongId, ignoreCase = true) ||
+                        currentPlayingSongId.contains(song.id, ignoreCase = true) ||
+                        (song.localPath != null && currentPlayingSongId.contains(
+                            song.localPath,
+                            ignoreCase = true
+                        ))
+            }
+        }
     }
 
     if (playlistToDelete != null) {
@@ -175,23 +188,23 @@ fun LibraryContent(
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
             },
             text = {
                 Text(
-                    text = "Are you sure you want to delete '${playlistToDelete!!.name}'? This action cannot be undone.",
+                    text = "Are you sure you want to delete '${playlistToDelete?.name.orEmpty()}'? This action cannot be undone.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        onDeletePlaylist(playlistToDelete!!.id)
+                        playlistToDelete?.let { onDeletePlaylist(it.id) }
                         playlistToDelete = null
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -232,23 +245,25 @@ fun LibraryContent(
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
             },
             text = {
                 Text(
-                    text = "Remove '${songToRemoveFromPlaylist!!.second.title}' from '${songToRemoveFromPlaylist!!.first.name}'?",
+                    text = "Remove '${songToRemoveFromPlaylist?.second?.title.orEmpty()}' from '${songToRemoveFromPlaylist?.first?.name.orEmpty()}'?",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        onRemoveSongFromPlaylist(songToRemoveFromPlaylist!!.first.id, songToRemoveFromPlaylist!!.second.id)
+                        songToRemoveFromPlaylist?.let { (playlist, song) ->
+                            onRemoveSongFromPlaylist(playlist.id, song.id)
+                        }
                         songToRemoveFromPlaylist = null
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -274,7 +289,9 @@ fun LibraryContent(
         PlaylistSelectionBottomSheet(
             playlists = state.playlists,
             onPlaylistSelected = { playlist: Playlist ->
-                addSongToPlaylist(playlist.id, selectedSongIdForPlaylist!!)
+                selectedSongIdForPlaylist?.let { songId ->
+                    addSongToPlaylist(playlist.id, songId)
+                }
                 selectedSongIdForPlaylist = null
             },
             onCreatePlaylistClick = {
@@ -287,10 +304,11 @@ fun LibraryContent(
         )
     }
 
-    if (selectedSongForOptions != null) {
-        val context = androidx.compose.ui.platform.LocalContext.current
+    val currentOptionsSong = selectedSongForOptions
+    if (currentOptionsSong != null) {
+        val context = LocalContext.current
         SongOptionsBottomSheet(
-            song = selectedSongForOptions,
+            song = currentOptionsSong,
             onDismissRequest = {
                 selectedSongForOptions = null
             },
@@ -317,18 +335,17 @@ fun LibraryContent(
                 }
             } else null,
             onShareClick = { _ ->
-                val songToShare = selectedSongForOptions
-                if (songToShare != null) {
-                    val sendIntent: android.content.Intent = android.content.Intent().apply {
-                        action = android.content.Intent.ACTION_SEND
-                        putExtra(android.content.Intent.EXTRA_TEXT,
-                            "Check out this song '${songToShare.title}'" +
-                                    " by ${songToShare.artist} on Music Stream!")
-                        type = "text/plain"
-                    }
-                    val shareIntent = android.content.Intent.createChooser(sendIntent, null)
-                    context.startActivity(shareIntent)
+                val sendIntent: android.content.Intent = android.content.Intent().apply {
+                    action = android.content.Intent.ACTION_SEND
+                    putExtra(
+                        android.content.Intent.EXTRA_TEXT,
+                        "Check out this song '${currentOptionsSong.title}'" +
+                                " by ${currentOptionsSong.artist} on Music Stream!"
+                    )
+                    type = "text/plain"
                 }
+                val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+                context.startActivity(shareIntent)
                 selectedSongForOptions = null
             },
             onGoToArtistClick = { artistName ->
@@ -363,9 +380,12 @@ fun LibraryContent(
                     OutlinedTextField(
                         value = newPlaylistName,
                         onValueChange = { newPlaylistName = it },
-                        placeholder = { Text("Playlist Name",
-                            color = MaterialTheme.colorScheme
-                                .onSurfaceVariant.copy(alpha = 0.6f)) },
+                        placeholder = {
+                            Text(
+                                "Playlist Name",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -411,14 +431,14 @@ fun LibraryContent(
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
         onRefresh = onRefresh,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Title
-            item {
+            item(key = "header_title") {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -433,22 +453,24 @@ fun LibraryContent(
                         letterSpacing = (-1).sp
                     )
                 }
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            item { Spacer(modifier = Modifier.height(16.dp)) }
-
-            // Tab Chips
-            item {
+            item(key = "tab_filter_chips") {
                 LazyRow(
                     modifier = Modifier.fillMaxWidth().offset(y = (-20).dp),
                     contentPadding = PaddingValues(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(LibraryTab.entries.toTypedArray()) { tab ->
+                    items(
+                        items = tabs,
+                        key = { it.name }
+                    ) { tab ->
                         val isSelected = state.selectedTab == tab
-                        val tabName = if (tab == LibraryTab.Songs)
-                            "New Songs" else tab.name
+                        val tabName = remember(tab) {
+                            if (tab == LibraryTab.Songs) "New Songs" else tab.name
+                        }
 
                         FilterChip(
                             selected = isSelected,
@@ -476,16 +498,14 @@ fun LibraryContent(
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            item { Spacer(modifier = Modifier.height(16.dp)) }
-
-            // Active Downloads Section
             val downloadingSongsList = state.downloadingSongsList
             val progressMap = state.downloadingSongs
 
             if (downloadingSongsList.isNotEmpty()) {
-                item {
+                item(key = "active_downloads_header") {
                     Text(
                         text = "Active Downloads",
                         color = MaterialTheme.colorScheme.onSurface,
@@ -497,7 +517,7 @@ fun LibraryContent(
 
                 itemsIndexed(
                     items = downloadingSongsList,
-                    key = { _, song -> song.id }
+                    key = { _, song -> "dl_${song.id}" }
                 ) { index, song ->
                     val isCurrentItemPlaying = isSongCurrentlyPlaying(song)
 
@@ -525,7 +545,7 @@ fun LibraryContent(
                     )
                 }
 
-                item {
+                item(key = "active_downloads_divider") {
                     HorizontalDivider(
                         modifier = Modifier.padding(top = 16.dp, start = 24.dp, end = 24.dp),
                         thickness = 1.dp,
@@ -534,10 +554,9 @@ fun LibraryContent(
                 }
             }
 
-            // Main Tab Content
             when (state.selectedTab) {
                 LibraryTab.Playlists -> {
-                    item {
+                    item(key = "playlists_header") {
                         CreatePlaylistCard(onClick = { showCreateDialog = true })
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
@@ -552,7 +571,7 @@ fun LibraryContent(
 
                     items(
                         items = state.playlists,
-                        key = { it.id }
+                        key = { "playlist_${it.id}" }
                     ) { playlist ->
                         PlaylistListItem(
                             playlist = playlist,
@@ -564,11 +583,11 @@ fun LibraryContent(
 
                 LibraryTab.Songs -> {
                     if (state.songs.isEmpty()) {
-                        item { EmptyState("No songs found", "Try searching for some music") }
+                        item(key = "empty_songs") { EmptyState("No songs found", "Try searching for some music") }
                     } else {
                         itemsIndexed(
                             items = state.songs,
-                            key = { _, song -> song.id }
+                            key = { _, song -> "song_${song.id}" }
                         ) { index, song ->
                             val isCurrentItemPlaying = isSongCurrentlyPlaying(song)
 
@@ -600,14 +619,10 @@ fun LibraryContent(
                 }
 
                 LibraryTab.Downloads -> {
-                    val downloadedOnly = state.downloads.filter { downloadedSong ->
-                        state.downloadingSongsList.none { it.id == downloadedSong.id }
-                    }
-
                     if (downloadedOnly.isEmpty()) {
-                        item { EmptyState("No downloads yet", "Downloaded songs will appear here") }
+                        item(key = "empty_downloads") { EmptyState("No downloads yet", "Downloaded songs will appear here") }
                     } else {
-                        item {
+                        item(key = "downloads_count_header") {
                             Text(
                                 text = "${downloadedOnly.size} songs downloaded",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -619,7 +634,7 @@ fun LibraryContent(
 
                         itemsIndexed(
                             items = downloadedOnly,
-                            key = { _, song -> song.id }
+                            key = { _, song -> "downloaded_${song.id}" }
                         ) { index, song ->
                             val isCurrentItemPlaying = isSongCurrentlyPlaying(song)
 
@@ -651,7 +666,7 @@ fun LibraryContent(
                 }
             }
 
-            item {
+            item(key = "bottom_padding_spacing") {
                 Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                 Spacer(Modifier.height(70.dp))
             }
@@ -724,13 +739,16 @@ private fun PlaylistListItem(
     onClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    val gradients = listOf(
-        Gradients.playlistBlue,
-        Gradients.playlistPink,
-        Gradients.playlistGreen,
-        Gradients.trendingOrange,
-        Gradients.trendingPurple
-    )
+    val gradients = remember {
+        listOf(
+            Gradients.playlistBlue,
+            Gradients.playlistPink,
+            Gradients.playlistGreen,
+            Gradients.trendingOrange,
+            Gradients.trendingPurple
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -944,7 +962,7 @@ fun LibraryScreenDownloadsPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF0A0A12)
 @Composable
 fun LibraryScreenCompletedDownloadsPreview() {
-    var playingSongId by remember { mutableStateOf<String?>(MockData.trendingSongs.firstOrNull()?.id) }
+    var playingSongId by remember { mutableStateOf(MockData.trendingSongs.firstOrNull()?.id) }
     var isPlaying by remember { mutableStateOf(true) }
 
     MusicStreamTheme {

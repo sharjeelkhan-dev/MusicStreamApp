@@ -9,7 +9,10 @@ import com.musicstream.app.domain.repository.MusicRepository
 import com.musicstream.app.service.MusicPlayerManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -38,11 +41,17 @@ class PlayerViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    val uiState: StateFlow<PlayerUiState> = playerManager.uiState
-
-    init {
-        loadPlaylists()
-    }
+    // PlayerManager state aur local Repository Playlists ko combine karke dynamic StateFlow banayi hai
+    val uiState: StateFlow<PlayerUiState> = combine(
+        playerManager.uiState,
+        musicRepository.getPlaylists()
+    ) { playerState, playlists ->
+        playerState.copy(playlists = playlists)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = PlayerUiState()
+    )
 
     fun playSongs(songs: List<Song>, startIndex: Int = 0) {
         if (songs.isEmpty()) return
@@ -57,7 +66,6 @@ class PlayerViewModel @Inject constructor(
         playerManager.togglePlayPause()
     }
 
-    // Yahan seekTo ko Long (milliseconds) ke sath update kar diya gaya hai
     fun seekTo(positionMs: Long) {
         playerManager.seekTo(positionMs)
     }
@@ -71,7 +79,9 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun pauseSong() {
-        playerManager.togglePlayPause()
+        if (uiState.value.isPlaying) {
+            playerManager.togglePlayPause()
+        }
     }
 
     fun stopMusic() {
@@ -93,16 +103,9 @@ class PlayerViewModel @Inject constructor(
     fun toggleFavorite(song: Song) {
         viewModelScope.launch {
             musicRepository.toggleFavorite(song)
-            playerManager.updateFavorite(song.id, !song.isFavorite)
+            val updatedFavoriteState = !song.isFavorite
+            playerManager.updateFavorite(song.id, updatedFavoriteState)
         }
-    }
-
-    private fun loadPlaylists() {
-        musicRepository.getPlaylists()
-            .onEach { playlists ->
-                playerManager.setPlaylists(playlists)
-            }
-            .launchIn(viewModelScope)
     }
 
     fun addSongToPlaylist(playlistId: String, song: Song) {

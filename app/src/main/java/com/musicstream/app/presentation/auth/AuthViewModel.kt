@@ -1,8 +1,16 @@
 package com.musicstream.app.presentation.auth
 
+import android.content.Context
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.musicstream.app.R
 import com.musicstream.app.domain.model.User
 import com.musicstream.app.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,7 +32,8 @@ data class AuthUiState(
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val auth: FirebaseAuth,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val credentialManager: CredentialManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -75,5 +84,48 @@ class AuthViewModel @Inject constructor(
 
     fun clearMessages() {
         _uiState.update { it.copy(error = null, successMessage = null) }
+    }
+
+    fun signInWithGoogle(context: Context) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(context.getString(R.string.default_web_client_id))
+                    .setAutoSelectEnabled(true)
+                    .build()
+
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+
+                val result = credentialManager.getCredential(context, request)
+                val credential = result.credential
+
+                if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                    val authCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
+
+                    auth.signInWithCredential(authCredential).await()
+
+                    val firebaseUser = auth.currentUser
+                    if (firebaseUser != null) {
+                        val user = User(
+                            id = firebaseUser.uid,
+                            name = firebaseUser.displayName ?: "",
+                            email = firebaseUser.email ?: "",
+                            avatarUrl = firebaseUser.photoUrl?.toString() ?: ""
+                        )
+                        userRepository.updateUser(user)
+                        _uiState.update { it.copy(isLoading = false, isLoginSuccessful = true) }
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoading = false, error = "Unexpected credential type") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.message ?: "Google sign-in failed") }
+            }
+        }
     }
 }

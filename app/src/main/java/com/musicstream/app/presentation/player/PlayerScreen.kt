@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -60,6 +59,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -116,7 +116,7 @@ fun PlayerScreen(
         onNextSong = { viewModel.nextSong() },
         onPreviousSong = { viewModel.previousSong() },
         onStopMusic = { viewModel.stopMusic() },
-        onSeekTo = { viewModel.seekTo(it)},
+        onSeekTo = { viewModel.seekTo(it) },
         onToggleShuffle = { viewModel.toggleShuffle() },
         onToggleRepeat = { viewModel.toggleRepeat() },
         onPlaybackSpeedChange = { viewModel.setPlaybackSpeed(it) },
@@ -163,9 +163,7 @@ fun PlayerScreen(
 
     if (showQueue) {
         ModalBottomSheet(
-            onDismissRequest = {
-                if (showQueue) showQueue = false
-            },
+            onDismissRequest = { if (showQueue) showQueue = false },
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.surface,
             dragHandle = { BottomSheetDefaults.DragHandle() }
@@ -446,7 +444,6 @@ fun PlayerContent(
     val backgroundColor = MaterialTheme.colorScheme.background
     val onBackgroundColor = MaterialTheme.colorScheme.onBackground
 
-    // User seeking interaction state
     var isUserSeeking by remember { mutableStateOf(false) }
     var userSeekPosition by remember { mutableFloatStateOf(0f) }
 
@@ -596,7 +593,7 @@ fun PlayerContent(
                 Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(text = formatTime(currentPositionMs), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                        Text(text = "-" + formatTime(state.duration - currentPositionMs), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text(text = "-" + formatTime((state.duration - currentPositionMs).coerceAtLeast(0L)), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -670,7 +667,17 @@ fun VisualizerBars(
     onSeekProgress: (Float) -> Unit,
     onSeekFinished: (Float) -> Unit
 ) {
+    var isDragging by remember { mutableStateOf(false) }
     var dragProgress by remember { mutableFloatStateOf(progress) }
+
+    // Fix: Internal State Sync with External State
+    LaunchedEffect(progress) {
+        if (!isDragging) {
+            dragProgress = progress
+        }
+    }
+
+    val currentDisplayProgress = if (isDragging) dragProgress else progress
 
     Box(
         modifier = Modifier
@@ -688,6 +695,7 @@ fun VisualizerBars(
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = { offset ->
+                        isDragging = true
                         val newProgress = (offset.x / size.width).coerceIn(0f, 1f)
                         dragProgress = newProgress
                         onSeekStarted(newProgress)
@@ -699,14 +707,15 @@ fun VisualizerBars(
                     },
                     onDragEnd = {
                         onSeekFinished(dragProgress)
+                        isDragging = false
                     },
                     onDragCancel = {
                         onSeekFinished(dragProgress)
+                        isDragging = false
                     }
                 )
             }
     ) {
-        val currentDisplayProgress = if (dragProgress != progress && dragProgress != 0f) dragProgress else progress
         Row(
             modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.spacedBy(3.dp),
@@ -725,7 +734,7 @@ fun VisualizerBars(
                     label = "barHeight"
                 )
 
-                val baseHeight = when(index % 10) {
+                val baseHeight = when (index % 10) {
                     0 -> 15f
                     1 -> 25f
                     2 -> 40f
@@ -736,7 +745,8 @@ fun VisualizerBars(
                 }
 
                 val finalHeight = if (isPlaying) (baseHeight * heightScale).coerceAtLeast(10f) else baseHeight * 0.5f
-                val isPlayed = (index.toFloat() / barCount) <= currentDisplayProgress
+                val barProgressThreshold = (index.toFloat() / barCount)
+                val isPlayed = barProgressThreshold <= currentDisplayProgress
 
                 Box(
                     modifier = Modifier

@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +35,7 @@ fun AuthScreen(
     onLoginSuccess: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     
     LaunchedEffect(state.isLoginSuccessful) {
         if (state.isLoginSuccessful) {
@@ -45,6 +47,7 @@ fun AuthScreen(
         state = state,
         onLoginClick = { email, password -> viewModel.login(email, password) },
         onSignUpClick = { name, email, password -> viewModel.signUp(name, email, password) },
+        onGoogleSignInClick = { viewModel.signInWithGoogle(context) },
         onClearMessages = { viewModel.clearMessages() }
     )
 }
@@ -55,6 +58,7 @@ fun AuthContent(
     state: AuthUiState,
     onLoginClick: (String, String) -> Unit,
     onSignUpClick: (String, String, String) -> Unit,
+    onGoogleSignInClick: () -> Unit,
     onClearMessages: () -> Unit
 ) {
     var isLoginMode by remember { mutableStateOf(true) }
@@ -232,7 +236,7 @@ fun AuthContent(
             Spacer(Modifier.height(24.dp))
 
             OutlinedButton(
-                onClick = {},
+                onClick = onGoogleSignInClick,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
@@ -277,6 +281,7 @@ fun AuthScreenPreview() {
             state = AuthUiState(),
             onLoginClick = { _, _ -> },
             onSignUpClick = { _, _, _ -> },
+            onGoogleSignInClick = {},
             onClearMessages = {}
         )
     }

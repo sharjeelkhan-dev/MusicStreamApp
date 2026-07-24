@@ -42,6 +42,7 @@ class MusicPlayerManager @Inject constructor(
 
     private var pendingAction: (() -> Unit)? = null
 
+    @Volatile
     private var isSeeking = false
     private var seekLockJob: Job? = null
 
@@ -73,11 +74,18 @@ class MusicPlayerManager @Inject constructor(
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _uiState.update { it.copy(isPlaying = isPlaying) }
-                if (isPlaying) startProgressTracker() else stopProgressTracker()
+                if (isPlaying) {
+                    startProgressTracker()
+                } else {
+                    stopProgressTracker()
+                }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 updateStateFromController()
+                if (playbackState == Player.STATE_READY && mediaController?.isPlaying == true) {
+                    startProgressTracker()
+                }
             }
         })
     }
@@ -90,17 +98,21 @@ class MusicPlayerManager @Inject constructor(
 
         _uiState.update { state ->
             val currentSong = if (currentIndex in state.queue.indices) state.queue[currentIndex] else state.currentSong
-            val dur = if (controller.duration > 0) controller.duration else (currentSong?.duration ?: 0L)
-            val pos = controller.currentPosition
+            val rawDuration = controller.duration
+            val dur = if (rawDuration > 0) rawDuration else (currentSong?.duration ?: 0L)
+            val pos = controller.currentPosition.coerceAtLeast(0L)
+
+            val calculatedProgress = if (dur > 0) (pos.toFloat() / dur.toFloat()).coerceIn(0f, 1f) else 0f
+
             state.copy(
                 currentSong = currentSong,
                 currentIndex = currentIndex,
                 isPlaying = controller.isPlaying,
                 duration = dur,
                 currentPosition = pos,
-                progress = if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f,
+                progress = calculatedProgress,
                 isShuffleOn = controller.shuffleModeEnabled,
-                repeatMode = when(controller.repeatMode) {
+                repeatMode = when (controller.repeatMode) {
                     Player.REPEAT_MODE_ONE -> RepeatMode.ONE
                     Player.REPEAT_MODE_ALL -> RepeatMode.ALL
                     else -> RepeatMode.OFF
@@ -126,11 +138,17 @@ class MusicPlayerManager @Inject constructor(
         controller.seekTo(index, 0L)
         controller.prepare()
         controller.play()
+
+        startProgressTracker()
     }
 
     fun togglePlayPause() {
         val controller = mediaController ?: return
-        if (controller.isPlaying) controller.pause() else controller.play()
+        if (controller.isPlaying) {
+            controller.pause()
+        } else {
+            controller.play()
+        }
     }
 
     fun seekTo(position: Long) {
@@ -144,18 +162,20 @@ class MusicPlayerManager @Inject constructor(
         seekLockJob?.cancel()
 
         val dur = _uiState.value.duration.coerceAtLeast(1L)
+        val validPosition = position.coerceIn(0L, dur)
+        val calcProgress = (validPosition.toFloat() / dur.toFloat()).coerceIn(0f, 1f)
 
         _uiState.update {
             it.copy(
-                currentPosition = position,
-                progress = (position.toFloat() / dur).coerceIn(0f, 1f)
+                currentPosition = validPosition,
+                progress = calcProgress
             )
         }
 
-        controller.seekTo(position)
+        controller.seekTo(validPosition)
 
         seekLockJob = managerScope.launch {
-            delay(400.milliseconds)
+            delay(200.milliseconds)
             isSeeking = false
         }
     }
@@ -169,6 +189,7 @@ class MusicPlayerManager @Inject constructor(
     }
 
     fun stop() {
+        stopProgressTracker()
         mediaController?.let {
             it.stop()
             it.clearMediaItems()
@@ -199,11 +220,13 @@ class MusicPlayerManager @Inject constructor(
             else -> Player.REPEAT_MODE_OFF
         }
         controller.repeatMode = nextMode
-        _uiState.update { it.copy(repeatMode = when(nextMode) {
-            Player.REPEAT_MODE_ONE -> RepeatMode.ONE
-            Player.REPEAT_MODE_ALL -> RepeatMode.ALL
-            else -> RepeatMode.OFF
-        }) }
+        _uiState.update {
+            it.copy(repeatMode = when (nextMode) {
+                Player.REPEAT_MODE_ONE -> RepeatMode.ONE
+                Player.REPEAT_MODE_ALL -> RepeatMode.ALL
+                else -> RepeatMode.OFF
+            })
+        }
     }
 
     fun setPlaybackSpeed(speed: Float) {
@@ -252,22 +275,31 @@ class MusicPlayerManager @Inject constructor(
         progressJob?.cancel()
         progressJob = managerScope.launch {
             while (isActive) {
-                val controller = mediaController ?: break
-                if (controller.isPlaying && !isSeeking) {
-                    val pos = controller.currentPosition
-                    val dur = controller.duration.coerceAtLeast(1L)
-                    _uiState.update { it.copy(
-                        currentPosition = pos,
-                        progress = (pos.toFloat() / dur).coerceIn(0f, 1f)
-                    ) }
+                val controller = mediaController
+                if (controller != null && controller.isPlaying && !isSeeking) {
+                    val pos = controller.currentPosition.coerceAtLeast(0L)
+                    val rawDuration = controller.duration
+                    val currentSongDur = _uiState.value.currentSong?.duration ?: 0L
+
+                    val dur = if (rawDuration > 0) rawDuration else currentSongDur
+
+                    if (dur > 0) {
+                        val calcProgress = (pos.toFloat() / dur.toFloat()).coerceIn(0f, 1f)
+                        _uiState.update { it.copy(
+                            currentPosition = pos,
+                            duration = dur,
+                            progress = calcProgress
+                        ) }
+                    }
                 }
-                delay(500.milliseconds)
+                delay(250.milliseconds) // Refresh rate smoothly 250ms set kar diya gaya hai
             }
         }
     }
 
     private fun stopProgressTracker() {
         progressJob?.cancel()
+        progressJob = null
     }
 
     private fun Song.toMediaItem(): MediaItem {

@@ -1,10 +1,11 @@
 # 🎵 MusicStream
-![Status](https://img.shields.io/badge/Code-181717?style=for-the-badge&logo=github&logoColor=white) ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white) ![Media3](https://img.shields.io/badge/Media3-ExoPlayer-blue?style=for-the-badge&logo=google&logoColor=white)
+![Status](https://img.shields.io/badge/Code-181717?style=for-the-badge&logo=github&logoColor=white) ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white) ![AI](https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)  ![Media3](https://img.shields.io/badge/Media3-ExoPlayer-blue?style=for-the-badge&logo=google&logoColor=white)
 
 > A high-performance, feature-rich Android music application built with Jetpack Compose and Clean Architecture, designed to deliver an uninterrupted, premium streaming experience.
 
 | Subsystem | Technical Execution Architecture |
 | :--- | :--- |
+| 🤖 **AI-Powered Commands** | Implemented AI-driven song summarization and lyrics explanation features, providing users with deeper artistic context directly within the playback interface. |
 | **🚀 Dual-Engine Streaming** | Seamlessly combines search results and streams from YouTube (via Piped/NewPipe Extractor) and Saavn for a massive global library. |
 | **🎧 Pro Audio Pipeline** | Fully powered by **Android Media3 (ExoPlayer)** with native integration of high-quality audio formats and custom audio sessions. |
 | **🎚️ Advanced Audio FX** | Built-in high-fidelity Equalizer, Bass Boost, and Virtualizer components for dynamic, personalized sound engineering. |

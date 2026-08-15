@@ -5,7 +5,7 @@
 
 | Subsystem | Technical Execution Architecture |
 | :--- | :--- |
-| 🤖 **AI-Powered Commands** | Implemented AI-driven song summarization and lyrics explanation features, providing users with deeper artistic context directly within the playback interface. |
+| 🤖 **AI-Powered Commands** | Implemented Gemini AI-driven song summarization and lyrics explanation features, providing users with deeper artistic context directly within the playback interface. |
 | **🚀 Dual-Engine Streaming** | Seamlessly combines search results and streams from YouTube (via Piped/NewPipe Extractor) and Saavn for a massive global library. |
 | **🎧 Pro Audio Pipeline** | Fully powered by **Android Media3 (ExoPlayer)** with native integration of high-quality audio formats and custom audio sessions. |
 | **🎚️ Advanced Audio FX** | Built-in high-fidelity Equalizer, Bass Boost, and Virtualizer components for dynamic, personalized sound engineering. |

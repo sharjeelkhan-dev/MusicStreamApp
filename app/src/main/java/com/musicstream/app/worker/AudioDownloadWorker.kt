@@ -24,8 +24,11 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.musicstream.app.R
 import com.musicstream.app.domain.model.Song
+import com.musicstream.app.domain.model.Notification
+import com.musicstream.app.domain.model.NotificationType
 import com.musicstream.app.domain.repository.DownloadProgress
 import com.musicstream.app.domain.repository.MusicRepository
+import com.musicstream.app.domain.repository.NotificationRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
@@ -35,7 +38,8 @@ import kotlin.math.abs
 class AudioDownloadWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted workerParams: WorkerParameters,
-    private val musicRepository: MusicRepository
+    private val musicRepository: MusicRepository,
+    private val notificationRepository: NotificationRepository
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
@@ -119,6 +123,16 @@ class AudioDownloadWorker @AssistedInject constructor(
                     is DownloadProgress.Completed -> {
                         isCompletedSuccessfully = true
                         showCompletionNotification(song)
+                        // Add in-app notification
+                        notificationRepository.addNotification(
+                            Notification(
+                                id = java.util.UUID.randomUUID().toString(),
+                                title = "Download Complete",
+                                message = "'${song.title}' by ${song.artist} is now available offline.",
+                                time = "Just now",
+                                type = NotificationType.GENERAL
+                            )
+                        )
                     }
                     is DownloadProgress.Failed -> {
                         Log.e("AudioDownloadWorker", "Download Failed for $songId: ${progress.error}")

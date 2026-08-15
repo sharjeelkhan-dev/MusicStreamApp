@@ -27,4 +27,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAiRepository(impl: com.musicstream.app.data.repository.AiRepositoryImpl): com.musicstream.app.domain.repository.AiRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNotificationRepository(impl: com.musicstream.app.data.repository.NotificationRepositoryImpl): com.musicstream.app.domain.repository.NotificationRepository
 }

@@ -1,35 +1,76 @@
 package com.musicstream.app.presentation.home
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.pulltorefresh.*
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.zIndex
-import androidx.compose.ui.res.painterResource
-import androidx.compose.animation.core.*
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
-import coil.compose.AsyncImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import com.musicstream.app.R
 import com.musicstream.app.data.MockData
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
-import androidx.compose.ui.tooling.preview.Preview
-import com.musicstream.app.presentation.components.*
-import com.musicstream.app.ui.theme.*
-import com.musicstream.app.R
+import com.musicstream.app.presentation.components.PlaylistRow
+import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
+import com.musicstream.app.presentation.components.SectionHeader
+import com.musicstream.app.presentation.components.StackedFeaturedCards
+import com.musicstream.app.presentation.components.TrendingRow
+import com.musicstream.app.ui.theme.AccentPurple
+import com.musicstream.app.ui.theme.MusicStreamTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,11 +80,11 @@ fun HomeScreen(
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
+    onAiAssistantClick: () -> Unit = {},
     onTrendingSeeAllClick: () -> Unit = {},
     onRecentlyPlayedSeeAllClick: () -> Unit = {},
     onPlaylistClick: (Playlist) -> Unit = {},
     onDownloadsClick: () -> Unit = {},
-    onToolsClick: () -> Unit = {},
     onGoToArtist: (String) -> Unit = {},
     onGoToPlayer: () -> Unit = {},
     onSongOptionsClick: (Song, Boolean) -> Unit = { _, _ -> } // ✅ Pipeline Connection Added
@@ -59,7 +100,7 @@ fun HomeScreen(
         onPlaySongs = onPlaySongs,
         onNotificationClick = onNotificationClick,
         onProfileClick = onProfileClick,
-        onToolsClick = onToolsClick,
+        onAiAssistantClick = onAiAssistantClick,
         onTrendingSeeAllClick = onTrendingSeeAllClick,
         onRecentlyPlayedSeeAllClick = onRecentlyPlayedSeeAllClick,
         onPlaylistClick = onPlaylistClick,
@@ -89,7 +130,7 @@ fun HomeContent(
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
-    onToolsClick: () -> Unit = {},
+    onAiAssistantClick: () -> Unit = {},
     onTrendingSeeAllClick: () -> Unit = {},
     onRecentlyPlayedSeeAllClick: () -> Unit = {},
     onPlaylistClick: (Playlist) -> Unit = {},
@@ -351,15 +392,15 @@ fun HomeContent(
                         Spacer(modifier = Modifier.width(10.dp))
 
                         IconButton(
-                            onClick = { onToolsClick() },
+                            onClick = { onAiAssistantClick() },
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.03f))
                         ) {
                             Icon(
-                                painter = painterResource(id = R.drawable.service_tools_icon),
-                                contentDescription = "Settings",
+                                painter = painterResource(id = R.drawable.ai_sparkles_icon),
+                                contentDescription = "AI Assistant",
                                 tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -451,6 +492,46 @@ fun HomeContent(
                     onDownloadClick = { song -> onDownloadSong(song) },
                     downloadingSongs = state.downloadingSongs
                 )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Your Collections Section
+                SectionHeader(
+                    title = "Your Collections",
+                    emoji = "🎵",
+                    onSeeAllClick = null
+                )
+
+                PlaylistRow(
+                    playlists = state.playlists,
+                    onPlaylistClick = onPlaylistClick,
+                    onDownloadsClick = onDownloadsClick,
+                    onPlaylistLongClick = { playlistToDelete = it },
+                    downloadCount = state.downloads.size
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Recently Played Section
+                if (state.recentlyPlayed.isNotEmpty()) {
+                    SectionHeader(
+                        title = "Recently Played",
+                        onSeeAllClick = { onRecentlyPlayedSeeAllClick() }
+                    )
+
+                    TrendingRow(
+                        songs = state.recentlyPlayed,
+                        onSongClick = { song ->
+                            val index = state.recentlyPlayed.indexOf(song)
+                            onPlaySongs(state.recentlyPlayed, index)
+                        },
+                        onLongClick = { song -> onSongOptionsClick(song, song.isFavorite) },
+                        onDownloadClick = { song -> onDownloadSong(song) },
+                        downloadingSongs = state.downloadingSongs
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
 
                 // Bottom spacer for edge-to-edge scrolling behind navigation bars
                 Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))

@@ -14,6 +14,10 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
+import com.musicstream.app.domain.model.Notification
+import com.musicstream.app.domain.model.NotificationType
+import com.musicstream.app.domain.repository.MusicRepository
+import com.musicstream.app.domain.repository.NotificationRepository
 import com.musicstream.app.presentation.player.PlayerUiState
 import com.musicstream.app.presentation.player.RepeatMode
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -29,7 +33,9 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class MusicPlayerManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val musicRepository: MusicRepository,
+    private val notificationRepository: NotificationRepository
 ) {
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState = _uiState.asStateFlow()
@@ -70,6 +76,23 @@ class MusicPlayerManager @Inject constructor(
         mediaController?.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 updateStateFromController()
+                // Record to Recently Played when a new item starts playing
+                _uiState.value.currentSong?.let { song ->
+                    managerScope.launch {
+                        musicRepository.addToRecentlyPlayed(song)
+                        
+                        // Add an in-app notification
+                        notificationRepository.addNotification(
+                            Notification(
+                                id = java.util.UUID.randomUUID().toString(),
+                                title = "Now Playing",
+                                message = "Started listening to '${song.title}' by ${song.artist}",
+                                time = "Just now",
+                                type = NotificationType.GENERAL
+                            )
+                        )
+                    }
+                }
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {

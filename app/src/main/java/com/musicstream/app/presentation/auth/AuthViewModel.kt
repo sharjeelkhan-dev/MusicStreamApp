@@ -12,7 +12,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.musicstream.app.R
 import com.musicstream.app.domain.model.User
+import com.musicstream.app.domain.model.Notification
+import com.musicstream.app.domain.model.NotificationType
 import com.musicstream.app.domain.repository.UserRepository
+import com.musicstream.app.domain.repository.NotificationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +36,7 @@ data class AuthUiState(
 class AuthViewModel @Inject constructor(
     private val auth: FirebaseAuth,
     private val userRepository: UserRepository,
+    private val notificationRepository: NotificationRepository,
     private val credentialManager: CredentialManager
 ) : ViewModel() {
 
@@ -53,6 +57,17 @@ class AuthViewModel @Inject constructor(
                         avatarUrl = firebaseUser.photoUrl?.toString() ?: ""
                     )
                     userRepository.updateUser(user)
+                    
+                    notificationRepository.addNotification(
+                        com.musicstream.app.domain.model.Notification(
+                            id = java.util.UUID.randomUUID().toString(),
+                            title = "Welcome back, ${user.name}!",
+                            message = "Glad to see you again. Let's play some music!",
+                            time = "Just now",
+                            type = com.musicstream.app.domain.model.NotificationType.GENERAL
+                        )
+                    )
+                    
                     _uiState.update { it.copy(isLoading = false, isLoginSuccessful = true) }
                 }
             } catch (e: Exception) {
@@ -118,6 +133,17 @@ class AuthViewModel @Inject constructor(
                             avatarUrl = firebaseUser.photoUrl?.toString() ?: ""
                         )
                         userRepository.updateUser(user)
+                        
+                        notificationRepository.addNotification(
+                            com.musicstream.app.domain.model.Notification(
+                                id = java.util.UUID.randomUUID().toString(),
+                                title = "Welcome, ${user.name}!",
+                                message = "Successfully signed in with Google.",
+                                time = "Just now",
+                                type = com.musicstream.app.domain.model.NotificationType.GENERAL
+                            )
+                        )
+
                         _uiState.update { it.copy(isLoading = false, isLoginSuccessful = true) }
                     }
                 } else {

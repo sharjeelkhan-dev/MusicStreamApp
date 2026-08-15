@@ -32,14 +32,93 @@ class UserRepositoryImpl @Inject constructor(
         val ID = stringPreferencesKey("user_id")
         val NAME = stringPreferencesKey("user_name")
         val EMAIL = stringPreferencesKey("user_email")
-        val AVATAR = stringPreferencesKey("user_avatar")
-        val BANNER = stringPreferencesKey("user_banner")
         val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         val REGISTERED_EMAILS = stringSetPreferencesKey("registered_emails")
+        
+        fun avatarKey(email: String) = stringPreferencesKey("avatar_$email")
+        fun bannerKey(email: String) = stringPreferencesKey("banner_$email")
     }
-    override fun getCurrentUser(): Flow<User> = dataStore.data.map { p -> User(p[UserKeys.ID] ?: UUID.randomUUID().toString(), p[UserKeys.NAME] ?: "Guest User", p[UserKeys.EMAIL] ?: "", p[UserKeys.AVATAR] ?: "", p[UserKeys.BANNER] ?: "") }
+
+    override fun getCurrentUser(): Flow<User> = dataStore.data.map { p ->
+        val isLoggedIn = p[UserKeys.IS_LOGGED_IN] ?: false
+        if (!isLoggedIn) {
+            return@map User(
+                id = "guest",
+                name = "Guest User",
+                email = "",
+                avatarUrl = "",
+                bannerUrl = ""
+            )
+        }
+        val email = p[UserKeys.EMAIL] ?: ""
+        User(
+            id = p[UserKeys.ID] ?: UUID.randomUUID().toString(),
+            name = p[UserKeys.NAME] ?: "User",
+            email = email,
+            avatarUrl = p[UserKeys.avatarKey(email)] ?: "",
+            bannerUrl = p[UserKeys.bannerKey(email)] ?: ""
+        )
+    }
+
     override fun isLoggedIn(): Flow<Boolean> = dataStore.data.map { it[UserKeys.IS_LOGGED_IN] ?: false }
-    override suspend fun isEmailRegistered(email: String): Boolean = (dataStore.data.first()[UserKeys.REGISTERED_EMAILS] ?: emptySet()).contains(email)
-    override suspend fun updateUser(user: User) { dataStore.edit { p -> p[UserKeys.ID] = user.id; p[UserKeys.NAME] = user.name; p[UserKeys.EMAIL] = user.email; p[UserKeys.IS_LOGGED_IN] = true; p[UserKeys.REGISTERED_EMAILS] = (p[UserKeys.REGISTERED_EMAILS] ?: emptySet()) + user.email } }
-    override suspend fun signOut() { withContext(Dispatchers.IO) { favoriteDao.deleteAllFavorites(); playlistDao.deleteAllPlaylists(); dataStore.edit { it[UserKeys.IS_LOGGED_IN] = false } } }
+
+    override suspend fun isEmailRegistered(email: String): Boolean = 
+        (dataStore.data.first()[UserKeys.REGISTERED_EMAILS] ?: emptySet()).contains(email)
+
+    override suspend fun updateUser(user: User) {
+        val localAvatar = if (user.avatarUrl.startsWith("content://") || user.avatarUrl.startsWith("file://")) {
+            saveImageLocally(user.avatarUrl, "avatar_${user.id}.jpg")
+        } else {
+            user.avatarUrl
+        }
+
+        val localBanner = if (user.bannerUrl.startsWith("content://") || user.bannerUrl.startsWith("file://")) {
+            saveImageLocally(user.bannerUrl, "banner_${user.id}.jpg")
+        } else {
+            user.bannerUrl
+        }
+
+        dataStore.edit { p ->
+            p[UserKeys.ID] = user.id
+            p[UserKeys.NAME] = user.name
+            p[UserKeys.EMAIL] = user.email
+            p[UserKeys.IS_LOGGED_IN] = true
+            p[UserKeys.REGISTERED_EMAILS] = (p[UserKeys.REGISTERED_EMAILS] ?: emptySet()) + user.email
+            
+            // Account specific storage
+            p[UserKeys.avatarKey(user.email)] = localAvatar
+            p[UserKeys.bannerKey(user.email)] = localBanner
+        }
+    }
+
+    override suspend fun signOut() {
+        withContext(Dispatchers.IO) {
+            favoriteDao.deleteAllFavorites()
+            playlistDao.deleteAllPlaylists()
+            dataStore.edit { p ->
+                p[UserKeys.IS_LOGGED_IN] = false
+                p.remove(UserKeys.ID)
+                p.remove(UserKeys.NAME)
+                p.remove(UserKeys.EMAIL)
+            }
+        }
+    }
+
+    private suspend fun saveImageLocally(uriString: String, fileName: String): String {
+        return withContext(Dispatchers.IO) {
+            try {
+                val uri = android.net.Uri.parse(uriString)
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val file = java.io.File(context.filesDir, fileName)
+                inputStream?.use { input ->
+                    file.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                file.absolutePath
+            } catch (e: Exception) {
+                uriString
+            }
+        }
+    }
 }

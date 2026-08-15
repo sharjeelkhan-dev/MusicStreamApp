@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -45,6 +46,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,22 +89,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.musicstream.app.R
 import com.musicstream.app.domain.model.Song
+import com.musicstream.app.ui.theme.MusicStreamTheme
 import com.musicstream.app.util.SongQuotes
-import com.musicstream.app.ui.theme.*
 
 @SuppressLint("QueryPermissionsNeeded")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
     viewModel: PlayerViewModel = hiltViewModel(),
-    homeViewModel: com.musicstream.app.presentation.home.HomeViewModel = hiltViewModel(),
     songColor: Color,
     onBackClick: () -> Unit = {},
     onGoToArtist: (String) -> Unit = {},
     onGoToAlbum: (String) -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val homeState by homeViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showQueue by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
@@ -148,7 +148,7 @@ fun PlayerScreen(
             viewModel.addSongToPlaylist(playlistId, song)
         },
         onDownloadClick = { song ->
-            homeViewModel.downloadSong(song)
+            viewModel.downloadSong(song)
         },
         onSetSleepTimer = { viewModel.setSleepTimer(it) },
         onGoToArtist = { artistName ->
@@ -158,7 +158,10 @@ fun PlayerScreen(
         onGoToAlbum = { albumId ->
             onBackClick()
             onGoToAlbum(albumId)
-        }
+        },
+        onGetAiSummary = { viewModel.getAiSummary() },
+        onGetAiLyricsExplanation = { viewModel.getAiLyricsExplanation() },
+        onClearAiState = { viewModel.clearAiState() }
     )
 
     if (showQueue) {
@@ -187,7 +190,7 @@ fun PlayerScreen(
             dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
             HistoryList(
-                songs = homeState.recentlyPlayed,
+                songs = state.recentlyPlayed,
                 onSongClick = { song ->
                     viewModel.playSong(song)
                     showHistory = false
@@ -363,7 +366,10 @@ fun PlayerContent(
     onDownloadClick: (Song) -> Unit,
     onSetSleepTimer: (Int) -> Unit,
     onGoToArtist: (String) -> Unit,
-    onGoToAlbum: (String) -> Unit
+    onGoToAlbum: (String) -> Unit,
+    onGetAiSummary: () -> Unit = {},
+    onGetAiLyricsExplanation: () -> Unit = {},
+    onClearAiState: () -> Unit = {}
 ) {
     SideEffect {
         onPlaybackSpeedChange
@@ -435,6 +441,38 @@ fun PlayerContent(
             confirmButton = {
                 TextButton(onClick = { showSleepTimerDialog = false }) {
                     Text("Cancel", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    }
+
+    if (state.aiSummary != null || state.aiLyricsExplanation != null || state.isAiLoading) {
+        AlertDialog(
+            onDismissRequest = { onClearAiState() },
+            title = {
+                Text(
+                    text = if (state.isAiLoading) "AI is thinking..." else "AI Insights",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                if (state.isAiLoading) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    val text = state.aiSummary ?: state.aiLyricsExplanation ?: ""
+                    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
+                        item {
+                            Text(text = text, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { onClearAiState() }) {
+                    Text("Close")
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -550,6 +588,16 @@ fun PlayerContent(
                         containerColor = MaterialTheme.colorScheme.surface
                     ) {
                         val onSurface = MaterialTheme.colorScheme.onSurface
+                        DropdownMenuItem(
+                            text = { Text("AI Song Summary", color = onSurface) },
+                            onClick = { showMoreMenu = false; onGetAiSummary() },
+                            leadingIcon = { Icon(painter = painterResource(id = R.drawable.song_icon), null, tint = onSurface, modifier = Modifier.size(20.dp)) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("AI Lyrics Explanation", color = onSurface) },
+                            onClick = { showMoreMenu = false; onGetAiLyricsExplanation() },
+                            leadingIcon = { Icon(painter = painterResource(id = R.drawable.music_song_file_icon), null, tint = onSurface, modifier = Modifier.size(20.dp)) },
+                        )
                         DropdownMenuItem(
                             text = { Text("Add to Playlist", color = onSurface) },
                             onClick = { showMoreMenu = false; showPlaylistDialog = true },
@@ -782,7 +830,7 @@ fun PlayerScreenPreview() {
                 currentPosition = 211200,
                 duration = 352000,
                 isShuffleOn = true,
-                repeatMode = RepeatMode.ONE
+                repeatMode = RepeatMode.OFF
             ),
             songColor = Color(0xFF9162FF),
             onBackClick = {},

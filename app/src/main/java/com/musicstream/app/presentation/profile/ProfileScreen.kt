@@ -41,7 +41,8 @@ import com.musicstream.app.ui.theme.*
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onMediaToolsClick: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LocalContext.current
@@ -63,7 +64,8 @@ fun ProfileScreen(
         },
         onLanguageClick = { showLanguageDialog = true },
         onEqualizerClick = { showEqualizerDialog = true },
-        onEditProfileClick = { showEditProfileDialog = true }
+        onEditProfileClick = { showEditProfileDialog = true },
+        onMediaToolsClick = onMediaToolsClick
     )
 
     if (showEditProfileDialog && state.user != null) {
@@ -140,7 +142,8 @@ fun ProfileContent(
     onNotificationsClick: () -> Unit = {},
     onLanguageClick: () -> Unit = {},
     onEqualizerClick: () -> Unit = {},
-    onEditProfileClick: () -> Unit = {}
+    onEditProfileClick: () -> Unit = {},
+    onMediaToolsClick: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
@@ -344,6 +347,16 @@ fun ProfileContent(
                         title = "Language",
                         value = state.language,
                         onClick = onLanguageClick
+                    )
+                }
+
+                SettingsGroup(title = "MEDIA TOOLS") {
+                    SettingsItem(
+                        icon = ImageVector.vectorResource(id = R.drawable.service_tools_icon),
+                        iconColor = AccentPurple,
+                        title = "Media Tools",
+                        value = "",
+                        onClick = onMediaToolsClick
                     )
                 }
 

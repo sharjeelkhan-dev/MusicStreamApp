@@ -23,6 +23,7 @@ import com.musicstream.app.presentation.library.PlaylistScreen
 import com.musicstream.app.presentation.artists.ArtistsScreen
 import com.musicstream.app.presentation.media_tools.MediaToolsScreen
 import com.musicstream.app.presentation.media_tools.EqualizerScreen
+import com.musicstream.app.presentation.ai.AiAssistantScreen
 
 @Composable
 fun NavGraph(
@@ -55,7 +56,7 @@ fun NavGraph(
                 onPlaySongs = onPlaySongs,
                 onNotificationClick = { navController.navigate(Screen.Notifications.route) },
                 onProfileClick = { navController.navigate(Screen.Profile.route) },
-                onToolsClick = { navController.navigate(Screen.MediaTools.route) },
+                onAiAssistantClick = { navController.navigate(Screen.AiAssistant.route) },
                 onTrendingSeeAllClick = { navController.navigate(Screen.Trending.route) },
                 onRecentlyPlayedSeeAllClick = { navController.navigate(Screen.RecentlyPlayed.route) },
                 onPlaylistClick = { playlist ->
@@ -164,7 +165,14 @@ fun NavGraph(
         }
         composable(Screen.Profile.route) {
             ProfileScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onMediaToolsClick = { navController.navigate(Screen.MediaTools.route) }
+            )
+        }
+        composable(Screen.AiAssistant.route) {
+            AiAssistantScreen(
+                onBackClick = { navController.popBackStack() },
+                onPlaySong = { song -> onPlaySongs(listOf(song), 0) }
             )
         }
         composable(Screen.Login.route) {

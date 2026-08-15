@@ -52,3 +52,13 @@ data class PlaylistSongCrossRef(
     val playlistId: String,
     val songId: String
 )
+
+@Entity(tableName = "notifications")
+data class NotificationEntity(
+    @PrimaryKey val id: String,
+    val title: String,
+    val message: String,
+    val time: String,
+    val type: String, // NotificationType enum name
+    val timestamp: Long = System.currentTimeMillis()
+)

@@ -49,6 +49,13 @@ interface UserRepository {
     suspend fun signOut()
 }
 
+interface NotificationRepository {
+    fun getNotifications(): Flow<List<com.musicstream.app.domain.model.Notification>>
+    suspend fun addNotification(notification: com.musicstream.app.domain.model.Notification)
+    suspend fun deleteNotification(id: String)
+    suspend fun clearAll()
+}
+
 interface SettingsRepository {
     fun getAudioQuality(): Flow<String>
     suspend fun setAudioQuality(quality: String)

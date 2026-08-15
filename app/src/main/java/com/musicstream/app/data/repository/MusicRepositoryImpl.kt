@@ -20,8 +20,11 @@ import com.musicstream.app.data.remote.dto.SaavnSongDto
 import com.musicstream.app.domain.model.Genre
 import com.musicstream.app.domain.model.Playlist
 import com.musicstream.app.domain.model.Song
+import com.musicstream.app.domain.model.Notification
+import com.musicstream.app.domain.model.NotificationType
 import com.musicstream.app.domain.repository.DownloadProgress
 import com.musicstream.app.domain.repository.MusicRepository
+import com.musicstream.app.domain.repository.NotificationRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -53,6 +56,7 @@ class MusicRepositoryImpl @Inject constructor(
     private val mp3Scraper: Mp3ScraperRepository,
     @Named("downloadClient")
     private val downloadHttpClient: OkHttpClient,
+    private val notificationRepository: NotificationRepository,
     @ApplicationContext private val context: Context,
 ) : MusicRepository {
     companion object {
@@ -465,10 +469,41 @@ class MusicRepositoryImpl @Inject constructor(
 
     override fun getSongsForPlaylist(playlistId: String): Flow<List<Song>> = playlistDao.getSongsForPlaylist(playlistId).map { entities -> entities.map { it.toDomain() } }
     override suspend fun toggleFavorite(song: Song) { songDao.insertSong(song.toEntity()); if (favoriteDao.isFavorite(song.id)) favoriteDao.removeFavorite(song.id) else favoriteDao.insertFavorite(FavoriteEntity(songId = song.id)) }
-    override suspend fun createPlaylist(name: String) { val id = UUID.randomUUID().toString(); playlistDao.insertPlaylist(PlaylistEntity(id = id, name = name, songCount = 0, gradientIndex = (name.hashCode() and Integer.MAX_VALUE) % 5)) }
+    override suspend fun createPlaylist(name: String) { 
+        val id = UUID.randomUUID().toString()
+        playlistDao.insertPlaylist(PlaylistEntity(id = id, name = name, songCount = 0, gradientIndex = (name.hashCode() and Integer.MAX_VALUE) % 5))
+        
+        notificationRepository.addNotification(
+            Notification(
+                id = UUID.randomUUID().toString(),
+                title = "Playlist Created",
+                message = "New playlist '$name' was created successfully.",
+                time = "Just now",
+                type = NotificationType.PLAYLIST_UPDATE
+            )
+        )
+    }
     override suspend fun deletePlaylist(playlistId: String) = playlistDao.deletePlaylist(playlistId)
     override suspend fun deleteAllPlaylists() = playlistDao.deleteAllPlaylists()
-    override suspend fun addSongToPlaylist(playlistId: String, songId: String) { playlistDao.insertPlaylistSongCrossRef(PlaylistSongCrossRef(playlistId = playlistId, songId = songId)); playlistDao.incrementSongCount(playlistId) }
+    override suspend fun addSongToPlaylist(playlistId: String, songId: String) { 
+        playlistDao.insertPlaylistSongCrossRef(PlaylistSongCrossRef(playlistId = playlistId, songId = songId))
+        playlistDao.incrementSongCount(playlistId)
+        
+        // Try to get song details to show in notification
+        val song = songDao.getSongById(songId)
+        val playlist = playlistDao.getPlaylistById(playlistId)
+        if (song != null && playlist != null) {
+            notificationRepository.addNotification(
+                Notification(
+                    id = UUID.randomUUID().toString(),
+                    title = "Playlist Updated",
+                    message = "Added '${song.title}' to '${playlist.name}'",
+                    time = "Just now",
+                    type = NotificationType.PLAYLIST_UPDATE
+                )
+            )
+        }
+    }
     override suspend fun removeSongFromPlaylist(playlistId: String, songId: String) { playlistDao.deletePlaylistSongCrossRef(PlaylistSongCrossRef(playlistId = playlistId, songId = songId)); playlistDao.decrementSongCount(playlistId) }
     override suspend fun deleteDownload(songId: String) { val song = songDao.getSongById(songId); if (song?.localPath != null) { val file = File(song.localPath); if (file.exists()) file.delete(); songDao.insertSong(song.copy(localPath = null)) } }
     override suspend fun addToRecentlyPlayed(song: Song) { songDao.insertSong(song.toEntity()); songDao.insertRecentlyPlayed(RecentlyPlayedEntity(songId = song.id)); songDao.incrementPlayCount(song.id) }

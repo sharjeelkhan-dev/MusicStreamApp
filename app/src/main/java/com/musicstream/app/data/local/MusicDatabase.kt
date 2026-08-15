@@ -12,6 +12,7 @@ import com.musicstream.app.data.local.entity.FavoriteEntity
 import com.musicstream.app.data.local.entity.RecentlyPlayedEntity
 import com.musicstream.app.data.local.entity.PlaylistSongCrossRef
 import com.musicstream.app.data.local.entity.SearchHistoryEntity
+import com.musicstream.app.data.local.entity.NotificationEntity
 
 @Database(
     entities = [
@@ -20,9 +21,10 @@ import com.musicstream.app.data.local.entity.SearchHistoryEntity
         FavoriteEntity::class,
         RecentlyPlayedEntity::class,
         PlaylistSongCrossRef::class,
-        SearchHistoryEntity::class
+        SearchHistoryEntity::class,
+        NotificationEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {
@@ -30,4 +32,5 @@ abstract class MusicDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
     abstract fun favoriteDao(): FavoriteDao
     abstract fun searchDao(): SearchDao
+    abstract fun notificationDao(): com.musicstream.app.data.local.dao.NotificationDao
 }

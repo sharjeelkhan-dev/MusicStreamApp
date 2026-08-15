@@ -135,6 +135,8 @@ dependencies {
     implementation(libs.firebase.firestore) {
         exclude(group = "com.google.firebase", module = "protolite-well-known-types")
     }
+    implementation(libs.firebase.ai)
+    implementation(libs.firebase.appcheck.debug)
 
     // WorkManager & Hilt Work Integration
     implementation(libs.androidx.work.runtime.ktx)

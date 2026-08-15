@@ -53,4 +53,10 @@ object DatabaseModule {
     fun provideSearchDao(database: MusicDatabase): SearchDao {
         return database.searchDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideNotificationDao(database: MusicDatabase): com.musicstream.app.data.local.dao.NotificationDao {
+        return database.notificationDao()
+    }
 }

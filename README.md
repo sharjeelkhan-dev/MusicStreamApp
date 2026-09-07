@@ -12,6 +12,7 @@
 | **📥 Offline Downloader** | Robust offline downloading system featuring precise download progress tracking, background threading, and offline playback. |
 | **🎨 Palette Dynamic Themes** | Material 3 interface that dynamically extracts prominent colors from the playing track's album art to recolor the entire app UI. |
 | **🛠️ Resilient Networking** | Custom proxy rotation logic with a built-in failover mechanism across multiple Piped instances to guarantee zero-downtime streaming. |
+| 🎨 **Asset Attribution** | Core system actions, navigation nodes, and modern news channel vector elements curated via [Uxwing](https://uxwing.com/). |
 
 <details>
 <summary><b>✨ View Interface Design (Click to Expand)</b></summary>

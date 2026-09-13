@@ -201,14 +201,14 @@ fun MediaToolsContent(
                                 title = "Video to Audio",
                                 description = "Extract high-quality audio from video files (MP4, MKV to MP3, WAV)",
                                 iconRes = R.drawable.dvd_disk_icon,
-                                color = MaterialTheme.colorScheme.tertiary,
+                                color = AccentPurple,
                                 onClick = onVideoToAudio
                             ),
                             ToolItem(
                                 title = "Audio Converter",
                                 description = "Convert between different audio formats (FLAC to MP3, AAC to WAV)",
                                 iconRes = R.drawable.service_tools_icon,
-                                color = MaterialTheme.colorScheme.secondary,
+                                color = AccentCyan,
                                 onClick = onAudioConverter
                             )
                         )
@@ -223,21 +223,21 @@ fun MediaToolsContent(
                                 title = "Equalizer & FX",
                                 description = "Advanced 10-band equalizer with bass boost and 3D reverb",
                                 iconRes = R.drawable.filters_icon,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = AccentOrange,
                                 onClick = onEqualizer
                             ),
                             ToolItem(
                                 title = "Volume Booster",
                                 description = "Safely boost volume levels for quiet recordings",
                                 iconRes = R.drawable.speaker_icon,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                color = AccentAmber,
                                 onClick = onVolumeBooster
                             ),
                             ToolItem(
                                 title = "Noise Reducer",
                                 description = "Remove background hiss and noise from your audio",
                                 iconRes = R.drawable.bell_silent_icon,
-                                color = MaterialTheme.colorScheme.secondary,
+                                color = AccentGreen,
                                 onClick = onNoiseReducer
                             )
                         )
@@ -252,14 +252,14 @@ fun MediaToolsContent(
                                 title = "ID3 Tag Editor",
                                 description = "Edit song titles, artists, albums, and album artwork",
                                 iconRes = R.drawable.folder_edit_icon,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = Color(0xFFE91E63),
                                 onClick = onTagEditor
                             ),
                             ToolItem(
                                 title = "Lyrics Finder",
                                 description = "Automatically find and embed lyrics into your audio files",
                                 iconRes = R.drawable.music_song_file_icon,
-                                color = MaterialTheme.colorScheme.secondary,
+                                color = Color(0xFF2196F3),
                                 onClick = onLyricsFinder
                             )
                         )
@@ -352,11 +352,7 @@ fun ToolCard(tool: ToolItem) {
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(tool.color.copy(alpha = 0.8f), tool.color)
-                        )
-                    ),
+                    .background(Brush.linearGradient(colors = listOf(tool.color.copy(alpha = 0.8f), tool.color))),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -366,9 +362,7 @@ fun ToolCard(tool: ToolItem) {
                     modifier = Modifier.size(28.dp)
                 )
             }
-            
             Spacer(modifier = Modifier.width(16.dp))
-            
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = tool.title,

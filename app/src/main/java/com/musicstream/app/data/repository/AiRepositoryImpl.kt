@@ -19,7 +19,6 @@ class AiRepositoryImpl @Inject constructor(
         val prompt = """
             Based on my listening history: [$historyStr] 
             And my liked songs: [$likedStr]
-            
             Recommend 10 similar songs. 
             Return the result ONLY as a list where each line is in the format: "Song Title - Artist Name".
             Do not include numbering or extra text.

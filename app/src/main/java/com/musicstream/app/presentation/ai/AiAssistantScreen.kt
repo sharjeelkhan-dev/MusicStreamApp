@@ -53,8 +53,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -106,7 +110,6 @@ fun AiAssistantScreenContent(
 ) {
     val listState = rememberLazyListState()
 
-    // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(uiState.messages.size, uiState.isLoading) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
@@ -231,15 +234,6 @@ fun AiAssistantHeader(onBackClick: () -> Unit) {
                 )
             }
         }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Icon(
-            painter = painterResource(id = R.drawable.ai_sparkles_icon),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.size(28.dp)
-        )
     }
 }
 
@@ -270,12 +264,12 @@ fun AiAssistantInput(
                 value = textInput,
                 onValueChange = onValueChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { 
+                placeholder = {
                     Text(
-                        "Ask me anything...", 
+                        "Ask me anything...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    ) 
+                    )
                 },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
@@ -293,7 +287,7 @@ fun AiAssistantInput(
                 modifier = Modifier.size(44.dp),
                 shape = CircleShape,
                 containerColor = if (textInput.isNotBlank() && !isLoading) AccentPurple else MaterialTheme.colorScheme.surfaceVariant,
-                contentColor =  MaterialTheme.colorScheme.onBackground,
+                contentColor = MaterialTheme.colorScheme.onBackground,
                 elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
             ) {
                 Icon(
@@ -309,48 +303,118 @@ fun AiAssistantInput(
 @Composable
 fun AiChatBubble(message: ChatMessage) {
     val isUser = message.isUser
-    val alignment = if (isUser) Alignment.End else Alignment.Start
-    
-    val bubbleColor = if (isUser) {
-        Brush.linearGradient(listOf(AccentPurple, Color(0xFF7E3FF2)))
-    } else {
-        Brush.linearGradient(listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surface))
-    }
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = alignment
-    ) {
-        Box(
-            modifier = Modifier
-                .widthIn(max = 300.dp)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 20.dp,
-                        topEnd = 20.dp,
-                        bottomStart = if (isUser) 20.dp else 4.dp,
-                        bottomEnd = if (isUser) 4.dp else 20.dp
+    if (isUser) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.End
+        ) {
+            Box(
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 20.dp,
+                            topEnd = 20.dp,
+                            bottomStart = 20.dp,
+                            bottomEnd = 4.dp
+                        )
+                    )
+                    .background(Brush.linearGradient(listOf(AccentPurple, Color(0xFF7E3FF2))))
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    text = message.text,
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        lineHeight = 22.sp,
+                        fontSize = 15.sp
                     )
                 )
-                .background(bubbleColor)
-                .padding(14.dp)
-        ) {
-            Text(
-                text = message.text,
-                color = if (isUser) Color.White else MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    lineHeight = 22.sp,
-                    fontSize = 15.sp
-                )
-            )
+            }
         }
-        
-        Text(
-            text = if (isUser) "You" else "Gemini AI",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.padding(top = 4.dp, start = if (isUser) 0.dp else 4.dp, end = if (isUser) 4.dp else 0.dp)
-        )
+    } else {
+        // Screenshot exact-match typography rendering
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        ) {
+            val lines = message.text.split("\n")
+            lines.forEach { line ->
+                val trimmed = line.trim()
+                if (trimmed.isNotBlank()) {
+                    val isHeading = isHeadlineText(trimmed)
+                    Text(
+                        text = parseFormattedMarkdown(
+                            text = trimmed,
+                            isHeading = isHeading,
+                            headingColor = AccentPurple,
+                            textColor = MaterialTheme.colorScheme.onBackground
+                        ),
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = if (isHeading) 16.sp else 15.sp,
+                            lineHeight = if (isHeading) 24.sp else 23.sp,
+                            letterSpacing = 0.15.sp
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = if (isHeading) 8.dp else 6.dp)
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Detects whether a paragraph line is a title or numbered section like in screenshot
+ */
+private fun isHeadlineText(line: String): Boolean {
+    val clean = line.replace("#", "").trim()
+    return (clean.firstOrNull()?.isDigit() == true && clean.contains(".")) ||
+            line.startsWith("#") ||
+            (line.endsWith(")") && line.contains("("))
+}
+
+/**
+ * Parses bold Markdown (**text**) and colors headings according to design theme
+ */
+private fun parseFormattedMarkdown(
+    text: String,
+    isHeading: Boolean,
+    headingColor: Color,
+    textColor: Color
+): AnnotatedString {
+    val cleanText = text.replace(Regex("^#+\\s*"), "")
+    val parts = cleanText.split("**")
+
+    return buildAnnotatedString {
+        parts.forEachIndexed { index, part ->
+            if (index % 2 == 1) {
+                // Bold inline elements
+                withStyle(
+                    style = SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        color = if (isHeading) headingColor else textColor
+                    )
+                ) {
+                    append(part)
+                }
+            } else {
+                // Regular line text
+                withStyle(
+                    style = SpanStyle(
+                        fontWeight = if (isHeading) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isHeading) headingColor else textColor.copy(alpha = 0.88f)
+                    )
+                ) {
+                    append(part)
+                }
+            }
+        }
     }
 }
 
@@ -369,9 +433,9 @@ fun AiEmptyState(onPromptClick: (String) -> Unit) {
             tint = AccentPurple.copy(alpha = 0.2f),
             modifier = Modifier.size(100.dp)
         )
-        
+
         Spacer(Modifier.height(24.dp))
-        
+
         Text(
             text = "How can I help you today?",
             style = MaterialTheme.typography.headlineSmall,
@@ -379,7 +443,7 @@ fun AiEmptyState(onPromptClick: (String) -> Unit) {
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
-        
+
         Text(
             text = "Ask me to find songs, create playlists, or explain lyrics.",
             style = MaterialTheme.typography.bodyMedium,
@@ -387,9 +451,9 @@ fun AiEmptyState(onPromptClick: (String) -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp)
         )
-        
+
         Spacer(Modifier.height(40.dp))
-        
+
         Text(
             text = "TRY ASKING",
             style = MaterialTheme.typography.labelLarge,
@@ -397,16 +461,16 @@ fun AiEmptyState(onPromptClick: (String) -> Unit) {
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp
         )
-        
+
         Spacer(Modifier.height(16.dp))
-        
+
         val suggestions = listOf(
             "Recommend some 90s hits",
             "Late night relaxing music",
             "Songs for a workout session",
             "Sad indie songs for rainy days"
         )
-        
+
         suggestions.forEach { prompt ->
             Card(
                 modifier = Modifier
@@ -422,9 +486,9 @@ fun AiEmptyState(onPromptClick: (String) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.AutoAwesome, 
-                        null, 
-                        tint = AccentPurple, 
+                        Icons.Default.AutoAwesome,
+                        null,
+                        tint = AccentPurple,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(12.dp))
@@ -494,7 +558,7 @@ fun AiAssistantScreenChatPreview() {
             uiState = AiAssistantUiState(
                 messages = listOf(
                     ChatMessage("Hey! Can you recommend some 90s hits?", true),
-                    ChatMessage("Sure! Here are some classic 90s tracks for you.", false)
+                    ChatMessage("Here is a list of **90s Hits**:\n1. Top Classic Songs\n• **Song A** - Artist\n• **Song B** - Artist", false)
                 ),
                 recommendedSongs = MockData.trendingSongs.take(3)
             ),
@@ -544,7 +608,7 @@ fun AiChatBubbleUserPreview() {
 fun AiChatBubbleAiPreview() {
     MusicStreamTheme {
         Box(modifier = Modifier.padding(16.dp)) {
-            AiChatBubble(ChatMessage("Hello User! How can I help you today?", false))
+            AiChatBubble(ChatMessage("1. Recommended Song\n• **Artist Name** - Song title", false))
         }
     }
 }

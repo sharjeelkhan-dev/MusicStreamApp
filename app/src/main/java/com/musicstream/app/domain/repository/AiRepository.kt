@@ -1,7 +1,6 @@
 package com.musicstream.app.domain.repository
 
 import com.musicstream.app.domain.model.Song
-import com.musicstream.app.domain.model.Playlist
 
 interface AiRepository {
     suspend fun getRecommendations(history: List<Song>, likedSongs: List<Song>): List<Song>

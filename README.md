@@ -67,7 +67,7 @@
     <!-- Row 4 -->
   <tr>
     <td width="33.3%" align="center" valign="top">
-      <img src="https://github.com/user-attachments/assets/3e7813cf-b606-4798-8b4a-4aff1876e945" width="100%" alt="Screen 10" />
+      <img src="https://github.com/user-attachments/assets/db2b369e-96eb-4489-8baf-e3d5c0374b6e" width="100%" alt="Screen 10" />
       <br/><sub><b>Interface View 10</b></sub>
     </td>
     <td width="33.3%" align="center" valign="top">

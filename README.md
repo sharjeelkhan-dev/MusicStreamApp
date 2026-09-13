@@ -29,7 +29,7 @@
       <br/><sub><b>Interface View 2</b></sub>
     </td>
     <td width="33.3%" align="center" valign="top">
-      <img src="https://github.com/user-attachments/assets/0dd9e913-42f1-442e-9c7e-ad0706b03e70" width="100%" alt="Screen 2" />
+      <img src="https://github.com/user-attachments/assets/26d4e1c9-4b43-4276-88ab-c5c3f20da6e9" width="100%" alt="Screen 3" />
       <br/><sub><b>Interface View 2</b></sub>
     </td>
   
@@ -37,11 +37,11 @@
   <!-- Row 2 -->
   <tr>
     <td width="33.3%" align="center" valign="top">
-      <img src="https://github.com/user-attachments/assets/b342d87c-4d00-49be-9689-521ea144479f" width="100%" alt="Screen 4" />
+      <img src="https://github.com/user-attachments/assets/a0330082-e824-434d-975b-84b975a9bdc6" width="100%" alt="Screen 4" />
       <br/><sub><b>Interface View 4</b></sub>
     </td>
     <td width="33.3%" align="center" valign="top">
-      <img src="https://github.com/user-attachments/assets/750f52a4-f4d9-407e-ab7f-8182b8af7c10" width="100%" alt="Screen 5" />
+      <img src="https://github.com/user-attachments/assets/c3385f69-0ac3-41c1-8379-e33a4e65307e" width="100%" alt="Screen 5" />
       <br/><sub><b>Interface View 5</b></sub>
     </td>
     <td width="33.3%" align="center" valign="top">

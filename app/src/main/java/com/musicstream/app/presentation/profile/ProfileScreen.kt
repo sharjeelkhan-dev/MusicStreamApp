@@ -673,15 +673,45 @@ fun SettingsDialog(
     )
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun ProfileScreenPreview() {
-    MusicStreamTheme {
+    MusicStreamTheme(darkTheme = true) {
         ProfileContent(
             state = ProfileUiState(
                 user = MockData.currentUser,
+                playlistsCount = 12,
+                favoritesCount = 247,
+                downloadsCount = 56,
                 isLoading = false
+            )
+        )
+    }
+}
 
+@Preview(name = "Profile Light Mode", showBackground = true, showSystemUi = true)
+@Composable
+fun ProfileScreenLightPreview() {
+    MusicStreamTheme(darkTheme = false) {
+        ProfileContent(
+            state = ProfileUiState(
+                user = MockData.currentUser,
+                playlistsCount = 8,
+                favoritesCount = 120,
+                downloadsCount = 15,
+                isLoading = false
+            )
+        )
+    }
+}
+
+@Preview(name = "Profile Loading", showBackground = true)
+@Composable
+fun ProfileScreenLoadingPreview() {
+    MusicStreamTheme {
+        ProfileContent(
+            state = ProfileUiState(
+                isLoading = true
             )
         )
     }

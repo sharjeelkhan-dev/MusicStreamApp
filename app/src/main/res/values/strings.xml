@@ -2,5 +2,5 @@
 <resources>
     <string name="app_name">MusicStream</string>
     <!-- Replace with your actual Web Client ID from Firebase Console (OAuth 2.0 Client IDs) -->
-    <string name="default_web_client_id">322246698327-tsih8vrahrtp9pp181kvms452n54beg7.apps.googleusercontent.com</string>
+    <string name="default_web_client_id">924143477416-88bi499a0adl9bpgt2hmfl784o76fnk4.apps.googleusercontent.com</string>
 </resources>

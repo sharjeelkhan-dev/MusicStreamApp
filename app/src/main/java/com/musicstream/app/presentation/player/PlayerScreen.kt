@@ -90,7 +90,6 @@ import coil.compose.AsyncImage
 import com.musicstream.app.R
 import com.musicstream.app.domain.model.Song
 import com.musicstream.app.ui.theme.MusicStreamTheme
-import com.musicstream.app.util.SongQuotes
 
 @SuppressLint("QueryPermissionsNeeded")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -627,7 +626,6 @@ fun PlayerContent(
             state.currentSong?.let { song ->
                 Text(text = song.title, color = onBackgroundColor, fontSize = 32.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(text = song.artist, color = onBackgroundColor.copy(alpha = 0.6f), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
-                Text(text = SongQuotes.getQuoteForSong(song), color = onBackgroundColor.copy(alpha = 0.5f), fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp), lineHeight = 22.sp)
             }
 
             Spacer(modifier = Modifier.weight(0.2f))

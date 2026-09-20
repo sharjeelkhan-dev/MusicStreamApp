@@ -163,7 +163,7 @@ fun LibraryContent(
         when (state.downloadSortOrder) {
             SortOrder.Title -> downloadedOnly.sortedBy { it.title.lowercase() }
             SortOrder.Artist -> downloadedOnly.sortedBy { it.artist.lowercase() }
-            SortOrder.DateAdded -> downloadedOnly // Default order from DB
+            SortOrder.Latest -> downloadedOnly.sortedByDescending { it.downloadedAt }
         }
     }
 
@@ -666,7 +666,7 @@ fun LibraryContent(
                                             text = when (state.downloadSortOrder) {
                                                 SortOrder.Title -> "Sort"
                                                 SortOrder.Artist -> "Sort"
-                                                SortOrder.DateAdded -> "Sort"
+                                                SortOrder.Latest -> "Sort"
                                             },
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp
@@ -755,7 +755,7 @@ fun DownloadSortMenu(
                         text = when (order) {
                             SortOrder.Title -> "Sort by Name"
                             SortOrder.Artist -> "Sort by Artist"
-                            SortOrder.DateAdded -> "Sort by Recently Added"
+                            SortOrder.Latest -> "Sort by Latest"
                         },
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -767,7 +767,7 @@ fun DownloadSortMenu(
                     val icon = when (order) {
                         SortOrder.Title -> Icons.Default.SortByAlpha
                         SortOrder.Artist -> Icons.Default.Person
-                        SortOrder.DateAdded -> Icons.Default.Schedule
+                        SortOrder.Latest -> Icons.Default.Schedule
                     }
                     Icon(icon, null, modifier = Modifier.size(20.dp))
                 },

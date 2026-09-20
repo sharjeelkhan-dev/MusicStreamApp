@@ -24,7 +24,7 @@ import com.musicstream.app.data.local.entity.NotificationEntity
         SearchHistoryEntity::class,
         NotificationEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {

@@ -19,7 +19,8 @@ data class Song(
     val isFavorite: Boolean = false,
     val isExplicit: Boolean = false,
     val playCount: Long = 0L,
-    val gradientIndex: Int = 0 // for gradient thumb selection
+    val gradientIndex: Int = 0, // for gradient thumb selection
+    val downloadedAt: Long = 0L
 ) : Parcelable {
     val durationFormatted: String
         get() {

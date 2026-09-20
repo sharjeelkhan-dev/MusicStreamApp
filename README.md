@@ -56,7 +56,7 @@
       <br/><sub><b>Interface View 7</b></sub>
     </td>
     <td width="33.3%" align="center" valign="top">
-      <img src="https://github.com/user-attachments/assets/86c02a87-7a27-4fea-9e83-24dbc0a83bfc" width="100%" alt="Screen 8" />
+      <img src="https://github.com/user-attachments/assets/d845d3d1-1de5-466d-9957-5af2e1dd9a92" width="100%" alt="Screen 8" />
       <br/><sub><b>Interface View 8</b></sub>
     </td>
      <td width="33.3%" align="center" valign="top">
@@ -89,4 +89,4 @@
 ### 📋 Prerequisites
 *   Android Studio Ladybug (or newer)
 *   JDK 17 or higher
-*   Android SDK 26 (Android 8.0) or higher
+*   Android SDK 26 (Android 8.0) or higherz

@@ -27,12 +27,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RemoveCircleOutline
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -40,6 +45,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -75,7 +81,9 @@ import com.musicstream.app.presentation.components.PlaylistSelectionBottomSheet
 import com.musicstream.app.presentation.components.SongListItem
 import com.musicstream.app.presentation.components.SongOptionsBottomSheet
 import com.musicstream.app.presentation.player.PlayerViewModel
-import com.musicstream.app.ui.theme.*
+import com.musicstream.app.ui.theme.FavoriteRed
+import com.musicstream.app.ui.theme.Gradients
+import com.musicstream.app.ui.theme.MusicStreamTheme
 
 @Composable
 fun LibraryScreen(
@@ -107,6 +115,7 @@ fun LibraryScreen(
         onDownloadSong = viewModel::downloadSong,
         onDeleteDownload = viewModel::deleteDownload,
         addSongToPlaylist = viewModel::addSongToPlaylist,
+        onSortOrderSelect = viewModel::setDownloadSortOrder,
         onPlaySongs = onPlaySongs,
         onPlayPauseToggle = {
             playerViewModel.togglePlayPause()
@@ -132,6 +141,7 @@ fun LibraryContent(
     onDownloadSong: (Song) -> Unit,
     onDeleteDownload: (String) -> Unit,
     addSongToPlaylist: (String, String) -> Unit,
+    onSortOrderSelect: (SortOrder) -> Unit = {},
     onPlaySongs: (List<Song>, Int) -> Unit = { _, _ -> },
     onPlayPauseToggle: () -> Unit = {},
     onGoToArtist: (String) -> Unit = {},
@@ -146,10 +156,14 @@ fun LibraryContent(
 
     val tabs = remember { LibraryTab.entries.toTypedArray() }
 
-    // DOWNLOADED SONGS FILTERING IS PLACED HERE (Composable Scope Outside LazyColumn)
-    val downloadedOnly = remember(state.downloads, state.downloadingSongsList) {
-        state.downloads.filter { downloadedSong ->
+    val sortedDownloads = remember(state.downloads, state.downloadSortOrder, state.downloadingSongsList) {
+        val downloadedOnly = state.downloads.filter { downloadedSong ->
             state.downloadingSongsList.none { it.id == downloadedSong.id }
+        }
+        when (state.downloadSortOrder) {
+            SortOrder.Title -> downloadedOnly.sortedBy { it.title.lowercase() }
+            SortOrder.Artist -> downloadedOnly.sortedBy { it.artist.lowercase() }
+            SortOrder.DateAdded -> downloadedOnly // Default order from DB
         }
     }
 
@@ -524,6 +538,7 @@ fun LibraryContent(
                     SongListItem(
                         song = song,
                         isPlaying = isCurrentItemPlaying,
+                        showDownloadTick = false,
                         onSongClick = {
                             if (isCurrentItemPlaying) {
                                 onPlayPauseToggle()
@@ -595,6 +610,7 @@ fun LibraryContent(
                                 song = song,
                                 modifier = Modifier.offset(y = (-30).dp),
                                 isPlaying = isCurrentItemPlaying,
+                                showDownloadTick = false,
                                 onSongClick = {
                                     if (isCurrentItemPlaying) {
                                         onPlayPauseToggle()
@@ -619,41 +635,86 @@ fun LibraryContent(
                 }
 
                 LibraryTab.Downloads -> {
-                    if (downloadedOnly.isEmpty()) {
+                    if (sortedDownloads.isEmpty()) {
                         item(key = "empty_downloads") { EmptyState("No downloads yet", "Downloaded songs will appear here") }
                     } else {
-                        item(key = "downloads_count_header") {
-                            Text(
-                                text = "${downloadedOnly.size} songs downloaded",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 24.dp).offset(y = (-25).dp)
-                            )
+                        item(key = "downloads_header_row") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp)
+                                    .offset(y = (-35).dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${sortedDownloads.size} songs",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+
+                                var showSortMenu by remember { mutableStateOf(false) }
+
+                                Box {
+                                    TextButton(
+                                        onClick = { showSortMenu = true },
+                                        contentPadding = PaddingValues(horizontal = 8.dp),
+                                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    ) {
+                                        Text(
+                                            text = when (state.downloadSortOrder) {
+                                                SortOrder.Title -> "Sort"
+                                                SortOrder.Artist -> "Sort"
+                                                SortOrder.DateAdded -> "Sort"
+                                            },
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.sort_descending_svgrepo_com),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+
+                                    DownloadSortMenu(
+                                        visible = showSortMenu,
+                                        selectedOrder = state.downloadSortOrder,
+                                        onDismiss = { showSortMenu = false },
+                                        onSortOrderSelect = { order ->
+                                            onSortOrderSelect(order)
+                                            showSortMenu = false
+                                        }
+                                    )
+                                }
+                            }
                         }
 
                         itemsIndexed(
-                            items = downloadedOnly,
+                            items = sortedDownloads,
                             key = { _, song -> "downloaded_${song.id}" }
                         ) { index, song ->
                             val isCurrentItemPlaying = isSongCurrentlyPlaying(song)
 
                             SongListItem(
-                                modifier = Modifier.offset(y = (-20).dp),
+                                modifier = Modifier.offset(y = (-45).dp),
                                 song = song,
                                 isPlaying = isCurrentItemPlaying,
+                                showDownloadTick = false,
                                 onSongClick = {
                                     if (isCurrentItemPlaying) {
                                         onPlayPauseToggle()
                                     } else {
-                                        onPlaySongs(downloadedOnly, index)
+                                        onPlaySongs(sortedDownloads, index)
                                     }
                                 },
                                 onPlayPauseClick = {
                                     if (isCurrentItemPlaying) {
                                         onPlayPauseToggle()
                                     } else {
-                                        onPlaySongs(downloadedOnly, index)
+                                        onPlaySongs(sortedDownloads, index)
                                     }
                                 },
                                 onFavoriteClick = { onToggleFavorite(song) },
@@ -670,6 +731,51 @@ fun LibraryContent(
                 Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                 Spacer(Modifier.height(70.dp))
             }
+        }
+    }
+}
+
+@Composable
+fun DownloadSortMenu(
+    visible: Boolean,
+    selectedOrder: SortOrder,
+    onDismiss: () -> Unit,
+    onSortOrderSelect: (SortOrder) -> Unit
+) {
+    DropdownMenu(
+        expanded = visible,
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        for (order in SortOrder.entries) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = when (order) {
+                            SortOrder.Title -> "Sort by Name"
+                            SortOrder.Artist -> "Sort by Artist"
+                            SortOrder.DateAdded -> "Sort by Recently Added"
+                        },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                onClick = {
+                    onSortOrderSelect(order)
+                },
+                leadingIcon = {
+                    val icon = when (order) {
+                        SortOrder.Title -> Icons.Default.SortByAlpha
+                        SortOrder.Artist -> Icons.Default.Person
+                        SortOrder.DateAdded -> Icons.Default.Schedule
+                    }
+                    Icon(icon, null, modifier = Modifier.size(20.dp))
+                },
+                colors = MenuDefaults.itemColors(
+                    textColor = if (selectedOrder == order) MaterialTheme.colorScheme.primary 
+                                else MaterialTheme.colorScheme.onSurface
+                )
+            )
         }
     }
 }
@@ -836,7 +942,7 @@ private fun PlaylistListItem(
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.recycle_bin_line_icon),
+                    painter = painterResource(id = R.drawable.recycle_bin_icon),
                     contentDescription = "Delete Playlist",
                     tint = FavoriteRed.copy(alpha = 0.6f),
                     modifier = Modifier.size(20.dp)

@@ -17,7 +17,8 @@ data class SongEntity(
     val isrc: String? = null,
     val quality: String = "320kbps",
     val playCount: Long = 0L,
-    val gradientIndex: Int = 0
+    val gradientIndex: Int = 0,
+    val downloadedAt: Long = 0L
 )
 
 @Entity(tableName = "playlists")

@@ -607,6 +607,7 @@ fun SearchContent(
                             song = song,
                             modifier = Modifier.offset(y = (-35).dp),
                             showThumbnail = true,
+                            showDownloadTick = true,
                             onSongClick = {
                                 onPlaySongs(state.searchResults, index)
                             },

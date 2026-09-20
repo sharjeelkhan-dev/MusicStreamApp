@@ -16,8 +16,11 @@ import kotlin.time.Duration.Companion.milliseconds
 
 enum class LibraryTab { Downloads, Playlists, Songs }
 
+enum class SortOrder { DateAdded, Title, Artist }
+
 data class LibraryUiState(
     val selectedTab: LibraryTab = LibraryTab.Playlists,
+    val downloadSortOrder: SortOrder = SortOrder.DateAdded,
     val playlists: List<Playlist> = emptyList(),
     val songs: List<Song> = emptyList(),
     val favorites: List<Song> = emptyList(),
@@ -118,6 +121,10 @@ class LibraryViewModel @Inject constructor(
 
     fun selectTab(tab: LibraryTab) {
         _uiState.update { it.copy(selectedTab = tab, selectedPlaylist = null) }
+    }
+
+    fun setDownloadSortOrder(order: SortOrder) {
+        _uiState.update { it.copy(downloadSortOrder = order) }
     }
 
     fun refresh() {

@@ -577,7 +577,8 @@ class MusicRepositoryImpl @Inject constructor(
                         // Save verified stream link along with local path into Room DB
                         val updatedEntity = resolvedSong.copy(
                             streamUrl = safeUrl,
-                            localPath = finalFile.absolutePath
+                            localPath = finalFile.absolutePath,
+                            downloadedAt = System.currentTimeMillis()
                         ).toEntity()
                         songDao.insertSong(updatedEntity)
 
@@ -702,7 +703,8 @@ class MusicRepositoryImpl @Inject constructor(
             quality = if (safeStreamUrl.contains("320")) "320kbps" else "160kbps",
             isFavorite = false,
             gradientIndex = ((name?.hashCode() ?: 0) and Integer.MAX_VALUE) % 5,
-            playCount = 0L
+            playCount = 0L,
+            downloadedAt = 0L
         )
     }
 
@@ -720,7 +722,8 @@ class MusicRepositoryImpl @Inject constructor(
         quality = quality,
         isFavorite = false,
         gradientIndex = gradientIndex,
-        playCount = playCount
+        playCount = playCount,
+        downloadedAt = downloadedAt
     )
 
     private fun Song.toEntity() = SongEntity(
@@ -736,7 +739,8 @@ class MusicRepositoryImpl @Inject constructor(
         isrc = isrc,
         quality = quality,
         playCount = playCount,
-        gradientIndex = gradientIndex
+        gradientIndex = gradientIndex,
+        downloadedAt = downloadedAt
     )
 
     private fun PlaylistEntity.toDomain() = Playlist(id = id, name = name, songCount = songCount, gradientIndex = gradientIndex)

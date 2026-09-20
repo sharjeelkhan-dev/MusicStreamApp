@@ -40,6 +40,7 @@ fun SongListItem(
     onLongClick: (Song) -> Unit = {},
     downloadProgress: Int? = null,
     isPlaying: Boolean = false,
+    showDownloadTick: Boolean = false,
     onPlayPauseClick: () -> Unit = {}
 ) {
     val thumbGradients = listOf(
@@ -145,7 +146,7 @@ fun SongListItem(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (song.localPath != null) {
+                if (song.localPath != null && showDownloadTick) {
                     Icon(
                         painter = painterResource(id = R.drawable.check_mark_line_icon),
                         contentDescription = "Downloaded",
@@ -167,9 +168,7 @@ fun SongListItem(
                         modifier = Modifier.size(24.dp)
                     )
                 }
-
                 Spacer(modifier = Modifier.width(4.dp))
-
                 IconButton(
                     onClick = {
                         onPlayPauseClick()
@@ -177,10 +176,6 @@ fun SongListItem(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(
-                            if (isPlaying) MaterialTheme.colorScheme.primary
-                            else Color.Transparent
-                        )
                 ) {
                     Icon(
                         painter = painterResource(
@@ -188,8 +183,8 @@ fun SongListItem(
                             else R.drawable.play_button_icon
                         ),
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = if (isPlaying) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(if (isPlaying) 20.dp else 28.dp)
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
@@ -210,6 +205,7 @@ fun WideSongListItem(
     onLongClick: (Song) -> Unit = {},
     downloadProgress: Int? = null,
     isPlaying: Boolean = false,
+    showDownloadTick: Boolean = false,
     onPlayPauseClick: () -> Unit = {}
 ) {
     SongListItem(
@@ -224,6 +220,7 @@ fun WideSongListItem(
         onLongClick = onLongClick,
         downloadProgress = downloadProgress,
         isPlaying = isPlaying,
+        showDownloadTick = showDownloadTick,
         onPlayPauseClick = onPlayPauseClick
     )
 }

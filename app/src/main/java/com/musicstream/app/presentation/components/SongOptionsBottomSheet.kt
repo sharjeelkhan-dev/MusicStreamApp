@@ -89,7 +89,7 @@ fun SongOptionsContent(
         if (song.localPath != null) {
             if (onDeleteDownloadClick != null) {
                 OptionItem(
-                    iconRes = R.drawable.recycle_bin_line_icon,
+                    iconRes = R.drawable.recycle_bin_icon,
                     text = "Delete Download",
                     iconColor = FavoriteRed,
                     textColor = FavoriteRed,
@@ -112,7 +112,7 @@ fun SongOptionsContent(
 
         if (onRemoveFromPlaylistClick != null) {
             OptionItem(
-                iconRes = R.drawable.recycle_bin_line_icon,
+                iconRes = R.drawable.recycle_bin_icon,
                 text = "Remove from Playlist",
                 iconColor = FavoriteRed,
                 textColor = FavoriteRed,

@@ -16,11 +16,11 @@ import kotlin.time.Duration.Companion.milliseconds
 
 enum class LibraryTab { Downloads, Playlists, Songs }
 
-enum class SortOrder { DateAdded, Title, Artist }
+enum class SortOrder { Latest, Title, Artist }
 
 data class LibraryUiState(
     val selectedTab: LibraryTab = LibraryTab.Playlists,
-    val downloadSortOrder: SortOrder = SortOrder.DateAdded,
+    val downloadSortOrder: SortOrder = SortOrder.Latest,
     val playlists: List<Playlist> = emptyList(),
     val songs: List<Song> = emptyList(),
     val favorites: List<Song> = emptyList(),

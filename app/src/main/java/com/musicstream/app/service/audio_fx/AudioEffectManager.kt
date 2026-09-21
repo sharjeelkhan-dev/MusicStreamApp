@@ -235,30 +235,28 @@ class AudioEffectManager @Inject constructor() {
             }
         }
     }
-
     @Synchronized
     fun release() {
         releaseInternal()
         lastBoundSessionId = -1
     }
-
     private fun releaseInternal() {
         try {
             equalizer?.enabled = false
             equalizer?.release()
-        } catch (e: Exception) { }
+        } catch (_: Exception) { }
         finally { equalizer = null }
 
         try {
             bassBoost?.enabled = false
             bassBoost?.release()
-        } catch (e: Exception) { }
+        } catch (_: Exception) { }
         finally { bassBoost = null }
 
         try {
             virtualizer?.enabled = false
             virtualizer?.release()
-        } catch (e: Exception) { }
+        } catch (_: Exception) { }
         finally { virtualizer = null }
 
         isInitialized = false

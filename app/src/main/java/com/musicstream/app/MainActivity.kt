@@ -17,17 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.google.common.util.concurrent.MoreExecutors
 import com.musicstream.app.presentation.MainApp
 import com.musicstream.app.presentation.MainViewModel
 import com.musicstream.app.service.MusicPlaybackService
 import com.musicstream.app.ui.theme.MusicStreamTheme
 import dagger.hilt.android.AndroidEntryPoint
-import java.util.concurrent.TimeUnit
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

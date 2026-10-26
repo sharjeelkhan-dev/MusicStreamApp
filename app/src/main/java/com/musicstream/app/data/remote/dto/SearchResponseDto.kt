@@ -8,7 +8,6 @@ data class SearchResponseDto(
     @Json(name = "resultCount") val resultCount: Int,
     @Json(name = "results") val results: List<TrackDto>
 )
-
 @JsonClass(generateAdapter = true)
 data class TrackDto(
     @Json(name = "trackId") val trackId: Long?,

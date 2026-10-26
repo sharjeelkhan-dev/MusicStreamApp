@@ -3,7 +3,6 @@ package com.musicstream.app.data.local.dao
 import androidx.room.*
 import com.musicstream.app.data.local.entity.FavoriteEntity
 import kotlinx.coroutines.flow.Flow
-
 @Dao
 interface FavoriteDao {
     @Query("SELECT * FROM favorites")

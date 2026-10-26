@@ -4,7 +4,6 @@ import androidx.room.*
 import com.musicstream.app.data.local.entity.SongEntity
 import com.musicstream.app.data.local.entity.RecentlyPlayedEntity
 import kotlinx.coroutines.flow.Flow
-
 @Dao
 interface SongDao {
     @Query("SELECT * FROM songs ORDER BY title ASC")

@@ -22,7 +22,6 @@ data class SongDto(
         gradientIndex = gradientIndex,
         isFavorite = false
     )
-
     fun toEntity() = com.musicstream.app.data.local.entity.SongEntity(
         id = id,
         title = title,

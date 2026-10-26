@@ -2,7 +2,6 @@ package com.musicstream.app.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-
 @Entity(tableName = "songs")
 data class SongEntity(
     @PrimaryKey val id: String,

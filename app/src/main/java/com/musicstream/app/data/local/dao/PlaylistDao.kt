@@ -9,31 +9,22 @@ import kotlinx.coroutines.flow.Flow
 interface PlaylistDao {
     @Query("SELECT * FROM playlists")
     fun getAllPlaylists(): Flow<List<PlaylistEntity>>
-
     @Query("SELECT * FROM playlists WHERE id = :id")
     suspend fun getPlaylistById(id: String): PlaylistEntity?
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaylist(playlist: PlaylistEntity)
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaylistSongCrossRef(crossRef: PlaylistSongCrossRef)
-
     @Query("UPDATE playlists SET songCount = songCount + 1 WHERE id = :playlistId")
     suspend fun incrementSongCount(playlistId: String)
-
     @Query("UPDATE playlists SET songCount = CASE WHEN songCount > 0 THEN songCount - 1 ELSE 0 END WHERE id = :playlistId")
     suspend fun decrementSongCount(playlistId: String)
-
     @Query("DELETE FROM playlists WHERE id = :id")
     suspend fun deletePlaylist(id: String)
-
     @Query("DELETE FROM playlists")
     suspend fun deleteAllPlaylists()
-
     @Delete
     suspend fun deletePlaylistSongCrossRef(crossRef: PlaylistSongCrossRef)
-
     @Transaction
     @Query("""
         SELECT s.* FROM songs s

@@ -10,7 +10,6 @@ data class SaavnSearchResponseDto(
     @Json(name = "success") val success: Boolean? = null,
     @Json(name = "data") val data: SaavnSearchDataDto? = null
 )
-
 @JsonClass(generateAdapter = true)
 data class SaavnSearchDataDto(
     @Json(name = "total") val total: Int? = 0,

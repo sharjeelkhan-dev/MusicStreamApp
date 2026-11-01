@@ -42,12 +42,10 @@ data class ImageDto(
     @Json(name = "label") val label: String?,
     @Json(name = "attributes") val attributes: ImageAttributesDto?
 )
-
 @JsonClass(generateAdapter = true)
 data class ImageAttributesDto(
     @Json(name = "height") val height: String?
 )
-
 @JsonClass(generateAdapter = true)
 data class LinkDto(
     @Json(name = "attributes") val attributes: LinkAttributesDto?

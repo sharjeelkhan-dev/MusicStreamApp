@@ -7,12 +7,10 @@ data class JioSaavnResponseDto(
     @Json(name = "status") val status: String?,
     @Json(name = "data") val data: JioSaavnDataDto?
 )
-
 @JsonClass(generateAdapter = true)
 data class JioSaavnDataDto(
     @Json(name = "results") val results: List<JioSaavnSongDto>?
 )
-
 @JsonClass(generateAdapter = true)
 data class JioSaavnSongDto(
     @Json(name = "id") val id: String?,

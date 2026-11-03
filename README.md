@@ -7,6 +7,7 @@
 | :--- | :--- |
 | 🤖 **AI-Powered Commands** | Implemented Gemini AI-driven song summarization and lyrics explanation features, providing users with deeper artistic context directly within the playback interface. |
 | **🚀 Dual-Engine Streaming** | Seamlessly combines search results and streams from YouTube (via Piped/NewPipe Extractor) and Saavn for a massive global library. |
+| 💬 Lyrics Share Card | Instantly generate beautifully styled, customizable image cards featuring real-time scrolling lyrics and dynamic album art palettes to share across social media. |
 | **🎧 Pro Audio Pipeline** | Fully powered by **Android Media3 (ExoPlayer)** with native integration of high-quality audio formats and custom audio sessions. |
 | **🎚️ Advanced Audio FX** | Built-in high-fidelity Equalizer, Bass Boost, and Virtualizer components for dynamic, personalized sound engineering. |
 | **📥 Offline Downloader** | Robust offline downloading system featuring precise download progress tracking, background threading, and offline playback. |

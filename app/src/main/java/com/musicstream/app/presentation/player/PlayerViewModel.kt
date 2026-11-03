@@ -19,6 +19,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import com.musicstream.app.domain.model.LyricLine
+import com.musicstream.app.domain.repository.LyricsRepository
+
 data class PlayerUiState(
     val currentSong: Song? = null,
     val isPlaying: Boolean = false,
@@ -36,7 +41,9 @@ data class PlayerUiState(
     val sleepTimerTimeLeft: Long = 0L,
     val aiSummary: String? = null,
     val aiLyricsExplanation: String? = null,
-    val isAiLoading: Boolean = false
+    val isAiLoading: Boolean = false,
+    val syncedLyrics: List<LyricLine> = emptyList(),
+    val isLyricsLoading: Boolean = false
 )
 
 enum class RepeatMode { OFF, ONE, ALL }
@@ -45,24 +52,65 @@ enum class RepeatMode { OFF, ONE, ALL }
 class PlayerViewModel @Inject constructor(
     private val musicRepository: MusicRepository,
     private val aiRepository: AiRepository,
+    private val lyricsRepository: LyricsRepository,
     private val playerManager: MusicPlayerManager,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _aiState = MutableStateFlow(AiState())
+    private val _syncedLyricsState = MutableStateFlow<List<LyricLine>>(emptyList())
+    private val _isLyricsLoadingState = MutableStateFlow(false)
+
+    init {
+        viewModelScope.launch {
+            playerManager.uiState
+                .map { it.currentSong?.id }
+                .distinctUntilChanged()
+                .collect { songId ->
+                    val currentSong = playerManager.uiState.value.currentSong
+                    if (currentSong != null) {
+                        _isLyricsLoadingState.value = true
+                        try {
+                            val lyrics = lyricsRepository.getSyncedLyrics(currentSong)
+                            _syncedLyricsState.value = lyrics
+                        } catch (e: Exception) {
+                            _syncedLyricsState.value = emptyList()
+                        } finally {
+                            _isLyricsLoadingState.value = false
+                        }
+                    } else {
+                        _syncedLyricsState.value = emptyList()
+                    }
+                }
+        }
+    }
 
     val uiState: StateFlow<PlayerUiState> = combine(
         playerManager.uiState,
         musicRepository.getPlaylists(),
         musicRepository.getRecentlyPlayed(),
-        _aiState
-    ) { playerState, playlists, recentlyPlayed, aiState ->
+        _aiState,
+        _syncedLyricsState,
+        _isLyricsLoadingState
+    ) { args: Array<Any?> ->
+        val playerState = args[0] as PlayerUiState
+        @Suppress("UNCHECKED_CAST")
+        val playlists = args[1] as List<Playlist>
+        @Suppress("UNCHECKED_CAST")
+        val recentlyPlayed = args[2] as List<Song>
+        val aiState = args[3] as AiState
+        @Suppress("UNCHECKED_CAST")
+        val syncedLyrics = args[4] as List<LyricLine>
+        val isLyricsLoading = args[5] as Boolean
+
         playerState.copy(
             playlists = playlists,
             recentlyPlayed = recentlyPlayed,
             aiSummary = aiState.summary,
             aiLyricsExplanation = aiState.lyricsExplanation,
-            isAiLoading = aiState.isLoading
+            isAiLoading = aiState.isLoading,
+            syncedLyrics = syncedLyrics,
+            isLyricsLoading = isLyricsLoading
         )
     }.stateIn(
         scope = viewModelScope,

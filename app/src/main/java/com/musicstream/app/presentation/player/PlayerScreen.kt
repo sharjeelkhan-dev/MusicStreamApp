@@ -3,15 +3,8 @@ package com.musicstream.app.presentation.player
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.media.audiofx.AudioEffect
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -89,6 +82,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.musicstream.app.R
 import com.musicstream.app.domain.model.Song
+import com.musicstream.app.presentation.components.AudioVisualizer
 import com.musicstream.app.ui.theme.MusicStreamTheme
 
 @SuppressLint("QueryPermissionsNeeded")
@@ -105,6 +99,8 @@ fun PlayerScreen(
     val context = LocalContext.current
     var showQueue by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
+    var showShareCardDialog by remember { mutableStateOf(false) }
+    var showLyricsSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
     PlayerContent(
@@ -122,6 +118,8 @@ fun PlayerScreen(
         onFavoriteClick = { song -> viewModel.toggleFavorite(song) },
         onQueueClick = { showQueue = true },
         onHistoryClick = { showHistory = true },
+        onLyricsClick = { showLyricsSheet = true },
+        onShareLyricsCardClick = { showShareCardDialog = true },
         onShareClick = {
             state.currentSong?.let { song ->
                 val sendIntent: Intent = Intent().apply {
@@ -193,6 +191,37 @@ fun PlayerScreen(
                 onSongClick = { song ->
                     viewModel.playSong(song)
                     showHistory = false
+                }
+            )
+        }
+    }
+
+    if (showShareCardDialog && state.currentSong != null) {
+        val firstLyric = state.syncedLyrics.firstOrNull()?.text ?: ""
+        com.musicstream.app.presentation.components.LyricsShareCardDialog(
+            song = state.currentSong!!,
+            lyricQuote = firstLyric,
+            primaryColor = songColor,
+            onDismiss = { showShareCardDialog = false }
+        )
+    }
+
+    if (showLyricsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showLyricsSheet = false },
+            sheetState = rememberModalBottomSheetState(),
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            com.musicstream.app.presentation.components.LyricsSheet(
+                syncedLyrics = state.syncedLyrics,
+                currentPositionMs = state.currentPosition,
+                isLyricsLoading = state.isLyricsLoading,
+                songColor = songColor,
+                onSeekTo = { viewModel.seekTo(it) },
+                onGetAiLyrics = {
+                    showLyricsSheet = false
+                    viewModel.getAiLyricsExplanation()
                 }
             )
         }
@@ -342,7 +371,6 @@ fun QueueList(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerContent(
     state: PlayerUiState,
@@ -368,7 +396,9 @@ fun PlayerContent(
     onGoToAlbum: (String) -> Unit,
     onGetAiSummary: () -> Unit = {},
     onGetAiLyricsExplanation: () -> Unit = {},
-    onClearAiState: () -> Unit = {}
+    onClearAiState: () -> Unit = {},
+    onShareLyricsCardClick: () -> Unit = {},
+    onLyricsClick: () -> Unit = {}
 ) {
     SideEffect {
         onPlaybackSpeedChange
@@ -588,6 +618,11 @@ fun PlayerContent(
                     ) {
                         val onSurface = MaterialTheme.colorScheme.onSurface
                         DropdownMenuItem(
+                            text = { Text("View Synced Lyrics (Karaoke)", color = onSurface) },
+                            onClick = { showMoreMenu = false; onLyricsClick() },
+                            leadingIcon = { Icon(painter = painterResource(id = R.drawable.music_song_file_icon), null, tint = onSurface, modifier = Modifier.size(20.dp)) },
+                        )
+                        DropdownMenuItem(
                             text = { Text("AI Song Summary", color = onSurface) },
                             onClick = { showMoreMenu = false; onGetAiSummary() },
                             leadingIcon = { Icon(painter = painterResource(id = R.drawable.song_icon), null, tint = onSurface, modifier = Modifier.size(20.dp)) },
@@ -595,6 +630,11 @@ fun PlayerContent(
                         DropdownMenuItem(
                             text = { Text("AI Lyrics Explanation", color = onSurface) },
                             onClick = { showMoreMenu = false; onGetAiLyricsExplanation() },
+                            leadingIcon = { Icon(painter = painterResource(id = R.drawable.music_song_file_icon), null, tint = onSurface, modifier = Modifier.size(20.dp)) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share Lyric Card", color = onSurface) },
+                            onClick = { showMoreMenu = false; onShareLyricsCardClick() },
                             leadingIcon = { Icon(painter = painterResource(id = R.drawable.music_song_file_icon), null, tint = onSurface, modifier = Modifier.size(20.dp)) },
                         )
                         DropdownMenuItem(
@@ -643,9 +683,9 @@ fun PlayerContent(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        VisualizerBars(
+                        AudioVisualizer(
                             isPlaying = state.isPlaying,
-                            songColor = songColor,
+                            accentColor = songColor,
                             progress = currentProgress,
                             onSeekStarted = { progress ->
                                 isUserSeeking = true
@@ -700,111 +740,6 @@ fun PlayerContent(
                 }
             }
             Spacer(modifier = Modifier.height(40.dp))
-        }
-    }
-}
-
-@Composable
-fun VisualizerBars(
-    isPlaying: Boolean,
-    songColor: Color,
-    progress: Float,
-    onSeekStarted: (Float) -> Unit,
-    onSeekProgress: (Float) -> Unit,
-    onSeekFinished: (Float) -> Unit
-) {
-    var isDragging by remember { mutableStateOf(false) }
-    var dragProgress by remember { mutableFloatStateOf(progress) }
-
-    // Fix: Internal State Sync with External State
-    LaunchedEffect(progress) {
-        if (!isDragging) {
-            dragProgress = progress
-        }
-    }
-
-    val currentDisplayProgress = if (isDragging) dragProgress else progress
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(60.dp)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { offset ->
-                        val newProgress = (offset.x / size.width).coerceIn(0f, 1f)
-                        onSeekStarted(newProgress)
-                        onSeekFinished(newProgress)
-                    }
-                )
-            }
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        isDragging = true
-                        val newProgress = (offset.x / size.width).coerceIn(0f, 1f)
-                        dragProgress = newProgress
-                        onSeekStarted(newProgress)
-                    },
-                    onDrag = { change, _ ->
-                        val newProgress = (change.position.x / size.width).coerceIn(0f, 1f)
-                        dragProgress = newProgress
-                        onSeekProgress(newProgress)
-                    },
-                    onDragEnd = {
-                        onSeekFinished(dragProgress)
-                        isDragging = false
-                    },
-                    onDragCancel = {
-                        onSeekFinished(dragProgress)
-                        isDragging = false
-                    }
-                )
-            }
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val barCount = 45
-            repeat(barCount) { index ->
-                val infiniteTransition = rememberInfiniteTransition(label = "bars")
-                val heightScale by infiniteTransition.animateFloat(
-                    initialValue = 0.3f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(durationMillis = (400..800).random(), easing = FastOutSlowInEasing),
-                        repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
-                    ),
-                    label = "barHeight"
-                )
-
-                val baseHeight = when (index % 10) {
-                    0 -> 15f
-                    1 -> 25f
-                    2 -> 40f
-                    3 -> 55f
-                    4 -> 45f
-                    5 -> 30f
-                    else -> 20f
-                }
-
-                val finalHeight = if (isPlaying) (baseHeight * heightScale).coerceAtLeast(10f) else baseHeight * 0.5f
-                val barProgressThreshold = (index.toFloat() / barCount)
-                val isPlayed = barProgressThreshold <= currentDisplayProgress
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(finalHeight.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(
-                            if (isPlayed) MusicStreamTheme.colors.seekBarActive
-                            else MusicStreamTheme.colors.seekBarInactive
-                        )
-                )
-            }
         }
     }
 }

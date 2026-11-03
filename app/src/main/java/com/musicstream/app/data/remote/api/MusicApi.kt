@@ -29,4 +29,9 @@ interface MusicApi {
     suspend fun getSongDetails(
         @Query("id") id: String
     ): ResponseBody
+
+    @GET("lyrics")
+    suspend fun getSaavnLyrics(
+        @Query("id") id: String
+    ): ResponseBody
 }

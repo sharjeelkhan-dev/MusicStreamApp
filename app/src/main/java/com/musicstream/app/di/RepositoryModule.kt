@@ -35,4 +35,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindNotificationRepository(impl: com.musicstream.app.data.repository.NotificationRepositoryImpl): com.musicstream.app.domain.repository.NotificationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLyricsRepository(impl: com.musicstream.app.data.repository.LyricsRepositoryImpl): com.musicstream.app.domain.repository.LyricsRepository
 }

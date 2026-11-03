@@ -72,12 +72,27 @@ class MusicPlayerManager @Inject constructor(
         }, MoreExecutors.directExecutor())
     }
 
+    private var isFetchingAutoMix = false
+    private var isCrossfading = false
+    private var fadeOutJob: Job? = null
+    private var fadeInJob: Job? = null
+
     private fun setupPlayerListener() {
         mediaController?.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                val wasCrossfading = isCrossfading
+                fadeOutJob?.cancel()
+
+                // If transition was natural/automatic or during crossfade, smoothly fade in the next track
+                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO || wasCrossfading) {
+                    startSmoothFadeIn(1500L)
+                } else {
+                    cancelFadesAndResetVolume()
+                }
+
                 updateStateFromController()
-                // Record to Recently Played when a new item starts playing
                 _uiState.value.currentSong?.let { song ->
+                    checkAndTriggerAutoMix(song)
                     managerScope.launch {
                         musicRepository.addToRecentlyPlayed(song)
                         
@@ -101,6 +116,7 @@ class MusicPlayerManager @Inject constructor(
                     startProgressTracker()
                 } else {
                     stopProgressTracker()
+                    cancelFadesAndResetVolume()
                 }
             }
 
@@ -145,6 +161,7 @@ class MusicPlayerManager @Inject constructor(
     }
 
     fun playSong(song: Song, queue: List<Song> = emptyList()) {
+        cancelFadesAndResetVolume()
         val controller = mediaController
         if (controller == null) {
             pendingAction = { playSong(song, queue) }
@@ -175,6 +192,7 @@ class MusicPlayerManager @Inject constructor(
     }
 
     fun seekTo(position: Long) {
+        cancelFadesAndResetVolume()
         val controller = mediaController
         if (controller == null) {
             pendingAction = { seekTo(position) }
@@ -204,14 +222,17 @@ class MusicPlayerManager @Inject constructor(
     }
 
     fun skipToNext() {
+        cancelFadesAndResetVolume()
         mediaController?.seekToNext()
     }
 
     fun skipToPrevious() {
+        cancelFadesAndResetVolume()
         mediaController?.seekToPrevious()
     }
 
     fun stop() {
+        cancelFadesAndResetVolume()
         stopProgressTracker()
         mediaController?.let {
             it.stop()
@@ -313,11 +334,107 @@ class MusicPlayerManager @Inject constructor(
                             duration = dur,
                             progress = calcProgress
                         ) }
+                        applyCrossfadeIfNecessary(pos, dur)
                     }
                 }
                 delay(250.milliseconds) // Refresh rate smoothly 250ms set kar diya gaya hai
             }
         }
+    }
+
+    private fun checkAndTriggerAutoMix(currentSong: Song?) {
+        if (currentSong == null || isFetchingAutoMix) return
+        val currentQueue = _uiState.value.queue
+        val currentIndex = mediaController?.currentMediaItemIndex ?: 0
+
+        if (currentQueue.isNotEmpty() && currentIndex >= currentQueue.size - 2) {
+            isFetchingAutoMix = true
+            managerScope.launch {
+                try {
+                    musicRepository.getTrendingSongs(query = currentSong.artist)
+                        .collect { recommendations ->
+                            val existingIds = currentQueue.map { it.id }.toSet()
+                            val newSongs = recommendations.filter { it.id !in existingIds }
+                            if (newSongs.isNotEmpty()) {
+                                val updatedQueue = currentQueue + newSongs
+                                _uiState.update { it.copy(queue = updatedQueue) }
+                                mediaController?.let { controller ->
+                                    val mediaItems = newSongs.map { it.toMediaItem() }
+                                    controller.addMediaItems(mediaItems)
+                                }
+                            }
+                            isFetchingAutoMix = false
+                        }
+                } catch (e: Exception) {
+                    Log.e("MusicPlayerManager", "Failed to fetch auto mix songs", e)
+                    isFetchingAutoMix = false
+                }
+            }
+        }
+    }
+
+    private fun applyCrossfadeIfNecessary(pos: Long, dur: Long) {
+        val controller = mediaController ?: return
+        val remainingMs = dur - pos
+        val crossfadeWindowMs = 3000L
+
+        // Only trigger crossfade if there actually is a next track or repeat is enabled
+        val currentIndex = controller.currentMediaItemIndex
+        val hasNextTrack = (currentIndex < controller.mediaItemCount - 1) ||
+                (controller.repeatMode != Player.REPEAT_MODE_OFF)
+
+        if (hasNextTrack && remainingMs in 1..crossfadeWindowMs && dur > 10000L) {
+            if (!isCrossfading) {
+                isCrossfading = true
+                startSmoothFadeOut(dur, crossfadeWindowMs)
+            }
+        } else if (isCrossfading && (remainingMs !in 1..crossfadeWindowMs)) {
+            cancelFadesAndResetVolume()
+        }
+    }
+
+    private fun startSmoothFadeOut(dur: Long, windowMs: Long) {
+        fadeOutJob?.cancel()
+        fadeInJob?.cancel()
+        fadeOutJob = managerScope.launch {
+            val controller = mediaController ?: return@launch
+            while (isActive && isCrossfading) {
+                val currentPos = controller.currentPosition
+                val remaining = dur - currentPos
+                if (remaining <= 0) break
+                val ratio = (remaining.toFloat() / windowMs.toFloat()).coerceIn(0f, 1f)
+                // Natural audio fade out curve (equal-power)
+                controller.volume = (ratio * ratio).coerceIn(0.05f, 1.0f)
+                delay(40.milliseconds)
+            }
+        }
+    }
+
+    private fun startSmoothFadeIn(durationMs: Long = 1500L) {
+        fadeInJob?.cancel()
+        fadeOutJob?.cancel()
+        val controller = mediaController ?: return
+        isCrossfading = true
+        controller.volume = 0f
+        fadeInJob = managerScope.launch {
+            val steps = 30
+            val interval = durationMs / steps
+            for (i in 1..steps) {
+                if (!isActive) break
+                val factor = (i.toFloat() / steps).coerceIn(0f, 1f)
+                controller.volume = (factor * factor).coerceIn(0f, 1f)
+                delay(interval.milliseconds)
+            }
+            controller.volume = 1.0f
+            isCrossfading = false
+        }
+    }
+
+    private fun cancelFadesAndResetVolume() {
+        fadeOutJob?.cancel()
+        fadeInJob?.cancel()
+        isCrossfading = false
+        mediaController?.volume = 1.0f
     }
 
     private fun stopProgressTracker() {

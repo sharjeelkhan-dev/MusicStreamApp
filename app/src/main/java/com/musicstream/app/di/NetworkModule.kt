@@ -69,4 +69,17 @@ object NetworkModule {
     fun provideMusicApi(retrofit: Retrofit): MusicApi {
         return retrofit.create(MusicApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideLrcLibApi(
+        @Named("baseClient") okHttpClient: OkHttpClient
+    ): com.musicstream.app.data.remote.api.LrcLibApi {
+        return Retrofit.Builder()
+            .baseUrl("https://lrclib.net/api/")
+            .client(okHttpClient)
+            .addConverterFactory(retrofit2.converter.moshi.MoshiConverterFactory.create())
+            .build()
+            .create(com.musicstream.app.data.remote.api.LrcLibApi::class.java)
+    }
 }

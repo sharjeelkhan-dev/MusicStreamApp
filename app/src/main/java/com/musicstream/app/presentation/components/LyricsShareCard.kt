@@ -64,7 +64,6 @@ fun LyricsShareCardDialog(
             Color(0xFF141414)
         )
     }
-
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(28.dp),

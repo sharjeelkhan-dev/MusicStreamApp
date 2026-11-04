@@ -61,7 +61,7 @@
       <br/><sub><b>Interface View 8</b></sub>
     </td>
      <td width="33.3%" align="center" valign="top">
-      <img src="https://github.com/user-attachments/assets/633ca5e1-962c-4082-a4e4-325a762e3e1c" width="100%" alt="Screen 9" />
+      <img src="https://github.com/user-attachments/assets/18b3151c-e967-4a33-9784-933cef9a6562" width="100%" alt="Screen 9" />
       <br/><sub><b>Interface View 9</b></sub>
     </td>
   </tr>

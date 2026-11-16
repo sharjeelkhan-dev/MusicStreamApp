@@ -163,7 +163,7 @@ fun LibraryContent(
         when (state.downloadSortOrder) {
             SortOrder.Title -> downloadedOnly.sortedBy { it.title.lowercase() }
             SortOrder.Artist -> downloadedOnly.sortedBy { it.artist.lowercase() }
-            SortOrder.Latest -> downloadedOnly.sortedByDescending { it.downloadedAt }
+            SortOrder.Latest -> downloadedOnly.sortedByDescending { if (it.downloadedAt > 0L) it.downloadedAt else it.title.hashCode().toLong() }
         }
     }
 
@@ -664,9 +664,9 @@ fun LibraryContent(
                                     ) {
                                         Text(
                                             text = when (state.downloadSortOrder) {
-                                                SortOrder.Title -> "Sort"
-                                                SortOrder.Artist -> "Sort"
-                                                SortOrder.Latest -> "Sort"
+                                                SortOrder.Title -> "Name"
+                                                SortOrder.Artist -> "Artist"
+                                                SortOrder.Latest -> "Latest"
                                             },
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp

@@ -124,6 +124,43 @@ class MusicPlayerManager @Inject constructor(
                 updateStateFromController()
                 if (playbackState == Player.STATE_READY && mediaController?.isPlaying == true) {
                     startProgressTracker()
+                } else if (playbackState == Player.STATE_ENDED) {
+                    val controller = mediaController
+                    if (controller != null && controller.repeatMode == Player.REPEAT_MODE_ALL && controller.mediaItemCount > 0) {
+                        Log.d("MusicPlayerManager", "Repeat ALL active. Restarting queue from track 0.")
+                        controller.seekTo(0, 0L)
+                        controller.prepare()
+                        controller.play()
+                    } else {
+                        Log.d("MusicPlayerManager", "Playback ended naturally. Stopping playback.")
+                        _uiState.update { it.copy(isPlaying = false, progress = 0f, currentPosition = 0L) }
+                        stopProgressTracker()
+                    }
+                }
+            }
+
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                Log.e("MusicPlayerManager", "Player Exception: ${error.errorCodeName} - ${error.message}")
+                val controller = mediaController ?: return
+                val currentQueue = _uiState.value.queue
+                val currentIndex = controller.currentMediaItemIndex
+
+                if (currentQueue.isNotEmpty() && currentIndex in currentQueue.indices) {
+                    val validQueue = currentQueue.filterIndexed { idx, _ -> idx != currentIndex }
+                    _uiState.update { it.copy(queue = validQueue) }
+                    try {
+                        controller.removeMediaItem(currentIndex)
+                        if (validQueue.isNotEmpty()) {
+                            controller.prepare()
+                            controller.play()
+                        } else {
+                            stop()
+                        }
+                    } catch (_: Exception) {
+                        stop()
+                    }
+                } else {
+                    stop()
                 }
             }
         })
@@ -134,9 +171,13 @@ class MusicPlayerManager @Inject constructor(
         if (isSeeking) return
 
         val currentIndex = controller.currentMediaItemIndex
+        val currentMediaId = controller.currentMediaItem?.mediaId
 
         _uiState.update { state ->
-            val currentSong = if (currentIndex in state.queue.indices) state.queue[currentIndex] else state.currentSong
+            val currentSong = state.queue.find { it.id == currentMediaId }
+                ?: if (currentIndex in state.queue.indices) state.queue[currentIndex]
+                else state.currentSong
+
             val rawDuration = controller.duration
             val dur = if (rawDuration > 0) rawDuration else (currentSong?.duration ?: 0L)
             val pos = controller.currentPosition.coerceAtLeast(0L)
@@ -171,7 +212,12 @@ class MusicPlayerManager @Inject constructor(
         val targetQueue = queue.ifEmpty { listOf(song) }
         val index = targetQueue.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
 
+        // Update UI state FIRST with target queue and song
         _uiState.update { it.copy(queue = targetQueue, currentIndex = index, currentSong = song) }
+
+        // Stop and clear previous ExoPlayer media items to prevent item/index mismatch
+        controller.stop()
+        controller.clearMediaItems()
 
         val mediaItems = targetQueue.map { it.toMediaItem() }
         controller.setMediaItems(mediaItems)
@@ -234,9 +280,14 @@ class MusicPlayerManager @Inject constructor(
     fun stop() {
         cancelFadesAndResetVolume()
         stopProgressTracker()
-        mediaController?.let {
-            it.stop()
-            it.clearMediaItems()
+        mediaController?.let { controller ->
+            try {
+                controller.pause()
+                controller.stop()
+                controller.clearMediaItems()
+            } catch (e: Exception) {
+                Log.e("MusicPlayerManager", "Error stopping playback controller", e)
+            }
         }
         _uiState.update {
             it.copy(
@@ -347,6 +398,15 @@ class MusicPlayerManager @Inject constructor(
         val currentQueue = _uiState.value.queue
         val currentIndex = mediaController?.currentMediaItemIndex ?: 0
 
+        // Offline / Downloaded songs queue separation
+        val isOfflineQueue = currentQueue.any { !it.localPath.isNullOrEmpty() && File(it.localPath).exists() } ||
+                (!currentSong.localPath.isNullOrEmpty() && File(currentSong.localPath).exists())
+
+        if (isOfflineQueue) {
+            Log.d("MusicPlayerManager", "Playing offline downloaded songs. Skipping online auto-mix.")
+            return
+        }
+
         if (currentQueue.isNotEmpty() && currentIndex >= currentQueue.size - 2) {
             isFetchingAutoMix = true
             managerScope.launch {
@@ -354,7 +414,9 @@ class MusicPlayerManager @Inject constructor(
                     musicRepository.getTrendingSongs(query = currentSong.artist)
                         .collect { recommendations ->
                             val existingIds = currentQueue.map { it.id }.toSet()
-                            val newSongs = recommendations.filter { it.id !in existingIds }
+                            val newSongs = recommendations.filter {
+                                it.id !in existingIds && !it.id.startsWith("mock") && !it.streamUrl.contains("sample")
+                            }
                             if (newSongs.isNotEmpty()) {
                                 val updatedQueue = currentQueue + newSongs
                                 _uiState.update { it.copy(queue = updatedQueue) }

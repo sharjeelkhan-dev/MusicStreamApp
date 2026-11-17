@@ -1,5 +1,6 @@
 package com.musicstream.app.service
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.annotation.OptIn
@@ -116,6 +117,19 @@ class MusicPlaybackService : MediaSessionService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
         return mediaSession
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        android.util.Log.d("MusicPlaybackService", "Task removed from recent apps. Halting playback and stopping service.")
+        try {
+            exoPlayer.pause()
+            exoPlayer.stop()
+            exoPlayer.clearMediaItems()
+        } catch (e: Exception) {
+            android.util.Log.e("MusicPlaybackService", "Error stopping ExoPlayer onTaskRemoved", e)
+        }
+        stopSelf()
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {

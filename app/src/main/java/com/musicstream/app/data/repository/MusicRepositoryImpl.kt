@@ -98,21 +98,21 @@ class MusicRepositoryImpl @Inject constructor(
             val searchQueries = if (query.isNotBlank()) {
                 listOf(query)
             } else {
-                dynamicPool.shuffled().take(3)
+                listOf("Top Songs 2026", "Global Top 50")
             }
 
-            val randomPage = (1..3).random()
+            val page = 1
 
             for (q in searchQueries) {
                 try {
-                    Log.d("MusicRepo", "Fetching catalog for query: $q (Page: $randomPage)")
+                    Log.d("MusicRepo", "Fetching catalog for query: $q (Page: $page)")
                     val response = withTimeoutOrNull(7000.milliseconds) {
-                        musicApi.searchSongs(q, page = randomPage, limit = 20)
+                        musicApi.searchSongs(q, page = page, limit = 20)
                     }
                     val songs = parseSongsFromResponse(response)
 
                     if (!songs.isNullOrEmpty()) {
-                        trendingResults.addAll(songs.map { it.toDomain() })
+                        trendingResults.addAll(songs.map { it.toDomain() }.filter { it.streamUrl.isNotBlank() })
                     }
                 } catch (e: Exception) {
                     Log.d("MusicRepo", "Query '$q' failed: ${e.message}")
@@ -139,14 +139,14 @@ class MusicRepositoryImpl @Inject constructor(
             val finalMixedList = trendingResults
                 .distinctBy { it.id }
                 .distinctBy { "${it.title.lowercase().trim()}_${it.artist.lowercase().trim()}" }
-                .shuffled()
 
             if (finalMixedList.isNotEmpty()) {
                 Log.d("MusicRepo", "Successfully loaded ${finalMixedList.size} diverse songs")
                 emit(finalMixedList)
             } else {
-                Log.w("MusicRepo", "All remote attempts failed, returning local Mock data")
-                emit(MockData.trendingSongs.distinctBy { it.id })
+                Log.w("MusicRepo", "Remote query empty, loading saved local DB songs")
+                val localSaved = songDao.getAllSongs().firstOrNull()?.map { it.toDomain() } ?: emptyList()
+                emit(localSaved)
             }
         }
 
@@ -286,8 +286,9 @@ class MusicRepositoryImpl @Inject constructor(
     }
 
     private fun parseSaavnSongFromJsonObject(map: JSONObject): SaavnSongDto {
-        val id = map.optString("id").ifEmpty { map.optString("songid", UUID.randomUUID().toString()) }
         val name = map.optString("name").ifEmpty { map.optString("songname", map.optString("title", "Unknown Track")) }
+        val fallbackId = "${name}_${map.optString("primaryArtists")}".hashCode().toString()
+        val id = map.optString("id").ifEmpty { map.optString("songid", fallbackId) }
 
         var extractedArtist = ""
 
@@ -449,10 +450,12 @@ class MusicRepositoryImpl @Inject constructor(
                 val response = musicApi.searchSongs(searchQuery, limit = 5)
                 val songs = parseSongsFromResponse(response)
 
-                // Match exact or closest song by title
+                // Strict title matching to ensure audio belongs to the exact song
                 val matchedItem = songs?.find {
-                    it.name.equals(song.title, ignoreCase = true)
-                } ?: songs?.firstOrNull()
+                    val cleanTarget = song.title.lowercase().trim()
+                    val cleanCandidate = it.name?.lowercase()?.trim().orEmpty()
+                    cleanCandidate.isNotBlank() && (cleanCandidate == cleanTarget || cleanCandidate.contains(cleanTarget) || cleanTarget.contains(cleanCandidate))
+                }
 
                 if (matchedItem != null) {
                     val downloadList = extractDownloadUrls(matchedItem.downloadUrl)

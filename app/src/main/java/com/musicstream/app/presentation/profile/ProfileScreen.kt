@@ -149,7 +149,8 @@ fun ProfileContent(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(
             modifier = Modifier
@@ -157,17 +158,17 @@ fun ProfileContent(
                 .padding(bottom = padding.calculateBottomPadding())
                 .verticalScroll(scrollState)
         ) {
-            // Immersive Header with Banner and Profile Info
+            // Immersive Header with Banner and Profile Info extending to top edge
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(340.dp)
+                    .height(360.dp)
             ) {
-                // Banner
+                // Banner extending behind status bar
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(240.dp)
+                        .height(260.dp)
                         .background(Gradients.profileBanner)
                 ) {
                     if (state.user?.bannerUrl?.isNotEmpty() == true) {

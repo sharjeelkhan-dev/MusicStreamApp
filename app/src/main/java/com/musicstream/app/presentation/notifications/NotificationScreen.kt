@@ -201,6 +201,7 @@ fun NotificationScreenContent(
     onClearNotification: (String) -> Unit
 ) {
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             Row(
                 modifier = Modifier
